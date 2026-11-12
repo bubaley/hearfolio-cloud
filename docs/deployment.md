@@ -52,6 +52,7 @@ All output goes to the container's stdout/stderr (`docker compose logs app`); Ca
 | `/healthz` | `200 ok` from Caddy itself (not logged) |
 | `/api/v1/*` | backend; request body limit `API_MAX_BODY_SIZE` (default `25MB`) |
 | `/ws/*` | backend (websockets) |
+| `/.well-known/hearfolio` | backend (server discovery for the Hearfolio apps) |
 | `/_nuxt/*` | files from `/app/frontend/.output/public`, `Cache-Control: public, max-age=31536000, immutable`, precompressed variants when present |
 | everything else | Nuxt (including the Nitro auth routes under `/api/auth/*`) |
 
@@ -83,6 +84,7 @@ The container reads the same settings as local development (`.env.example`). Pro
 | `DB_WAIT_TIMEOUT` | `60` | Seconds `migrate` waits for PostgreSQL |
 | `API_MAX_BODY_SIZE` | `25MB` | Caddy request body limit for `/api/v1/*` |
 | `NUXT_API_INTERNAL_URL` | `http://127.0.0.1:8000` | FastAPI as seen from the Nuxt server during SSR (set by the `frontend` service). Browsers never use it: they call `/api/v1` and `/ws` on the public origin through Caddy |
+| `PUBLIC_URL` | empty | Public origin (`https://rec.example.com`) used for invite links and the OAuth URLs in `/.well-known/hearfolio`. Set it in production: behind the proxy the request scheme is `http` |
 | `APP_VERSION`, `GIT_SHA` | baked in | Set by the build; do not override |
 
 `compose.yaml` forces `DEBUG=False`, `COOKIE_SECURE=True` and the in-network database/Redis addresses for the app.

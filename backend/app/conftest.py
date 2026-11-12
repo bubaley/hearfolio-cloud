@@ -20,7 +20,7 @@ from tortoise.migrations.api import migrate
 
 from app.core.database import TORTOISE_ORM
 from app.core.services.pubsub import get_pubsub
-from app.core.services.rate_limiter import login_rate_limiter
+from app.core.services.rate_limiter import invite_rate_limiter, login_rate_limiter, oauth_rate_limiter
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
 from app.core.settings import settings
 from app.domains.auth.services.auth_service import AuthService
@@ -120,9 +120,12 @@ async def setup_database(request: pytest.FixtureRequest):
 
 @pytest.fixture(autouse=True)
 def _reset_rate_limits():
-    login_rate_limiter.memory.clear()
+    limiters = (login_rate_limiter, invite_rate_limiter, oauth_rate_limiter)
+    for limiter in limiters:
+        limiter.memory.clear()
     yield
-    login_rate_limiter.memory.clear()
+    for limiter in limiters:
+        limiter.memory.clear()
 
 
 @pytest.fixture

@@ -164,12 +164,34 @@ The user rule always applies, so a forged or stale `Organization-Key` cannot wid
 
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
 
-`OrganizationService.create` saves the organization and the actor's membership in
+`OrganizationService.create` saves the organization and the actor's membership (role `owner`) in
 one transaction. A membership is created for the organization named in the body
-(`POST /organization-users` with `organization_id` + `user_id`), never the
-`Organization-Key` one: members are managed from the organization's own page. Membership addition, update and removal validate access through
-`validate_membership_change`; duplicate membership uses the database uniqueness constraint.
-The viewsets only delegate these workflows to the service.
+(`POST /organization-users` with `organization_id` + `user_id` + `role`), never the
+`Organization-Key` one: members are managed from the organization's own page. Addition, role change and removal
+check roles in the service (`validate_admin`, `validate_owner`; the last owner is protected under a row lock);
+duplicate membership uses the database uniqueness constraint. The viewsets only delegate these workflows to the service.
+
+### Org admin permission
+
+Endpoints that only owners/admins of the `Organization-Key` organization may call use
+`app/shared/permissions/is_organization_admin.py` (superusers pass, members get 403, a missing header 400):
+
+```python
+from app.shared.permissions.is_organization_admin import IsOrganizationAdmin, RequireOrgAdmin
+
+class SettingsViewSet(BaseModelViewSet[Settings]):
+    permission_classes = [IsAuthenticated, IsOrganizationAdmin]  # whole viewset
+
+    def get_permissions(self):  # or only the writes
+        base = [IsAuthenticated()]
+        return base if self.action in ('list', 'retrieve') else [*base, IsOrganizationAdmin()]
+
+@router.post('/thing')
+async def thing(auth_state: RequireOrgAdmin) -> ThingSchema: ...  # plain route: the same rule as a dependency
+```
+
+For a rule about another organization (the one in the body or the object itself) call
+`OrganizationService.validate_admin(user, organization_id)` / `validate_owner(...)` from the service.
 
 ### Service method shape
 
@@ -299,7 +321,7 @@ The schema is the frontend's API contract: `make openapi` (`manage.py openapi --
 | operationId | `<first tag>_<route name>`, snake_case: `organizations_list`, `organizations_partial_update`, `organization_users_create`, `auth_login`, `users_change_password`. Generated client functions take these names, so renaming a route or tag is a breaking change |
 | Tags | One per router, plural kebab-case resource (`organization-users`) |
 | Errors | `api_router` has `responses=ERROR_RESPONSES`: every operation documents `ErrorResponse` (`{data: null, error: {code, message, details}, success: false}`) for 400/401/403/404/409/422/429/500 |
-| Security | `cookieAuth` (apiKey cookie `access_token`), `tokenAuth` (apiKey header `Authorization`, `Token …`), `bearerAuth` (HTTP bearer JWT). Public auth routes (`PUBLIC_PATHS` in `core/auth.py`) declare `security: []` |
+| Security | `cookieAuth` (apiKey cookie `access_token`), `tokenAuth` (apiKey header `Authorization`, `Token …`), `bearerAuth` (HTTP bearer JWT). Public routes (`PUBLIC_PATHS` in `core/auth.py`, path templates such as `/api/v1/invites/{token}`) declare `security: []` |
 | Response models | Every endpoint has one: a return annotation on `@action` (or `response_model=`), `status_code=204` with `-> None` for empty responses, `status_code=201` for creation |
 | List responses | `PageResponse` → `<ReadSchema>Page` (`{data, meta: {page, page_size, has_next}}`) |
 

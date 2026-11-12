@@ -66,6 +66,23 @@ class Settings(BaseSettings):
     login_rate_limit_attempts: int = 10
     login_rate_limit_window_seconds: int = 15 * 60
 
+    # Public rate limits per client IP: failed invite lookups/accepts and failed OAuth token exchanges
+    public_rate_limit_attempts: int = 20
+    public_rate_limit_window_seconds: int = 15 * 60
+
+    # Public origin of the instance (`https://hearfolio.example.com`): invite links and the OAuth URLs in
+    # `/.well-known/hearfolio`. Empty: derived from the request (fine locally, set it behind a proxy).
+    public_url: str = ''
+    # Shown by `/.well-known/hearfolio`; the app refuses servers whose min_app_version is newer than itself.
+    instance_name: str = 'Hearfolio'
+    min_app_version: str = '0.10.0'
+    # Upload plan announced to the apps: single PUT below the threshold, S3 multipart above it.
+    upload_multipart_threshold_bytes: int = 16 * 1024 * 1024
+    upload_part_size_bytes: int = 8 * 1024 * 1024
+
+    # Invites: lifetime of a new invite link
+    invite_expire_days: int = 7
+
     # cookie settings
     cookie_secure: bool = False
     cookie_samesite: Literal['lax', 'strict', 'none'] = 'lax'

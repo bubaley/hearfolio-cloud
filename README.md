@@ -91,6 +91,10 @@ make rt   # Taskiq scheduler + worker
 
 Other useful commands: `make mm` (create migrations), `make help`.
 
+### 3. Connecting the Hearfolio app
+
+The app discovers a server at `GET /.well-known/hearfolio` (versions, OAuth URLs, upload limits) and signs in with OAuth 2.0 + PKCE (`/oauth/authorize` in the browser, then `POST /api/v1/oauth/token`). Teammates join through invite links (`/invite/{token}`). Set `PUBLIC_URL` to the public origin in production (`https://rec.example.com`): invite links and the OAuth URLs are built from it; locally it falls back to the request origin. `MIN_APP_VERSION` (default `0.10.0`) is the oldest app version allowed to connect; the other knobs are listed in `.env.example` under `HEARFOLIO`.
+
 ---
 
 ## Makefile

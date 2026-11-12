@@ -18,6 +18,9 @@ from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
 from app.core.settings import settings
 from app.core.telemetry import telemetry_config
+from app.domains.oauth.services.oauth_service import OAuthError
+from app.domains.oauth.views import oauth_error_handler
+from app.domains.oauth.well_known import well_known_router
 from app.domains.organization.services.organization_websocket_service import OrganizationWebSocketService
 
 setup_logging()
@@ -83,6 +86,8 @@ OrganizationWebSocketService.register_routes(ws_router)
 app.include_router(ws_router)
 
 app.include_router(health_router)
+app.include_router(well_known_router)
+app.add_exception_handler(OAuthError, oauth_error_handler)
 
 # TEMPORARY: remove with the fastapi-ronin release that registers PUT and PATCH separately (docs/follow-ups.md).
 split_put_patch_routes(app.router, generate_operation_id)

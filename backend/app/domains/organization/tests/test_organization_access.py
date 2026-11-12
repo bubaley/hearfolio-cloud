@@ -5,16 +5,16 @@ import pytest
 
 from app.core.exceptions import AppException
 from app.domains.auth.services.auth_service import AuthService
-from app.domains.organization.models import Organization, OrganizationUser
+from app.domains.organization.models import Organization, OrganizationRole, OrganizationUser
 from app.domains.organization.services.organization_service import OrganizationService
 
 
 @pytest.mark.asyncio
-async def test_member_can_add_remove_and_duplicate_is_reported(api_client, user_factory):
+async def test_admin_can_add_remove_and_duplicate_is_reported(api_client, user_factory):
     actor = await user_factory()
     added = await user_factory()
     organization = await Organization.create(name='Org', key='org')
-    await OrganizationUser.create(organization=organization, user=actor)
+    await OrganizationUser.create(organization=organization, user=actor, role=OrganizationRole.ADMIN)
     headers = {'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}'}
     body = {'organization_id': str(organization.id), 'user_id': str(added.id)}
     response = await api_client.post('/api/v1/organization-users', headers=headers, json=body)
@@ -35,8 +35,8 @@ async def test_member_is_added_to_the_organization_in_the_body_not_the_header(ap
     added = await user_factory()
     viewed = await Organization.create(name='Viewed', key='viewed')
     active = await Organization.create(name='Active', key='active')
-    await OrganizationUser.create(organization=viewed, user=actor)
-    await OrganizationUser.create(organization=active, user=actor)
+    await OrganizationUser.create(organization=viewed, user=actor, role=OrganizationRole.ADMIN)
+    await OrganizationUser.create(organization=active, user=actor, role=OrganizationRole.ADMIN)
     response = await api_client.post(
         '/api/v1/organization-users',
         headers={
@@ -158,7 +158,7 @@ async def test_membership_update_keeps_organization(api_client, user_factory):
     actor = await user_factory()
     organization = await Organization.create(name='Org', key='org')
     other = await Organization.create(name='Other', key='other')
-    membership = await OrganizationUser.create(organization=organization, user=actor)
+    membership = await OrganizationUser.create(organization=organization, user=actor, role=OrganizationRole.OWNER)
     await OrganizationUser.create(organization=other, user=actor)
     response = await api_client.patch(
         f'/api/v1/organization-users/{membership.id}',
