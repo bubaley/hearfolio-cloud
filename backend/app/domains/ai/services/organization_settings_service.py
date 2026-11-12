@@ -1,3 +1,5 @@
+import asyncio
+import ipaddress
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -9,6 +11,7 @@ from tortoise.transactions import in_transaction
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
 from app.core.services.crypto_service import CryptoService
+from app.core.settings import settings as app_settings
 from app.domains.ai.models import OrganizationSettings, SummaryTemplate
 from app.domains.ai.prompts import DEFAULT_SUMMARY_TEMPLATES
 from app.domains.ai.schemas import (
@@ -25,6 +28,8 @@ from app.domains.ai.services.openrouter_client import (
     OpenRouterClient,
 )
 from app.domains.organization.models import Organization
+
+HOST_LOOKUP_TIMEOUT_SECONDS = 3.0
 
 
 class OrganizationSettingsService:
@@ -120,6 +125,44 @@ class OrganizationSettingsService:
         return url
 
     @staticmethod
+    async def lookup_host(host: str) -> list[str]:
+        """DNS addresses of `host`; empty when it does not resolve (in time)."""
+        loop = asyncio.get_running_loop()
+        try:
+            infos = await asyncio.wait_for(loop.getaddrinfo(host, None), timeout=HOST_LOOKUP_TIMEOUT_SECONDS)
+        except OSError, TimeoutError:
+            return []
+        return [str(info[4][0]) for info in infos]
+
+    @classmethod
+    async def validate_base_url(cls, value: str) -> str:
+        """
+        Normalize a base URL and, unless AI_ALLOW_PRIVATE_BASE_URLS, reject hosts that are or resolve to private,
+        loopback, link-local or reserved addresses (the server would call internal services with the org key).
+        Best effort against DNS changes after the check; a host that does not resolve now is accepted.
+        """
+        url = cls.normalize_base_url(value)
+        if app_settings.ai_allow_private_base_urls:
+            return url
+        host = (urlsplit(url).hostname or '').rstrip('.').lower()
+        if host == 'localhost' or host.endswith('.localhost'):
+            addresses = ['127.0.0.1']
+        else:
+            try:
+                addresses = [str(ipaddress.ip_address(host))]
+            except ValueError:
+                addresses = await cls.lookup_host(host)
+        for address in addresses:
+            ip = ipaddress.ip_address(address.split('%', 1)[0])
+            if not ip.is_global or ip.is_multicast:
+                raise AppException.from_attrs(
+                    ErrorCode.VALIDATION_ERROR,
+                    'Адрес API указывает на внутреннюю сеть. Разрешите это на сервере (AI_ALLOW_PRIVATE_BASE_URLS)',
+                    details={'reason': 'private_base_url'},
+                )
+        return url
+
+    @staticmethod
     def normalize_api_key(value: str | None) -> str:
         key = (value or '').strip()
         if any(char.isspace() for char in key):
@@ -153,7 +196,19 @@ class OrganizationSettingsService:
     ) -> OrganizationSettings:
         given = data.model_fields_set
         if 'openrouter_base_url' in given:
-            settings.openrouter_base_url = cls.normalize_base_url(data.openrouter_base_url or '')
+            base_url = await cls.validate_base_url(data.openrouter_base_url or '')
+            # The stored key never follows a new host: whoever moves the URL must know the key.
+            if (
+                base_url != settings.openrouter_base_url
+                and settings.openrouter_api_key_encrypted
+                and 'openrouter_api_key' not in given
+            ):
+                raise AppException.from_attrs(
+                    ErrorCode.VALIDATION_ERROR,
+                    'При смене адреса API укажите ключ заново',
+                    details={'reason': 'api_key_required'},
+                )
+            settings.openrouter_base_url = base_url
         if 'openrouter_api_key' in given:
             key = cls.normalize_api_key(data.openrouter_api_key)
             settings.openrouter_api_key_encrypted = CryptoService.encrypt(key) if key else ''
@@ -188,11 +243,17 @@ class OrganizationSettingsService:
         """Check a key against the provider; unsaved values from `data` override the saved ones."""
         given = data.model_fields_set
         base_url = (
-            cls.normalize_base_url(data.openrouter_base_url or '')
+            await cls.validate_base_url(data.openrouter_base_url or '')
             if 'openrouter_base_url' in given
             else settings.openrouter_base_url
         )
-        key = cls.normalize_api_key(data.openrouter_api_key) if 'openrouter_api_key' in given else cls.api_key(settings)
+        if 'openrouter_api_key' in given:
+            key = cls.normalize_api_key(data.openrouter_api_key)
+        elif base_url == settings.openrouter_base_url:
+            key = cls.api_key(settings)
+        else:
+            # The saved key is only ever sent to the saved host.
+            return AIConnectionTestResultSchema(ok=False, message='Для нового адреса API укажите ключ')
         if not key:
             return AIConnectionTestResultSchema(ok=False, message='Укажите ключ API')
         try:

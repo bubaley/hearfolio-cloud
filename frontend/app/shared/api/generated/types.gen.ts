@@ -375,6 +375,14 @@ export type OAuthAuthorizeRequest = {
    * Device Name
    */
   device_name: string
+  /**
+   * Response Type
+   */
+  response_type?: string | null
+  /**
+   * Scope
+   */
+  scope?: string | null
 }
 
 /**
@@ -1088,6 +1096,7 @@ export type RecordingCreateSchema = {
    * Title
    */
   title?: string | null
+  title_source?: TitleSource | null
   /**
    * Recorded At
    */
@@ -1468,6 +1477,10 @@ export type RecordingResultReadSchema = {
    * Content
    */
   content: string
+  /**
+   * Error Code
+   */
+  error_code: string | null
   /**
    * Error Message
    */
@@ -8201,6 +8214,14 @@ export type OauthAuthorizeInfoData = {
      * Device Name
      */
     device_name: string
+    /**
+     * Response Type
+     */
+    response_type?: string | null
+    /**
+     * Scope
+     */
+    scope?: string | null
   }
   url: '/api/v1/oauth/authorize'
 }

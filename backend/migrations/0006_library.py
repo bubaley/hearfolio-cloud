@@ -7,6 +7,7 @@ from tortoise.contrib.postgres.fields import TSVectorField
 from tortoise.fields.base import OnDelete
 from uuid import uuid4
 from tortoise import fields
+from app.shared.migration_ops import PostgresRunSQL
 
 class Migration(migrations.Migration):
     dependencies = [('models', '0005_auto_20261113_0053')]
@@ -132,13 +133,17 @@ class Migration(migrations.Migration):
             options={'table': 'share_link', 'app': 'models', 'pk_attr': 'id'},
             bases=['BaseModel'],
         ),
-        # Not declared on the models: PostgreSQL-only, and SQLite test schemas are generated from the models.
+        # Not declared on the models (SQLite test schemas are generated from the models). GIN is PostgreSQL-only;
+        # the other two are portable, so a SQLite database still migrates.
+        PostgresRunSQL(
+            'CREATE INDEX recording_search_vector_gin ON recording USING GIN (search_vector);',
+            reverse_sql='DROP INDEX IF EXISTS recording_search_vector_gin;',
+        ),
         ops.RunSQL(
-            'CREATE INDEX recording_search_vector_gin ON recording USING GIN (search_vector); '
-            'CREATE INDEX recording_org_updated_id ON recording (organization_id, updated_at, id); '
-            'CREATE UNIQUE INDEX share_link_one_active ON share_link (recording_id) WHERE revoked_at IS NULL;',
-            reverse_sql='DROP INDEX IF EXISTS recording_search_vector_gin; '
-            'DROP INDEX IF EXISTS recording_org_updated_id; '
-            'DROP INDEX IF EXISTS share_link_one_active;',
+            [
+                'CREATE INDEX recording_org_updated_id ON recording (organization_id, updated_at, id)',
+                'CREATE UNIQUE INDEX share_link_one_active ON share_link (recording_id) WHERE revoked_at IS NULL',
+            ],
+            reverse_sql=['DROP INDEX IF EXISTS recording_org_updated_id', 'DROP INDEX IF EXISTS share_link_one_active'],
         ),
     ]

@@ -2,6 +2,7 @@ import secrets
 from datetime import timedelta
 
 from tortoise.exceptions import IntegrityError
+from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 from app.core.exceptions import AppException
@@ -14,6 +15,8 @@ from app.domains.organization.schemas import InviteAcceptSchema, InvitePreviewSc
 from app.domains.organization.services.organization_service import OrganizationService
 from app.domains.user.models import User
 
+# Unused expired/revoked invites stay listed (with their state) this long, then are deleted
+INVITE_RETENTION = timedelta(days=30)
 EMAIL_EXISTS = 'Войдите, чтобы принять приглашение'
 INVITE_NOT_FOUND = 'Invite not found'
 STATE_ERRORS = {
@@ -48,6 +51,16 @@ class InviteService:
             expires_at=utcnow() + timedelta(days=data.expires_in_days),
         )
         return invite, token
+
+    @staticmethod
+    async def purge_stale() -> int:
+        """Periodic: unused invites that expired or were revoked over INVITE_RETENTION ago (used ones stay)."""
+        cutoff = utcnow() - INVITE_RETENTION
+        return (
+            await OrganizationInvite.filter(accepted_at__isnull=True)
+            .filter(Q(expires_at__lt=cutoff) | Q(revoked_at__lt=cutoff))
+            .delete()
+        )
 
     @staticmethod
     async def revoke(invite: OrganizationInvite) -> OrganizationInvite:

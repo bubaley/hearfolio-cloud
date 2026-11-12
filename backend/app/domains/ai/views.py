@@ -42,6 +42,7 @@ from app.domains.ai.services.summary_template_service import SummaryTemplateServ
 from app.domains.library.models import Recording
 from app.domains.library.schemas import RecordingDetailSchema
 from app.domains.library.services.pipeline import RecordingPipeline
+from app.domains.library.services.recording_presenter import RecordingPresenter
 from app.domains.library.services.visibility import LibraryVisibility
 from app.domains.organization.models import Organization
 from app.domains.user.models import User
@@ -57,6 +58,7 @@ routers = (ai_settings_router, summary_templates_router, recording_ai_router, re
 
 # Public share links expose finished results through the library's seam.
 RecordingPipeline.register_share_results_provider(ResultService.shared_results)
+RecordingPipeline.register_result_ids_checker(ResultService.result_ids_of)
 
 
 def _visible_recordings(user: User) -> QuerySet[Recording]:
@@ -182,7 +184,7 @@ class RecordingAIViewSet(BaseGenericViewSet[Recording]):
     async def retry(self, item_id: UUID) -> RecordingDetailSchema:
         """«Повторить»: resume failed (or not started) processing from the last finished chunk."""
         recording = await ProcessingRequestService.retry(await self.get_object(item_id))
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
     @action(methods=['POST'], detail=True)
     async def retranscribe(self, item_id: UUID, data: RetranscribeSchema) -> RecordingDetailSchema:
@@ -190,7 +192,7 @@ class RecordingAIViewSet(BaseGenericViewSet[Recording]):
         recording = await self.get_object(item_id)
         model = await ProcessingRequestService.validate_retranscribe(recording, data)
         recording = await ProcessingRequestService.retranscribe(recording, model)
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
 
 @viewset(recording_results_router)

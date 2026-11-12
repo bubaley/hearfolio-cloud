@@ -37,6 +37,7 @@ from app.domains.library.schemas import (
     UploadPlanSchema,
 )
 from app.domains.library.services.project_service import ProjectService
+from app.domains.library.services.recording_presenter import RecordingPresenter
 from app.domains.library.services.recording_query import SYNC_PAGE_SIZE, RecordingQueryService
 from app.domains.library.services.recording_service import RecordingService
 from app.domains.library.services.share_link_service import ShareLinkService
@@ -178,7 +179,7 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
         if search_text:
             queryset = RecordingQueryService.search(queryset, search_text)
         page = await pagination.paginate(with_stable_ordering(queryset))
-        items = await RecordingQueryService.serialize(page, search_text)
+        items = await RecordingQueryService.serialize(page, self.user, search_text)
         await pagination.fill_meta(queryset=queryset, data=items)
         return cast(RecordingPage, RecordingPage.wrap(data=items, pagination=pagination))
 
@@ -195,9 +196,13 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
             payload = await UploadService.validate_create(organization, self.user, data)
             recording = await UploadService.create(payload)
         return RecordingCreatedSchema(
-            recording=await RecordingDetailSchema.from_tortoise_orm(recording),
+            recording=await RecordingPresenter.detail(recording, self.user),
             upload=await UploadService.plan(recording),
         )
+
+    @action(methods=['GET'], detail=True, name='retrieve')
+    async def retrieve(self, item_id: UUID) -> RecordingDetailSchema:
+        return await RecordingPresenter.detail(await self.get_object(item_id), self.user)
 
     @action(methods=['GET'], detail=False)
     async def sync(
@@ -213,7 +218,7 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
         recording = await self.get_object(item_id)
         changes = await RecordingService.validate_update(recording, data, self.user)
         recording = await RecordingService.update(recording, changes, self.user)
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
     async def perform_destroy(self, obj: Recording) -> None:
         await RecordingService.delete(obj, self.user)
@@ -221,7 +226,7 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
     @action(methods=['POST'], detail=True)
     async def restore(self, item_id: UUID) -> RecordingDetailSchema:
         recording = await RecordingService.restore(await self.get_deleted_object(item_id), self.user)
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
     @action(methods=['GET'], detail=True)
     async def audio(self, item_id: UUID, download: bool = False) -> AudioUrlSchema:
@@ -237,19 +242,19 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
     async def upload_complete(self, item_id: UUID, data: UploadCompleteSchema) -> RecordingDetailSchema:
         """Verify the uploaded object and start processing. Author only; repeating it is harmless."""
         recording = await UploadService.complete(await self.get_object(item_id), self.user, data)
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
     @action(methods=['POST'], detail=True, path='project-suggestion/accept')
     async def accept_project_suggestion(self, item_id: UUID) -> RecordingDetailSchema:
         recording = await self.get_object(item_id)
         recording = await RecordingService.resolve_project_suggestion(recording, True, self.user)
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
     @action(methods=['POST'], detail=True, path='project-suggestion/dismiss')
     async def dismiss_project_suggestion(self, item_id: UUID) -> RecordingDetailSchema:
         recording = await self.get_object(item_id)
         recording = await RecordingService.resolve_project_suggestion(recording, False, self.user)
-        return await RecordingDetailSchema.from_tortoise_orm(recording)
+        return await RecordingPresenter.detail(recording, self.user)
 
     @action(methods=['GET'], detail=True)
     async def events(self, item_id: UUID) -> list[RecordingEventReadSchema]:

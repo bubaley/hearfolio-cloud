@@ -1,6 +1,7 @@
 from typing import Any
 
 from tortoise.exceptions import IntegrityError
+from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
 from tortoise.transactions import in_transaction
 
@@ -28,6 +29,11 @@ class ProjectService:
         if await OrganizationService.is_admin(user, organization_id):
             return Project.filter(organization_id=organization_id)
         return LibraryVisibility.projects(user, organization_id)
+
+    @staticmethod
+    def referencing(project: Project) -> QuerySet[Recording]:
+        """Recordings filed into or suggested for the project: their serialized form depends on who sees it."""
+        return Recording.filter(Q(project_id=project.id) | Q(suggested_project_id=project.id))
 
     @staticmethod
     async def is_member(project: Project, user: User) -> bool:
@@ -71,7 +77,7 @@ class ProjectService:
             if privacy_changed and project.is_private:
                 await ProjectMember.get_or_create(project_id=project.id, user_id=actor.id)
         # Names are nested in recordings; access changes alter who sees them.
-        await LibraryRealtime.touch(Recording.filter(project_id=project.id))
+        await LibraryRealtime.touch(cls.referencing(project))
         return project
 
     @classmethod
@@ -80,7 +86,7 @@ class ProjectService:
             raise AppException.from_attrs(
                 ErrorCode.FORBIDDEN, 'Only the creator or an organization admin can delete a project'
             )
-        recording_ids = await Recording.filter(project_id=project.id).values_list('id', flat=True)
+        recording_ids = await cls.referencing(project).values_list('id', flat=True)
         await project.delete()
         await LibraryRealtime.touch(Recording.filter(id__in=recording_ids))
 
@@ -102,11 +108,11 @@ class ProjectService:
             member = await ProjectMember.create(project_id=project.id, user_id=user_id)
         except IntegrityError:
             raise AppException.from_attrs(ErrorCode.CONFLICT, 'User is already a member of this project')
-        await LibraryRealtime.touch(Recording.filter(project_id=project.id))
+        await LibraryRealtime.touch(cls.referencing(project))
         return member
 
     @classmethod
     async def remove_member(cls, project: Project, member: ProjectMember, actor: User) -> None:
         await cls.validate_members_change(project, actor)
         await member.delete()
-        await LibraryRealtime.touch(Recording.filter(project_id=project.id))
+        await LibraryRealtime.touch(cls.referencing(project))

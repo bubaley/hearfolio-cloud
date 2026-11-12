@@ -15,6 +15,7 @@ Open items after the 2026 modernization ([archive/roadmap-2026.md](archive/roadm
 ## Data
 
 - Optional data migration: lowercase existing `user.email` values so login can drop `iexact`.
+- **SQLite `migrate` stops at `0002_auth_token_lifecycle`**: Tortoise's SQLite schema editor writes the model docstring (`table_description` of `refresh_session`) into a `/* … */` comment and the statement fails (`near "every": syntax error`). Tests are unaffected (SQLite schemas are generated from the models). Migrations from `0006` on keep SQLite in mind (`app/shared/migration_ops.PostgresRunSQL` for PostgreSQL-only SQL, portable `RunSQL` otherwise).
 
 ## Forks and agent tooling
 

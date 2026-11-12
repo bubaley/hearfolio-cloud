@@ -142,6 +142,8 @@ class RecordingResultReadSchema(BaseReadSchema):
     model: str
     status: ResultStatus
     content: str
+    # Stable machine code (AIErrorCode); `error_message` is the Russian fallback
+    error_code: str | None
     error_message: str | None
     created_by_id: UUID | None
 

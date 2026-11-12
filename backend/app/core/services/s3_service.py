@@ -22,6 +22,17 @@ class S3Error(RuntimeError):
     pass
 
 
+class S3NoSuchUploadError(S3Error):
+    """The multipart upload is gone: completed, aborted, or expired by a bucket lifecycle rule."""
+
+
+def _error_code(error: ClientError) -> str:
+    return str(error.response.get('Error', {}).get('Code', ''))
+
+
+S3_DELETE_BATCH = 1000
+
+
 class S3UploadResult(BaseModel):
     key: str
     url: str
@@ -110,24 +121,58 @@ class S3Service:
         except (BotoCoreError, ClientError) as e:
             raise S3Error(f'Delete of {key} failed') from e
 
-    async def presigned_get_url(self, key: str, expires_in: int | None = None, download_name: str | None = None) -> str:
+    async def delete_many(self, keys: list[str]) -> list[str]:
+        """Batch delete (1000 keys per request). Returns the keys that could not be deleted."""
+        failed: list[str] = []
+        for start in range(0, len(keys), S3_DELETE_BATCH):
+            batch = keys[start : start + S3_DELETE_BATCH]
+            try:
+                response = await asyncio.to_thread(
+                    self.client.delete_objects,
+                    Bucket=self.bucket,
+                    Delete={'Objects': [{'Key': key} for key in batch], 'Quiet': True},
+                )
+            except BotoCoreError, ClientError:
+                failed.extend(batch)
+                continue
+            failed.extend(str(error.get('Key')) for error in response.get('Errors', []))
+        return failed
+
+    async def presigned_get_url(
+        self,
+        key: str,
+        expires_in: int | None = None,
+        download_name: str | None = None,
+        content_type: str | None = None,
+    ) -> str:
+        """`content_type` overrides the stored Content-Type of the response; `inline` unless `download_name`."""
         params: dict[str, Any] = {'Bucket': self.bucket, 'Key': key}
+        if content_type:
+            params['ResponseContentType'] = content_type
         if download_name:
             params['ResponseContentDisposition'] = f"attachment; filename*=UTF-8''{quote(download_name)}"
+        elif content_type:
+            params['ResponseContentDisposition'] = 'inline'
         return await self._presign('get_object', params, expires_in)
 
-    async def presigned_put_url(self, key: str, content_type: str, expires_in: int | None = None) -> str:
-        """Direct browser upload: the client must send the same Content-Type header."""
-        return await self._presign(
-            'put_object', {'Bucket': self.bucket, 'Key': key, 'ContentType': content_type}, expires_in
-        )
+    async def presigned_put_url(
+        self, key: str, content_type: str, expires_in: int | None = None, content_length: int | None = None
+    ) -> str:
+        """
+        Direct upload: the client must send the same Content-Type header. With `content_length` the signature also
+        covers `Content-Length`, so S3 rejects a body of any other size.
+        """
+        params: dict[str, Any] = {'Bucket': self.bucket, 'Key': key, 'ContentType': content_type}
+        if content_length is not None:
+            params['ContentLength'] = content_length
+        return await self._presign('put_object', params, expires_in)
 
     async def head_object(self, key: str) -> S3ObjectInfo | None:
         """Size and content type of an object, or None when it does not exist."""
         try:
             response = await asyncio.to_thread(self.client.head_object, Bucket=self.bucket, Key=key)
         except ClientError as e:
-            if e.response.get('Error', {}).get('Code') in ('404', 'NoSuchKey', 'NotFound'):
+            if _error_code(e) in ('404', 'NoSuchKey', 'NotFound'):
                 return None
             raise S3Error(f'Head of {key} failed') from e
         except BotoCoreError as e:
@@ -168,7 +213,11 @@ class S3Service:
                 if not response.get('IsTruncated'):
                     return parts
                 marker = response['NextPartNumberMarker']
-        except (BotoCoreError, ClientError) as e:
+        except ClientError as e:
+            if _error_code(e) == 'NoSuchUpload':
+                raise S3NoSuchUploadError(f'Multipart upload of {key} does not exist') from e
+            raise S3Error(f'Listing parts of {key} failed') from e
+        except BotoCoreError as e:
             raise S3Error(f'Listing parts of {key} failed') from e
 
     async def complete_multipart_upload(self, key: str, upload_id: str, parts: list[S3UploadedPart]) -> None:
@@ -186,7 +235,11 @@ class S3Service:
                 UploadId=upload_id,
                 MultipartUpload=multipart,
             )
-        except (BotoCoreError, ClientError) as e:
+        except ClientError as e:
+            if _error_code(e) == 'NoSuchUpload':
+                raise S3NoSuchUploadError(f'Multipart upload of {key} does not exist') from e
+            raise S3Error(f'Completing multipart upload of {key} failed') from e
+        except BotoCoreError as e:
             raise S3Error(f'Completing multipart upload of {key} failed') from e
 
     async def abort_multipart_upload(self, key: str, upload_id: str) -> None:

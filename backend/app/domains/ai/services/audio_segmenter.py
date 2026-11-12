@@ -20,6 +20,20 @@ MIN_TAIL_MS = 15_000
 # Peak level below which a chunk is treated as silence and not sent to the model.
 SILENCE_MAX_VOLUME_DB = -50.0
 
+# Inputs are uploaded files: read local files only (no network, no pipes), only through plain audio/video
+# demuxers (no playlists such as HLS or concat that reference other files), and bound how much is probed.
+INPUT_FORMATS = 'mov,mp4,m4a,3gp,3g2,mj2,matroska,webm,mp3,ogg,wav,flac,aac,amr,caf,aiff,w64,asf,avi'
+SAFE_INPUT_OPTIONS = (
+    '-protocol_whitelist',
+    'file',
+    '-format_whitelist',
+    INPUT_FORMATS,
+    '-probesize',
+    '50000000',
+    '-analyzeduration',
+    '100000000',
+)
+
 _MAX_VOLUME_RE = re.compile(r'max_volume:\s*(-?[\d.]+|-inf)\s*dB')
 
 
@@ -80,6 +94,7 @@ class AudioSegmenter:
                 self.ffprobe,
                 '-v',
                 'error',
+                *SAFE_INPUT_OPTIONS,
                 '-show_entries',
                 'format=duration',
                 '-of',
@@ -111,6 +126,7 @@ class AudioSegmenter:
                 f'{start_ms / 1000:.3f}',
                 '-t',
                 f'{(end_ms - start_ms) / 1000:.3f}',
+                *SAFE_INPUT_OPTIONS,
                 '-i',
                 str(source),
                 '-vn',
@@ -136,6 +152,7 @@ class AudioSegmenter:
             self.ffmpeg,
             '-nostdin',
             '-hide_banner',
+            *SAFE_INPUT_OPTIONS,
             '-i',
             str(chunk),
             '-af',

@@ -203,6 +203,9 @@ class RecordingCreateSchema(BaseSchema):
 
     client_id: UUID
     title: str | None = Field(None, max_length=255)
+    # With a title: `user` (default) keeps AI from renaming it; `auto` marks a generated name («Запись 13.11 10:05»)
+    # that the AI title may replace.
+    title_source: TitleSource | None = None
     recorded_at: datetime
     duration_ms: int = Field(0, ge=0)
     source: RecordingSource = RecordingSource.DESKTOP

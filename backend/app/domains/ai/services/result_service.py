@@ -1,15 +1,18 @@
-from typing import Any
+from datetime import timedelta
+from typing import Any, cast
 from uuid import UUID
 
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
+from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
+from app.core.utils.date_utils import utcnow
 from app.domains.ai.models import OrganizationSettings, RecordingResult, ResultStatus, SummaryTemplate
 from app.domains.ai.schemas import RecordingResultsCreateSchema
-from app.domains.ai.services.openrouter_client import AIProviderError
+from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderError
 from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
 from app.domains.ai.services.task_kicker import GENERATE_RESULT_TASK, AITaskKicker
 from app.domains.ai.services.text_task_service import TextTaskService
@@ -22,6 +25,8 @@ from app.domains.user.models import User
 
 RESULT_UPDATED = 'result.updated'
 CUSTOM_PROMPT_TITLE = 'Свой запрос'
+# A summary is one model call; a result `running` longer than this lost its worker.
+RESULT_STALE_AFTER = timedelta(minutes=15)
 
 
 class ResultRequest(BaseModel):
@@ -172,9 +177,16 @@ class ResultService:
 
     @classmethod
     async def generate(cls, result_id: UUID) -> RecordingResult | None:
-        """Task body: queued → running → done/failed. A result that is not queued (already taken) is left alone."""
-        taken = await RecordingResult.filter(id=result_id, status=ResultStatus.QUEUED).update(
-            status=ResultStatus.RUNNING
+        """
+        Task body: queued → running → done/failed. A result someone else is running is left alone, unless it has
+        been `running` longer than RESULT_STALE_AFTER (its worker crashed): then this run takes it over.
+        """
+        now = utcnow()
+        claimable = Q(status=ResultStatus.QUEUED) | Q(
+            status=ResultStatus.RUNNING, updated_at__lt=now - RESULT_STALE_AFTER
+        )
+        taken = await RecordingResult.filter(claimable, id=result_id).update(
+            status=ResultStatus.RUNNING, updated_at=now
         )
         if not taken:
             return None
@@ -189,18 +201,27 @@ class ResultService:
                 )
             result.content = content
             result.status = ResultStatus.DONE
+            result.error_code = None
             result.error_message = None
         except AIProviderError as error:
             logger.warning('Result {} failed: {} {}', result.id, error.code, error.detail)
             result.status = ResultStatus.FAILED
+            result.error_code = str(error.code)
             result.error_message = error.message
         except Exception:
             logger.exception('Result {} failed unexpectedly', result.id)
             result.status = ResultStatus.FAILED
+            result.error_code = AIErrorCode.INTERNAL
             result.error_message = 'Не удалось сделать саммари, попробуйте ещё раз'
-        await result.save(update_fields=['content', 'status', 'error_message', 'updated_at'])
+        await result.save(update_fields=['content', 'status', 'error_code', 'error_message', 'updated_at'])
         await cls.after_change(recording, [result])
         return result
+
+    @staticmethod
+    async def result_ids_of(recording: Recording, result_ids: list[UUID]) -> set[UUID]:
+        """Seam for share links: which of `result_ids` are results of the recording."""
+        ids = await RecordingResult.filter(recording_id=recording.id, id__in=result_ids).values_list('id', flat=True)
+        return set(cast(list[UUID], ids))
 
     @staticmethod
     async def shared_results(recording: Recording, result_ids: list[UUID]) -> list[dict[str, Any]]:
@@ -218,3 +239,23 @@ class ResultService:
             }
             for result in results
         ]
+
+    @staticmethod
+    async def requeue_stale(limit: int = 500) -> int:
+        """Periodic: results stuck in `running` (a crashed worker) go back to `queued` and get a new task."""
+        now = utcnow()
+        stale_ids = (
+            await RecordingResult.filter(status=ResultStatus.RUNNING, updated_at__lt=now - RESULT_STALE_AFTER)
+            .limit(limit)
+            .values_list('id', flat=True)
+        )
+        requeued = 0
+        for result_id in stale_ids:
+            if await RecordingResult.filter(
+                id=result_id, status=ResultStatus.RUNNING, updated_at__lt=now - RESULT_STALE_AFTER
+            ).update(status=ResultStatus.QUEUED, updated_at=now):
+                requeued += 1
+                await AITaskKicker.kick(GENERATE_RESULT_TASK, str(result_id))
+        if requeued:
+            logger.warning('Requeued {} stale summaries', requeued)
+        return requeued

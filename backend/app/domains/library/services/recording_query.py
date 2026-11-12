@@ -11,6 +11,7 @@ from tortoise.queryset import QuerySet
 
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
+from app.core.utils.date_utils import as_utc, utcnow
 from app.domains.library.models import Recording, RecordingVisibility
 from app.domains.library.schemas import (
     RecordingDetailSchema,
@@ -19,6 +20,7 @@ from app.domains.library.schemas import (
     RecordingSyncSchema,
     SnippetPartSchema,
 )
+from app.domains.library.services.recording_presenter import RecordingPresenter
 from app.domains.library.services.visibility import LibraryVisibility
 from app.domains.user.models import User
 
@@ -28,6 +30,8 @@ HIGHLIGHT_START = ''
 HIGHLIGHT_STOP = ''
 SNIPPET_RADIUS = 80
 SYNC_PAGE_SIZE = 100
+# How far the final sync cursor trails the present (commit-order safety margin, docs/product.md)
+SYNC_OVERLAP = timedelta(seconds=5)
 
 
 def _is_postgres(queryset: QuerySet) -> bool:
@@ -117,11 +121,10 @@ class RecordingQueryService:
         return [part for part in parts if part.text]
 
     @classmethod
-    async def serialize(cls, recordings: list[Recording], search_text: str | None = None) -> list[RecordingReadSchema]:
-        if not recordings:
-            return []
-        await Recording.fetch_for_list(recordings, 'created_by', 'project', 'suggested_project', 'tags')
-        items = [RecordingReadSchema.model_validate(recording) for recording in recordings]
+    async def serialize(
+        cls, recordings: list[Recording], viewer: User, search_text: str | None = None
+    ) -> list[RecordingReadSchema]:
+        items = await RecordingPresenter.many(recordings, viewer, RecordingReadSchema)
         if search_text:
             for item, recording in zip(items, recordings, strict=True):
                 item.snippet = cls.snippet(recording, search_text)
@@ -133,6 +136,19 @@ class RecordingQueryService:
     def encode_cursor(updated_at: datetime, recording_id: UUID) -> str:
         raw = json.dumps({'u': updated_at.isoformat(), 'i': str(recording_id)}).encode()
         return base64.urlsafe_b64encode(raw).decode().rstrip('=')
+
+    @classmethod
+    def next_cursor(cls, updated_at: datetime, recording_id: UUID, has_more: bool) -> str:
+        """
+        Exact position while paging. The last page backs off to `now - SYNC_OVERLAP` when its newest row is that
+        recent: `updated_at` is set before the transaction commits, so a slower transaction can still land just
+        behind a cursor. Such rows come again on the next sync; clients upsert by id and `updated_at`.
+        """
+        horizon = utcnow() - SYNC_OVERLAP
+        if has_more or as_utc(updated_at) <= horizon:
+            return cls.encode_cursor(updated_at, recording_id)
+        # Keep the representation of the stored values (naive UTC with use_tz=False).
+        return cls.encode_cursor(horizon if updated_at.tzinfo else horizon.replace(tzinfo=None), UUID(int=0))
 
     @staticmethod
     def decode_cursor(cursor: str) -> tuple[datetime, UUID]:
@@ -169,11 +185,9 @@ class RecordingQueryService:
             for recording in await LibraryVisibility.recordings(user, organization_id).filter(id__in=ids)
         }
         ordered = [visible[recording_id] for recording_id in ids if recording_id in visible]
-        if ordered:
-            await Recording.fetch_for_list(ordered, 'created_by', 'project', 'suggested_project', 'tags')
         return RecordingSyncSchema(
-            items=[RecordingDetailSchema.model_validate(recording) for recording in ordered],
+            items=await RecordingPresenter.many(ordered, user, RecordingDetailSchema),
             deleted_ids=[recording_id for recording_id in ids if recording_id not in visible],
-            next_cursor=cls.encode_cursor(rows[-1][1], rows[-1][0]) if rows else cursor,
+            next_cursor=cls.next_cursor(rows[-1][1], rows[-1][0], has_more) if rows else cursor,
             has_more=has_more,
         )

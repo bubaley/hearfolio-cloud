@@ -2,6 +2,7 @@ import secrets
 from datetime import timedelta
 from uuid import UUID
 
+from tortoise.exceptions import IntegrityError
 from tortoise.expressions import F
 from tortoise.transactions import in_transaction
 
@@ -33,24 +34,38 @@ class ShareLinkService:
     async def upsert(cls, recording: Recording, data: ShareLinkUpsertSchema, actor: User) -> ShareLink:
         if data.expires_at is not None and as_utc(data.expires_at) <= utcnow():
             raise AppException.from_attrs(ErrorCode.VALIDATION_ERROR, 'Expiry must be in the future')
+        result_ids = list(dict.fromkeys(data.result_ids))
+        known = await RecordingPipeline.known_result_ids(recording, result_ids)
+        if unknown := [result_id for result_id in result_ids if result_id not in known]:
+            raise AppException.from_attrs(
+                ErrorCode.VALIDATION_ERROR,
+                'Result not found for this recording',
+                details={'reason': 'unknown_result_ids', 'result_ids': [str(result_id) for result_id in unknown]},
+            )
         values = {
             'include_audio': data.include_audio,
             'include_transcript': data.include_transcript,
-            'result_ids': [str(result_id) for result_id in dict.fromkeys(data.result_ids)],
+            'result_ids': [str(result_id) for result_id in result_ids],
             'expires_at': data.expires_at,
         }
         link = await cls.active(recording)
-        async with in_transaction():
-            if link is None:
-                link = ShareLink(
-                    recording_id=recording.id, token=secrets.token_urlsafe(TOKEN_BYTES), created_by_id=actor.id
-                )
-                link.update_from_dict(values)
-                await link.save()
-                await RecordingService.record_event(recording, RecordingEventKind.SHARED, actor)
-            else:
-                link.update_from_dict(values)
-                await link.save(update_fields=[*values, 'updated_at'])
+        if link is None:
+            try:
+                async with in_transaction():
+                    link = ShareLink(
+                        recording_id=recording.id, token=secrets.token_urlsafe(TOKEN_BYTES), created_by_id=actor.id
+                    )
+                    link.update_from_dict(values)
+                    await link.save()
+                    await RecordingService.record_event(recording, RecordingEventKind.SHARED, actor)
+                return link
+            except IntegrityError:
+                # A concurrent request created the active link first (one-active-link index): edit that one.
+                link = await cls.active(recording)
+                if link is None:
+                    raise
+        link.update_from_dict(values)
+        await link.save(update_fields=[*values, 'updated_at'])
         return link
 
     @classmethod
@@ -84,7 +99,9 @@ class ShareLinkService:
         audio = None
         if link.include_audio and recording.upload_state == UploadState.UPLOADED:
             expires_in = settings.share_audio_presign_expire_seconds
-            url = await get_s3_service().presigned_get_url(recording.audio_key, expires_in=expires_in)
+            url = await get_s3_service().presigned_get_url(
+                recording.audio_key, expires_in=expires_in, content_type=recording.audio_mime
+            )
             audio = AudioUrlSchema(url=url, expires_at=utcnow() + timedelta(seconds=expires_in))
         result_ids = [UUID(str(result_id)) for result_id in link.result_ids or []]
         return PublicShareSchema(

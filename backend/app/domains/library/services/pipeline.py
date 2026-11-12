@@ -27,11 +27,14 @@ PROCESS_RECORDING_TASK = 'ai.process_recording'
 
 # (recording, result ids allowed by the link) -> JSON-serializable results, in the order to show them
 ShareResultsProvider = Callable[[Recording, list[UUID]], Awaitable[list[dict[str, Any]]]]
+# (recording, result ids) -> the ids among them that are results of this recording
+ResultIdsChecker = Callable[[Recording, list[UUID]], Awaitable[set[UUID]]]
 
 
 class _RecordingPipeline:
     def __init__(self) -> None:
         self._share_results_provider: ShareResultsProvider | None = None
+        self._result_ids_checker: ResultIdsChecker | None = None
 
     async def enqueue(self, recording: Recording) -> bool:
         """
@@ -55,6 +58,15 @@ class _RecordingPipeline:
 
     def register_share_results_provider(self, provider: ShareResultsProvider | None) -> None:
         self._share_results_provider = provider
+
+    def register_result_ids_checker(self, checker: ResultIdsChecker | None) -> None:
+        self._result_ids_checker = checker
+
+    async def known_result_ids(self, recording: Recording, result_ids: list[UUID]) -> set[UUID]:
+        """The ids among `result_ids` that belong to the recording; none without the ai domain."""
+        if not result_ids or self._result_ids_checker is None:
+            return set()
+        return await self._result_ids_checker(recording, result_ids)
 
     async def shared_results(self, recording: Recording, result_ids: list[UUID]) -> list[dict[str, Any]]:
         if not result_ids or self._share_results_provider is None:

@@ -117,6 +117,8 @@ class Settings(BaseSettings):
     ffmpeg_path: str = 'ffmpeg'
     ffprobe_path: str = 'ffprobe'
     ai_models_cache_seconds: int = 10 * 60
+    # Let the organization AI base URL resolve to private/loopback/link-local addresses (internal LLM gateways)
+    ai_allow_private_base_urls: bool = False
 
     # Recording uploads (thresholds above): largest accepted audio file
     upload_max_bytes: int = 10 * 1024 * 1024 * 1024
