@@ -5,6 +5,107 @@ export type ClientOptions = {
 }
 
 /**
+ * AIConnectionTestResultSchema
+ */
+export type AiConnectionTestResultSchema = {
+  /**
+   * Ok
+   */
+  ok: boolean
+  /**
+   * Message
+   */
+  message: string
+}
+
+/**
+ * AIConnectionTestSchema
+ *
+ * Values to check before saving them; omitted fields use the saved settings.
+ */
+export type AiConnectionTestSchema = {
+  /**
+   * Openrouter Base Url
+   */
+  openrouter_base_url?: string | null
+  /**
+   * Openrouter Api Key
+   */
+  openrouter_api_key?: string | null
+}
+
+/**
+ * AIModelKind
+ */
+export type AiModelKind = 'audio' | 'text'
+
+/**
+ * AIModelSchema
+ */
+export type AiModelSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Context Length
+   */
+  context_length?: number | null
+  /**
+   * Max Completion Tokens
+   */
+  max_completion_tokens?: number | null
+  /**
+   * Input Modalities
+   */
+  input_modalities?: Array<string>
+  /**
+   * Output Modalities
+   */
+  output_modalities?: Array<string>
+  /**
+   * Prompt Price
+   */
+  prompt_price?: string | null
+  /**
+   * Completion Price
+   */
+  completion_price?: string | null
+}
+
+/**
+ * AIOptionsSchema
+ *
+ * What members may choose; no secrets.
+ */
+export type AiOptionsSchema = {
+  /**
+   * Configured
+   */
+  configured: boolean
+  /**
+   * Transcription Models
+   */
+  transcription_models: Array<string>
+  /**
+   * Transcription Default Model
+   */
+  transcription_default_model: string | null
+  /**
+   * Summary Models
+   */
+  summary_models: Array<string>
+  /**
+   * Summary Default Model
+   */
+  summary_default_model: string | null
+}
+
+/**
  * ErrorCode
  */
 export type ErrorCode =
@@ -141,6 +242,126 @@ export type OrganizationReadSchema = {
 }
 
 /**
+ * OrganizationSettingsReadSchema
+ *
+ * AI settings as org admins see them; the API key itself is never returned.
+ */
+export type OrganizationSettingsReadSchema = {
+  /**
+   * Openrouter Base Url
+   */
+  openrouter_base_url: string
+  /**
+   * Has Api Key
+   */
+  has_api_key: boolean
+  /**
+   * Api Key Hint
+   */
+  api_key_hint: string | null
+  /**
+   * Transcription Models
+   */
+  transcription_models: Array<string>
+  /**
+   * Transcription Default Model
+   */
+  transcription_default_model: string | null
+  /**
+   * Summary Models
+   */
+  summary_models: Array<string>
+  /**
+   * Summary Default Model
+   */
+  summary_default_model: string | null
+  /**
+   * Auto Transcribe
+   */
+  auto_transcribe: boolean
+  /**
+   * Auto Title
+   */
+  auto_title: boolean
+  /**
+   * Auto Tags
+   */
+  auto_tags: boolean
+  /**
+   * Auto Project
+   */
+  auto_project: boolean
+  /**
+   * Segment Seconds
+   */
+  segment_seconds: number
+  /**
+   * Language
+   */
+  language: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+}
+
+/**
+ * OrganizationSettingsUpdateSchema
+ *
+ * Partial update. `openrouter_api_key`: omitted keeps the key, `""` or null removes it, a value replaces it.
+ */
+export type OrganizationSettingsUpdateSchema = {
+  /**
+   * Openrouter Base Url
+   */
+  openrouter_base_url?: string | null
+  /**
+   * Openrouter Api Key
+   */
+  openrouter_api_key?: string | null
+  /**
+   * Transcription Models
+   */
+  transcription_models?: Array<string> | null
+  /**
+   * Transcription Default Model
+   */
+  transcription_default_model?: string | null
+  /**
+   * Summary Models
+   */
+  summary_models?: Array<string> | null
+  /**
+   * Summary Default Model
+   */
+  summary_default_model?: string | null
+  /**
+   * Auto Transcribe
+   */
+  auto_transcribe?: boolean | null
+  /**
+   * Auto Title
+   */
+  auto_title?: boolean | null
+  /**
+   * Auto Tags
+   */
+  auto_tags?: boolean | null
+  /**
+   * Auto Project
+   */
+  auto_project?: boolean | null
+  /**
+   * Segment Seconds
+   */
+  segment_seconds?: number | null
+  /**
+   * Language
+   */
+  language?: string | null
+}
+
+/**
  * OrganizationUpdateSchema
  */
 export type OrganizationUpdateSchema = {
@@ -225,6 +446,17 @@ export type OrganizationUserReadSchemaPage = {
 }
 
 /**
+ * SummaryTemplateReadSchemaPage
+ */
+export type SummaryTemplateReadSchemaPage = {
+  /**
+   * Data
+   */
+  data: Array<SummaryTemplateReadSchema>
+  meta: LightPageNumberPagination
+}
+
+/**
  * UserReadSchemaPage
  */
 export type UserReadSchemaPage = {
@@ -281,6 +513,88 @@ export type SessionSchema = {
    * Organizations
    */
   organizations: Array<OrganizationReadSchema>
+}
+
+/**
+ * SummaryTemplateCreateSchema
+ */
+export type SummaryTemplateCreateSchema = {
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Prompt
+   */
+  prompt: string
+  /**
+   * Auto
+   */
+  auto?: boolean
+  /**
+   * Position
+   */
+  position?: number | null
+}
+
+/**
+ * SummaryTemplateReadSchema
+ */
+export type SummaryTemplateReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Prompt
+   */
+  prompt: string
+  /**
+   * Auto
+   */
+  auto: boolean
+  /**
+   * Position
+   */
+  position: number
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+}
+
+/**
+ * SummaryTemplateUpdateSchema
+ */
+export type SummaryTemplateUpdateSchema = {
+  /**
+   * Name
+   */
+  name?: string | null
+  /**
+   * Prompt
+   */
+  prompt?: string | null
+  /**
+   * Auto
+   */
+  auto?: boolean | null
+  /**
+   * Position
+   */
+  position?: number | null
 }
 
 /**
@@ -2268,3 +2582,727 @@ export type OrganizationUsersUpdateResponses = {
 }
 
 export type OrganizationUsersUpdateResponse = OrganizationUsersUpdateResponses[keyof OrganizationUsersUpdateResponses]
+
+export type AiSettingsCurrentData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/ai-settings/current'
+}
+
+export type AiSettingsCurrentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type AiSettingsCurrentError = AiSettingsCurrentErrors[keyof AiSettingsCurrentErrors]
+
+export type AiSettingsCurrentResponses = {
+  /**
+   * Successful Response
+   */
+  200: OrganizationSettingsReadSchema
+}
+
+export type AiSettingsCurrentResponse = AiSettingsCurrentResponses[keyof AiSettingsCurrentResponses]
+
+export type AiSettingsUpdateCurrentData = {
+  body: OrganizationSettingsUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/ai-settings/current'
+}
+
+export type AiSettingsUpdateCurrentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type AiSettingsUpdateCurrentError = AiSettingsUpdateCurrentErrors[keyof AiSettingsUpdateCurrentErrors]
+
+export type AiSettingsUpdateCurrentResponses = {
+  /**
+   * Successful Response
+   */
+  200: OrganizationSettingsReadSchema
+}
+
+export type AiSettingsUpdateCurrentResponse = AiSettingsUpdateCurrentResponses[keyof AiSettingsUpdateCurrentResponses]
+
+export type AiSettingsModelsData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    kind?: AiModelKind
+    /**
+     * Search
+     */
+    search?: string | null
+  }
+  url: '/api/v1/ai-settings/models'
+}
+
+export type AiSettingsModelsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type AiSettingsModelsError = AiSettingsModelsErrors[keyof AiSettingsModelsErrors]
+
+export type AiSettingsModelsResponses = {
+  /**
+   * Response Ai Settings Models
+   *
+   * Successful Response
+   */
+  200: Array<AiModelSchema>
+}
+
+export type AiSettingsModelsResponse = AiSettingsModelsResponses[keyof AiSettingsModelsResponses]
+
+export type AiSettingsOptionsData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/ai-settings/options'
+}
+
+export type AiSettingsOptionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type AiSettingsOptionsError = AiSettingsOptionsErrors[keyof AiSettingsOptionsErrors]
+
+export type AiSettingsOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: AiOptionsSchema
+}
+
+export type AiSettingsOptionsResponse = AiSettingsOptionsResponses[keyof AiSettingsOptionsResponses]
+
+export type AiSettingsTestConnectionData = {
+  body: AiConnectionTestSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/ai-settings/test'
+}
+
+export type AiSettingsTestConnectionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type AiSettingsTestConnectionError = AiSettingsTestConnectionErrors[keyof AiSettingsTestConnectionErrors]
+
+export type AiSettingsTestConnectionResponses = {
+  /**
+   * Successful Response
+   */
+  200: AiConnectionTestResultSchema
+}
+
+export type AiSettingsTestConnectionResponse =
+  AiSettingsTestConnectionResponses[keyof AiSettingsTestConnectionResponses]
+
+export type SummaryTemplatesListData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number
+    /**
+     * Page Size
+     *
+     * Number of records per page
+     */
+    page_size?: number
+    /**
+     * Search
+     */
+    search?: string | null
+    /**
+     * Auto
+     */
+    auto?: boolean | null
+  }
+  url: '/api/v1/summary-templates'
+}
+
+export type SummaryTemplatesListErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SummaryTemplatesListError = SummaryTemplatesListErrors[keyof SummaryTemplatesListErrors]
+
+export type SummaryTemplatesListResponses = {
+  /**
+   * Successful Response
+   */
+  200: SummaryTemplateReadSchemaPage
+}
+
+export type SummaryTemplatesListResponse = SummaryTemplatesListResponses[keyof SummaryTemplatesListResponses]
+
+export type SummaryTemplatesCreateData = {
+  body: SummaryTemplateCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/summary-templates'
+}
+
+export type SummaryTemplatesCreateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SummaryTemplatesCreateError = SummaryTemplatesCreateErrors[keyof SummaryTemplatesCreateErrors]
+
+export type SummaryTemplatesCreateResponses = {
+  /**
+   * Successful Response
+   */
+  201: SummaryTemplateReadSchema
+}
+
+export type SummaryTemplatesCreateResponse = SummaryTemplatesCreateResponses[keyof SummaryTemplatesCreateResponses]
+
+export type SummaryTemplatesDestroyData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/summary-templates/{item_id}'
+}
+
+export type SummaryTemplatesDestroyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SummaryTemplatesDestroyError = SummaryTemplatesDestroyErrors[keyof SummaryTemplatesDestroyErrors]
+
+export type SummaryTemplatesDestroyResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type SummaryTemplatesDestroyResponse = SummaryTemplatesDestroyResponses[keyof SummaryTemplatesDestroyResponses]
+
+export type SummaryTemplatesRetrieveData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/summary-templates/{item_id}'
+}
+
+export type SummaryTemplatesRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SummaryTemplatesRetrieveError = SummaryTemplatesRetrieveErrors[keyof SummaryTemplatesRetrieveErrors]
+
+export type SummaryTemplatesRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: SummaryTemplateReadSchema
+}
+
+export type SummaryTemplatesRetrieveResponse =
+  SummaryTemplatesRetrieveResponses[keyof SummaryTemplatesRetrieveResponses]
+
+export type SummaryTemplatesPartialUpdateData = {
+  body: SummaryTemplateUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/summary-templates/{item_id}'
+}
+
+export type SummaryTemplatesPartialUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SummaryTemplatesPartialUpdateError =
+  SummaryTemplatesPartialUpdateErrors[keyof SummaryTemplatesPartialUpdateErrors]
+
+export type SummaryTemplatesPartialUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: SummaryTemplateReadSchema
+}
+
+export type SummaryTemplatesPartialUpdateResponse =
+  SummaryTemplatesPartialUpdateResponses[keyof SummaryTemplatesPartialUpdateResponses]
+
+export type SummaryTemplatesUpdateData = {
+  body: SummaryTemplateUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/summary-templates/{item_id}'
+}
+
+export type SummaryTemplatesUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SummaryTemplatesUpdateError = SummaryTemplatesUpdateErrors[keyof SummaryTemplatesUpdateErrors]
+
+export type SummaryTemplatesUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: SummaryTemplateReadSchema
+}
+
+export type SummaryTemplatesUpdateResponse = SummaryTemplatesUpdateResponses[keyof SummaryTemplatesUpdateResponses]

@@ -80,11 +80,12 @@ COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
 
 # Node 26 also links libatomic, which the slim Python image lacks; the version check fails the build if another
-# shared library goes missing. s6-overlay runs as the unprivileged user: /run holds its supervision tree.
+# shared library goes missing. ffmpeg/ffprobe cut recordings into chunks for transcription (domains/ai).
+# s6-overlay runs as the unprivileged user: /run holds its supervision tree.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libatomic1 \
+    && apt-get install -y --no-install-recommends libatomic1 ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
-    && node --version && caddy version \
+    && node --version && caddy version && ffmpeg -hide_banner -version >/dev/null && ffprobe -hide_banner -version >/dev/null \
     && chown app:app /run
 
 COPY --from=backend-builder /app/backend /app/backend

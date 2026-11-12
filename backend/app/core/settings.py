@@ -96,6 +96,11 @@ class Settings(BaseSettings):
     aws_s3_public_url: str | None = None
     aws_s3_presign_expire_seconds: int = 60 * 60
 
+    # AI processing: ffmpeg binaries for audio chunking, provider model catalog cache
+    ffmpeg_path: str = 'ffmpeg'
+    ffprobe_path: str = 'ffprobe'
+    ai_models_cache_seconds: int = 10 * 60
+
     @property
     def database_url(self) -> str:
         return f'{self.sql_engine}://{self.sql_user}:{self.sql_password}@{self.sql_host}:{self.sql_port}/{self.sql_database}'

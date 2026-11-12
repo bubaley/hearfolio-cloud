@@ -27,7 +27,7 @@ All business tables are organization-scoped (`Scope(user=..., organization='orga
 
 ### Roles — `OrganizationUser.role`
 
-`owner | admin | member` (default `member`). The creator of an organization becomes `owner`. Owner and admin are "org admins"; superusers act as org admins everywhere. At least one owner must remain; only an owner can grant/revoke `owner`. Helper: `OrganizationService.is_admin(user, organization) -> bool` (superuser → True) and a FastAPI dependency/permission `RequireOrgAdmin`.
+`owner | admin | member` (default `member`). The creator of an organization becomes `owner`. Owner and admin are "org admins"; superusers act as org admins everywhere. At least one owner must remain; only an owner can grant/revoke `owner`. Helper: `OrganizationService.is_admin(user, organization) -> bool` (superuser → True) and the viewset permission `IsOrganizationAdmin` (`app/shared/permissions/`, organization from `Organization-Key`).
 
 ### Invite (`organization` domain)
 
@@ -54,11 +54,17 @@ Superusers can still create users with passwords in «Настройки → П�
 | `segment_seconds` | 300 | Audio chunk length for transcription (60–900) |
 | `language` | `auto` | Hint passed to the transcription prompt |
 
-Only org admins read/write it. `POST .../settings/test` checks the key against `{base_url}/models` (or `/key`) and returns ok/error text. `GET .../settings/models?kind=audio|text&search=` proxies the provider catalog (cached 10 min) so the UI can offer a searchable picker. Members get `GET .../ai-options`: allowed models + defaults only, no secrets.
+Only org admins read/write it (`Organization-Key` selects the organization):
+
+- `GET /ai-settings/current`, `PATCH /ai-settings/current` (partial; `openrouter_api_key`: omitted keeps it, `""`/null removes it). A default model given explicitly must be in its list (400 otherwise); when a list change drops the current default, it falls back to the first allowed model (or null).
+- `POST /ai-settings/test {openrouter_base_url?, openrouter_api_key?}` checks the saved key, or unsaved values before saving, against `{base_url}/key` (falls back to `/models` for other compatible APIs) and returns `{ok, message}` with a Russian message.
+- `GET /ai-settings/models?kind=audio|text&search=` proxies the provider catalog (cached 10 min per base URL + key) for a searchable picker. `audio` = `audio` in `input_modalities` (dedicated speech-to-text models come from the `output_modalities=transcription` listing and are called through `/audio/transcriptions`); `text` = text in, text out.
+
+Members get `GET /ai-settings/options`: `configured`, allowed models and defaults only, no secrets. Settings are created with the defaults above on first access, or together with the organization.
 
 ### SummaryTemplate
 
-`name, prompt, auto (bool: run automatically after transcription), position, created_by`. Admins manage; everyone uses. Seeded on org creation: «Кратко» (auto), «Решения и договорённости», «Задачи и ответственные».
+`name, prompt, auto (bool: run automatically after transcription), position, created_by`. Admins manage; everyone uses (`/summary-templates`: members list/retrieve, admins create/update/delete; a new template goes last unless `position` is given). Seeded once together with the organization's AI settings (on org creation; older organizations on first access): «Кратко» (auto), «Решения и договорённости», «Задачи и ответственные». Deleted defaults are not re-created.
 
 ### Project
 
@@ -124,7 +130,7 @@ Breaking changes only in a new `/api/v2`. The desktop/Android app depends on the
 
 `recording.process(recording_id)` after upload: 
 
-1. **Transcribe** (if `auto_transcribe` and no transcript provided): download audio from S3 to a temp dir, split with `ffmpeg` into `segment_seconds` chunks (mono 16 kHz, compressed, small overlap is not needed if cut on silence is not available — plain cuts are fine), send each chunk to the transcription model via `chat/completions` with `input_audio`, a strict "verbatim transcript only" prompt and a `max_tokens` large enough for the chunk. Treat `finish_reason=length` / empty text as a retryable segment failure (retry that segment only, exponential backoff, up to 3 times; on a final failure retry once with half-length sub-chunks). Save each finished segment immediately (progress + websocket event) so a worker crash resumes from the last finished segment. Idempotent: a second run continues, it never duplicates.
+1. **Transcribe** (if `auto_transcribe` and no transcript provided): download audio from S3 to a temp dir, split with `ffmpeg` into `segment_seconds` chunks (mono 16 kHz mp3 at 32 kbit/s; plain cuts, a tail under 15 s joins the previous chunk; silent chunks are not sent), send each chunk to the transcription model via `chat/completions` with `input_audio`, a strict "verbatim transcript only" prompt and a `max_tokens` large enough for the chunk. Treat `finish_reason=length` / empty text as a retryable segment failure (retry that segment only, exponential backoff, up to 3 times; on a final failure retry once with half-length sub-chunks). Save each finished segment immediately (progress + websocket event) so a worker crash resumes from the last finished segment. Idempotent: a second run continues, it never duplicates.
 2. **Title** (`auto_title`, `title_source=auto`): short Russian/English title in the transcript language, ≤ 80 chars.
 3. **Tags** (`auto_tags`) and **project suggestion** (`auto_project`): one JSON-mode call to the summary model with existing tag and visible project names; unknown project names are ignored; suggestion only if confidence is reasonable.
 4. **Auto summaries**: one `RecordingResult` per template with `auto=true`.

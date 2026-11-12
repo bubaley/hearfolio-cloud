@@ -12,7 +12,7 @@ One image runs the whole application. Files: [`Dockerfile`](../Dockerfile), [`do
 | `s6` | Downloads s6-overlay (version + SHA-256 pinned per architecture) and verifies it |
 | `backend-builder` | `uv sync --locked --no-dev` into `/app/backend/.venv` with a uv cache mount; compiles bytecode |
 | `frontend-builder` | `pnpm fetch` from the lockfile, then an offline `pnpm install` and `nuxt build` → `/app/frontend/.output`; pnpm store on a cache mount. Same Debian release as the runtime |
-| `runtime` | `python:*-slim-trixie` + Node binary from the official Node image + Caddy binary from the official Caddy image + s6-overlay. No package manager runs here; no curl, make or supervisor. Runs as `app` (uid 1000) |
+| `runtime` | `python:*-slim-trixie` + Node binary from the official Node image + Caddy binary from the official Caddy image + s6-overlay. The only apt packages are `libatomic1` (Node) and `ffmpeg` (audio chunking for transcription, `domains/ai`); no curl, make or supervisor. Runs as `app` (uid 1000) |
 
 Build arguments `APP_VERSION` and `GIT_SHA` become environment variables of the same name (the backend reports them) and OCI labels; `BUILD_DATE` sets `org.opencontainers.image.created`.
 

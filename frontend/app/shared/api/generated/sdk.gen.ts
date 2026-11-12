@@ -3,6 +3,21 @@
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client'
 import { client } from './client.gen'
 import type {
+  AiSettingsCurrentData,
+  AiSettingsCurrentErrors,
+  AiSettingsCurrentResponses,
+  AiSettingsModelsData,
+  AiSettingsModelsErrors,
+  AiSettingsModelsResponses,
+  AiSettingsOptionsData,
+  AiSettingsOptionsErrors,
+  AiSettingsOptionsResponses,
+  AiSettingsTestConnectionData,
+  AiSettingsTestConnectionErrors,
+  AiSettingsTestConnectionResponses,
+  AiSettingsUpdateCurrentData,
+  AiSettingsUpdateCurrentErrors,
+  AiSettingsUpdateCurrentResponses,
   AuthLoginData,
   AuthLoginErrors,
   AuthLoginResponses,
@@ -54,6 +69,24 @@ import type {
   OrganizationUsersUpdateData,
   OrganizationUsersUpdateErrors,
   OrganizationUsersUpdateResponses,
+  SummaryTemplatesCreateData,
+  SummaryTemplatesCreateErrors,
+  SummaryTemplatesCreateResponses,
+  SummaryTemplatesDestroyData,
+  SummaryTemplatesDestroyErrors,
+  SummaryTemplatesDestroyResponses,
+  SummaryTemplatesListData,
+  SummaryTemplatesListErrors,
+  SummaryTemplatesListResponses,
+  SummaryTemplatesPartialUpdateData,
+  SummaryTemplatesPartialUpdateErrors,
+  SummaryTemplatesPartialUpdateResponses,
+  SummaryTemplatesRetrieveData,
+  SummaryTemplatesRetrieveErrors,
+  SummaryTemplatesRetrieveResponses,
+  SummaryTemplatesUpdateData,
+  SummaryTemplatesUpdateErrors,
+  SummaryTemplatesUpdateResponses,
   UsersChangePasswordData,
   UsersChangePasswordErrors,
   UsersChangePasswordResponses,
@@ -753,6 +786,260 @@ export const organizationUsersUpdate = <ThrowOnError extends boolean = false>(
       { scheme: 'bearer', type: 'http' },
     ],
     url: '/api/v1/organization-users/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Current
+ *
+ * AI settings; the API key is never returned (`has_api_key`, `api_key_hint`).
+ */
+export const aiSettingsCurrent = <ThrowOnError extends boolean = false>(
+  options?: Options<AiSettingsCurrentData, ThrowOnError>,
+): RequestResult<AiSettingsCurrentResponses, AiSettingsCurrentErrors, ThrowOnError> =>
+  (options?.client ?? client).get<AiSettingsCurrentResponses, AiSettingsCurrentErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/ai-settings/current',
+    ...options,
+  })
+
+/**
+ * Update Current
+ *
+ * Change AI settings; default models must be in the allowed lists.
+ */
+export const aiSettingsUpdateCurrent = <ThrowOnError extends boolean = false>(
+  options: Options<AiSettingsUpdateCurrentData, ThrowOnError>,
+): RequestResult<AiSettingsUpdateCurrentResponses, AiSettingsUpdateCurrentErrors, ThrowOnError> =>
+  (options.client ?? client).patch<AiSettingsUpdateCurrentResponses, AiSettingsUpdateCurrentErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/ai-settings/current',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Models
+ *
+ * Provider model catalog for the pickers (cached): `audio` = audio-input models, `text` = text models.
+ */
+export const aiSettingsModels = <ThrowOnError extends boolean = false>(
+  options?: Options<AiSettingsModelsData, ThrowOnError>,
+): RequestResult<AiSettingsModelsResponses, AiSettingsModelsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<AiSettingsModelsResponses, AiSettingsModelsErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/ai-settings/models',
+    ...options,
+  })
+
+/**
+ * Options
+ *
+ * Allowed models and defaults for members; no secrets.
+ */
+export const aiSettingsOptions = <ThrowOnError extends boolean = false>(
+  options?: Options<AiSettingsOptionsData, ThrowOnError>,
+): RequestResult<AiSettingsOptionsResponses, AiSettingsOptionsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<AiSettingsOptionsResponses, AiSettingsOptionsErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/ai-settings/options',
+    ...options,
+  })
+
+/**
+ * Test Connection
+ *
+ * Check the saved key (or unsaved `openrouter_base_url` / `openrouter_api_key`) against the provider.
+ */
+export const aiSettingsTestConnection = <ThrowOnError extends boolean = false>(
+  options: Options<AiSettingsTestConnectionData, ThrowOnError>,
+): RequestResult<AiSettingsTestConnectionResponses, AiSettingsTestConnectionErrors, ThrowOnError> =>
+  (options.client ?? client).post<AiSettingsTestConnectionResponses, AiSettingsTestConnectionErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/ai-settings/test',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * List
+ */
+export const summaryTemplatesList = <ThrowOnError extends boolean = false>(
+  options?: Options<SummaryTemplatesListData, ThrowOnError>,
+): RequestResult<SummaryTemplatesListResponses, SummaryTemplatesListErrors, ThrowOnError> =>
+  (options?.client ?? client).get<SummaryTemplatesListResponses, SummaryTemplatesListErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/summary-templates',
+    ...options,
+  })
+
+/**
+ * Create
+ */
+export const summaryTemplatesCreate = <ThrowOnError extends boolean = false>(
+  options: Options<SummaryTemplatesCreateData, ThrowOnError>,
+): RequestResult<SummaryTemplatesCreateResponses, SummaryTemplatesCreateErrors, ThrowOnError> =>
+  (options.client ?? client).post<SummaryTemplatesCreateResponses, SummaryTemplatesCreateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/summary-templates',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Destroy
+ */
+export const summaryTemplatesDestroy = <ThrowOnError extends boolean = false>(
+  options: Options<SummaryTemplatesDestroyData, ThrowOnError>,
+): RequestResult<SummaryTemplatesDestroyResponses, SummaryTemplatesDestroyErrors, ThrowOnError> =>
+  (options.client ?? client).delete<SummaryTemplatesDestroyResponses, SummaryTemplatesDestroyErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/summary-templates/{item_id}',
+    ...options,
+  })
+
+/**
+ * Retrieve
+ */
+export const summaryTemplatesRetrieve = <ThrowOnError extends boolean = false>(
+  options: Options<SummaryTemplatesRetrieveData, ThrowOnError>,
+): RequestResult<SummaryTemplatesRetrieveResponses, SummaryTemplatesRetrieveErrors, ThrowOnError> =>
+  (options.client ?? client).get<SummaryTemplatesRetrieveResponses, SummaryTemplatesRetrieveErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/summary-templates/{item_id}',
+    ...options,
+  })
+
+/**
+ * Partial Update
+ */
+export const summaryTemplatesPartialUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<SummaryTemplatesPartialUpdateData, ThrowOnError>,
+): RequestResult<SummaryTemplatesPartialUpdateResponses, SummaryTemplatesPartialUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).patch<
+    SummaryTemplatesPartialUpdateResponses,
+    SummaryTemplatesPartialUpdateErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/summary-templates/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Update
+ */
+export const summaryTemplatesUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<SummaryTemplatesUpdateData, ThrowOnError>,
+): RequestResult<SummaryTemplatesUpdateResponses, SummaryTemplatesUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).put<SummaryTemplatesUpdateResponses, SummaryTemplatesUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/summary-templates/{item_id}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
