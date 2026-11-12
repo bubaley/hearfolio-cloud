@@ -7,6 +7,12 @@ from conftest import ROOT, load_script
 
 init_script = load_script('scripts/bootstrap/init.py')
 
+# `make init` rewrites the files these tests copy, so they only hold in the template itself.
+pytestmark = pytest.mark.skipif(
+    'name = "fastapi-nuxt-template"' not in (ROOT / 'backend/pyproject.toml').read_text(),
+    reason='product already initialized from the template',
+)
+
 # Every file `make init` reads or rewrites.
 SURFACE = (
     '.env.example',

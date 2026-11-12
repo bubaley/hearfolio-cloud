@@ -3,4 +3,4 @@
 # See docs/template-ownership.md. Written by `make init`.
 repository=https://github.com/bubaley/production-fastapi-docker-template
 version=0.9.1
-commit=0912afbf1c8baec98f67b703521e9ef8fac9468f
+commit=fc101ea4cb6e5eaba47ba76c54d8d397d6387d3b
