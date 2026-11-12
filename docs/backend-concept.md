@@ -359,8 +359,10 @@ The broker is `RedisStreamBroker` (acknowledged after execution) with a result b
 2. `@broker.task(task_name='<domain>.<action>')`; arguments must be JSON-serializable (ids, not model instances); load models inside the task.
 3. Enqueue with `await my_task.kiq(...)`; the worker has Tortoise and logging initialised.
 4. Test with `await (await my_task.kiq(...)).wait_result()`.
+5. Periodic: `@broker.task(task_name=..., schedule=[{'cron': '17 3 * * *'}])` (UTC). The scheduler reads these labels (`LabelScheduleSource` in `core/broker.py`); exactly one scheduler runs per deployment.
+6. A task of another domain is kicked by name without importing it: `taskiq.kicker.AsyncKicker(task_name=..., broker=broker, labels={}).kiq(...)` (see `domains/library/services/pipeline.py`).
 
-Example: `app/domains/organization/tasks.py` (`notify_organization_members`) and its test.
+Examples: `app/domains/organization/tasks.py` (`notify_organization_members`) and its test; `app/domains/library/tasks.py` (daily `library.purge_deleted_recordings`).
 
 ---
 
@@ -370,7 +372,8 @@ Example: `app/domains/organization/tasks.py` (`notify_organization_members`) and
 
 - `upload(file, filename, prefix=None)` streams a file-like object (`UploadFile.file`) under `<prefix>/YYYY/MM/DD/<uuid><.ext>`; the client filename only contributes a sanitized extension. Store the returned `key`, not the URL.
 - Objects are private (no ACL). Give access with `presigned_get_url(key, download_name=...)`; let browsers upload directly with `presigned_put_url(key, content_type)`. `public_url(key)` is for a public bucket/CDN (`AWS_S3_PUBLIC_URL`).
-- `delete(key)`. Failures raise `S3Error` with the boto error as `__cause__`.
+- `delete(key)`, `head_object(key)` (`S3ObjectInfo(size, content_type)` or None). Failures raise `S3Error` with the boto error as `__cause__`.
+- Direct multipart uploads from clients: `create_multipart_upload(key, content_type)` → upload id, `presigned_upload_part_url(key, upload_id, part_number)`, `list_parts`, `complete_multipart_upload(key, upload_id, parts)`, `abort_multipart_upload`. Used by recording uploads (`domains/library/services/upload_service.py`).
 
 ---
 

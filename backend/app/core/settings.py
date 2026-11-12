@@ -118,6 +118,14 @@ class Settings(BaseSettings):
     ffprobe_path: str = 'ffprobe'
     ai_models_cache_seconds: int = 10 * 60
 
+    # Recording uploads (thresholds above): largest accepted audio file
+    upload_max_bytes: int = 10 * 1024 * 1024 * 1024
+    # Presigned URLs for upload parts and audio playback; public share links get a shorter one
+    upload_presign_expire_seconds: int = 6 * 60 * 60
+    share_audio_presign_expire_seconds: int = 10 * 60
+    # Soft-deleted recordings are purged (with their audio) after this many days
+    recording_purge_after_days: int = 30
+
     @property
     def database_url(self) -> str:
         return f'{self.sql_engine}://{self.sql_user}:{self.sql_password}@{self.sql_host}:{self.sql_port}/{self.sql_database}'

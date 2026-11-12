@@ -102,6 +102,90 @@ import type {
   OrganizationUsersUpdateData,
   OrganizationUsersUpdateErrors,
   OrganizationUsersUpdateResponses,
+  ProjectsAddMemberData,
+  ProjectsAddMemberErrors,
+  ProjectsAddMemberResponses,
+  ProjectsCreateData,
+  ProjectsCreateErrors,
+  ProjectsCreateResponses,
+  ProjectsDestroyData,
+  ProjectsDestroyErrors,
+  ProjectsDestroyResponses,
+  ProjectsListData,
+  ProjectsListErrors,
+  ProjectsListResponses,
+  ProjectsManageData,
+  ProjectsManageErrors,
+  ProjectsManageResponses,
+  ProjectsMembersData,
+  ProjectsMembersErrors,
+  ProjectsMembersResponses,
+  ProjectsPartialUpdateData,
+  ProjectsPartialUpdateErrors,
+  ProjectsPartialUpdateResponses,
+  ProjectsRemoveMemberData,
+  ProjectsRemoveMemberErrors,
+  ProjectsRemoveMemberResponses,
+  ProjectsRetrieveData,
+  ProjectsRetrieveErrors,
+  ProjectsRetrieveResponses,
+  ProjectsUpdateData,
+  ProjectsUpdateErrors,
+  ProjectsUpdateResponses,
+  PublicShareRetrieveData,
+  PublicShareRetrieveErrors,
+  PublicShareRetrieveResponses,
+  RecordingsAcceptProjectSuggestionData,
+  RecordingsAcceptProjectSuggestionErrors,
+  RecordingsAcceptProjectSuggestionResponses,
+  RecordingsAudioData,
+  RecordingsAudioErrors,
+  RecordingsAudioResponses,
+  RecordingsCreateData,
+  RecordingsCreateErrors,
+  RecordingsCreateResponses,
+  RecordingsDestroyData,
+  RecordingsDestroyErrors,
+  RecordingsDestroyResponses,
+  RecordingsDismissProjectSuggestionData,
+  RecordingsDismissProjectSuggestionErrors,
+  RecordingsDismissProjectSuggestionResponses,
+  RecordingsEventsData,
+  RecordingsEventsErrors,
+  RecordingsEventsResponses,
+  RecordingsListData,
+  RecordingsListErrors,
+  RecordingsListResponses,
+  RecordingsPartialUpdateData,
+  RecordingsPartialUpdateErrors,
+  RecordingsPartialUpdateResponses,
+  RecordingsRestoreData,
+  RecordingsRestoreErrors,
+  RecordingsRestoreResponses,
+  RecordingsRetrieveData,
+  RecordingsRetrieveErrors,
+  RecordingsRetrieveResponses,
+  RecordingsRevokeShareData,
+  RecordingsRevokeShareErrors,
+  RecordingsRevokeShareResponses,
+  RecordingsShareData,
+  RecordingsShareErrors,
+  RecordingsShareResponses,
+  RecordingsSyncData,
+  RecordingsSyncErrors,
+  RecordingsSyncResponses,
+  RecordingsUpdateData,
+  RecordingsUpdateErrors,
+  RecordingsUpdateResponses,
+  RecordingsUpdateShareData,
+  RecordingsUpdateShareErrors,
+  RecordingsUpdateShareResponses,
+  RecordingsUploadCompleteData,
+  RecordingsUploadCompleteErrors,
+  RecordingsUploadCompleteResponses,
+  RecordingsUploadPartsData,
+  RecordingsUploadPartsErrors,
+  RecordingsUploadPartsResponses,
   SummaryTemplatesCreateData,
   SummaryTemplatesCreateErrors,
   SummaryTemplatesCreateResponses,
@@ -120,6 +204,27 @@ import type {
   SummaryTemplatesUpdateData,
   SummaryTemplatesUpdateErrors,
   SummaryTemplatesUpdateResponses,
+  TagsCreateData,
+  TagsCreateErrors,
+  TagsCreateResponses,
+  TagsDestroyData,
+  TagsDestroyErrors,
+  TagsDestroyResponses,
+  TagsListData,
+  TagsListErrors,
+  TagsListResponses,
+  TagsMergeData,
+  TagsMergeErrors,
+  TagsMergeResponses,
+  TagsPartialUpdateData,
+  TagsPartialUpdateErrors,
+  TagsPartialUpdateResponses,
+  TagsRetrieveData,
+  TagsRetrieveErrors,
+  TagsRetrieveResponses,
+  TagsUpdateData,
+  TagsUpdateErrors,
+  TagsUpdateResponses,
   UsersChangePasswordData,
   UsersChangePasswordErrors,
   UsersChangePasswordResponses,
@@ -1224,6 +1329,787 @@ export const summaryTemplatesUpdate = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * List
+ */
+export const projectsList = <ThrowOnError extends boolean = false>(
+  options?: Options<ProjectsListData, ThrowOnError>,
+): RequestResult<ProjectsListResponses, ProjectsListErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ProjectsListResponses, ProjectsListErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects',
+    ...options,
+  })
+
+/**
+ * Create
+ */
+export const projectsCreate = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsCreateData, ThrowOnError>,
+): RequestResult<ProjectsCreateResponses, ProjectsCreateErrors, ThrowOnError> =>
+  (options.client ?? client).post<ProjectsCreateResponses, ProjectsCreateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Manage
+ *
+ * Every project the caller may manage: visible ones, plus all private ones for org admins.
+ */
+export const projectsManage = <ThrowOnError extends boolean = false>(
+  options?: Options<ProjectsManageData, ThrowOnError>,
+): RequestResult<ProjectsManageResponses, ProjectsManageErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ProjectsManageResponses, ProjectsManageErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/manage',
+    ...options,
+  })
+
+/**
+ * Destroy
+ */
+export const projectsDestroy = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsDestroyData, ThrowOnError>,
+): RequestResult<ProjectsDestroyResponses, ProjectsDestroyErrors, ThrowOnError> =>
+  (options.client ?? client).delete<ProjectsDestroyResponses, ProjectsDestroyErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}',
+    ...options,
+  })
+
+/**
+ * Retrieve
+ */
+export const projectsRetrieve = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsRetrieveData, ThrowOnError>,
+): RequestResult<ProjectsRetrieveResponses, ProjectsRetrieveErrors, ThrowOnError> =>
+  (options.client ?? client).get<ProjectsRetrieveResponses, ProjectsRetrieveErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}',
+    ...options,
+  })
+
+/**
+ * Partial Update
+ */
+export const projectsPartialUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsPartialUpdateData, ThrowOnError>,
+): RequestResult<ProjectsPartialUpdateResponses, ProjectsPartialUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).patch<ProjectsPartialUpdateResponses, ProjectsPartialUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Update
+ */
+export const projectsUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsUpdateData, ThrowOnError>,
+): RequestResult<ProjectsUpdateResponses, ProjectsUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).put<ProjectsUpdateResponses, ProjectsUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Members
+ */
+export const projectsMembers = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsMembersData, ThrowOnError>,
+): RequestResult<ProjectsMembersResponses, ProjectsMembersErrors, ThrowOnError> =>
+  (options.client ?? client).get<ProjectsMembersResponses, ProjectsMembersErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}/members',
+    ...options,
+  })
+
+/**
+ * Add Member
+ */
+export const projectsAddMember = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsAddMemberData, ThrowOnError>,
+): RequestResult<ProjectsAddMemberResponses, ProjectsAddMemberErrors, ThrowOnError> =>
+  (options.client ?? client).post<ProjectsAddMemberResponses, ProjectsAddMemberErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}/members',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Remove Member
+ *
+ * `member` is the user id.
+ */
+export const projectsRemoveMember = <ThrowOnError extends boolean = false>(
+  options: Options<ProjectsRemoveMemberData, ThrowOnError>,
+): RequestResult<ProjectsRemoveMemberResponses, ProjectsRemoveMemberErrors, ThrowOnError> =>
+  (options.client ?? client).delete<ProjectsRemoveMemberResponses, ProjectsRemoveMemberErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/projects/{item_id}/members/{member}',
+    ...options,
+  })
+
+/**
+ * List
+ */
+export const tagsList = <ThrowOnError extends boolean = false>(
+  options?: Options<TagsListData, ThrowOnError>,
+): RequestResult<TagsListResponses, TagsListErrors, ThrowOnError> =>
+  (options?.client ?? client).get<TagsListResponses, TagsListErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags',
+    ...options,
+  })
+
+/**
+ * Create
+ */
+export const tagsCreate = <ThrowOnError extends boolean = false>(
+  options: Options<TagsCreateData, ThrowOnError>,
+): RequestResult<TagsCreateResponses, TagsCreateErrors, ThrowOnError> =>
+  (options.client ?? client).post<TagsCreateResponses, TagsCreateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Destroy
+ */
+export const tagsDestroy = <ThrowOnError extends boolean = false>(
+  options: Options<TagsDestroyData, ThrowOnError>,
+): RequestResult<TagsDestroyResponses, TagsDestroyErrors, ThrowOnError> =>
+  (options.client ?? client).delete<TagsDestroyResponses, TagsDestroyErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags/{item_id}',
+    ...options,
+  })
+
+/**
+ * Retrieve
+ */
+export const tagsRetrieve = <ThrowOnError extends boolean = false>(
+  options: Options<TagsRetrieveData, ThrowOnError>,
+): RequestResult<TagsRetrieveResponses, TagsRetrieveErrors, ThrowOnError> =>
+  (options.client ?? client).get<TagsRetrieveResponses, TagsRetrieveErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags/{item_id}',
+    ...options,
+  })
+
+/**
+ * Partial Update
+ */
+export const tagsPartialUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<TagsPartialUpdateData, ThrowOnError>,
+): RequestResult<TagsPartialUpdateResponses, TagsPartialUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).patch<TagsPartialUpdateResponses, TagsPartialUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Update
+ */
+export const tagsUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<TagsUpdateData, ThrowOnError>,
+): RequestResult<TagsUpdateResponses, TagsUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).put<TagsUpdateResponses, TagsUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Merge
+ *
+ * Move every recording of this tag to `target_id` and delete this tag. Org admins only.
+ */
+export const tagsMerge = <ThrowOnError extends boolean = false>(
+  options: Options<TagsMergeData, ThrowOnError>,
+): RequestResult<TagsMergeResponses, TagsMergeErrors, ThrowOnError> =>
+  (options.client ?? client).post<TagsMergeResponses, TagsMergeErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags/{item_id}/merge',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * List
+ *
+ * Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`.
+ */
+export const recordingsList = <ThrowOnError extends boolean = false>(
+  options?: Options<RecordingsListData, ThrowOnError>,
+): RequestResult<RecordingsListResponses, RecordingsListErrors, ThrowOnError> =>
+  (options?.client ?? client).get<RecordingsListResponses, RecordingsListErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings',
+    ...options,
+  })
+
+/**
+ * Create
+ *
+ * Create (or, for a known `client_id`, return) a recording with an upload plan for its audio.
+ */
+export const recordingsCreate = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsCreateData, ThrowOnError>,
+): RequestResult<RecordingsCreateResponses, RecordingsCreateErrors, ThrowOnError> =>
+  (options.client ?? client).post<RecordingsCreateResponses, RecordingsCreateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Sync
+ *
+ * Changes since `cursor` (omit for everything), with tombstones in `deleted_ids`.
+ */
+export const recordingsSync = <ThrowOnError extends boolean = false>(
+  options?: Options<RecordingsSyncData, ThrowOnError>,
+): RequestResult<RecordingsSyncResponses, RecordingsSyncErrors, ThrowOnError> =>
+  (options?.client ?? client).get<RecordingsSyncResponses, RecordingsSyncErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/sync',
+    ...options,
+  })
+
+/**
+ * Destroy
+ */
+export const recordingsDestroy = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsDestroyData, ThrowOnError>,
+): RequestResult<RecordingsDestroyResponses, RecordingsDestroyErrors, ThrowOnError> =>
+  (options.client ?? client).delete<RecordingsDestroyResponses, RecordingsDestroyErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}',
+    ...options,
+  })
+
+/**
+ * Retrieve
+ */
+export const recordingsRetrieve = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsRetrieveData, ThrowOnError>,
+): RequestResult<RecordingsRetrieveResponses, RecordingsRetrieveErrors, ThrowOnError> =>
+  (options.client ?? client).get<RecordingsRetrieveResponses, RecordingsRetrieveErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}',
+    ...options,
+  })
+
+/**
+ * Partial Update
+ */
+export const recordingsPartialUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsPartialUpdateData, ThrowOnError>,
+): RequestResult<RecordingsPartialUpdateResponses, RecordingsPartialUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).patch<RecordingsPartialUpdateResponses, RecordingsPartialUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Update
+ */
+export const recordingsUpdate = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsUpdateData, ThrowOnError>,
+): RequestResult<RecordingsUpdateResponses, RecordingsUpdateErrors, ThrowOnError> =>
+  (options.client ?? client).put<RecordingsUpdateResponses, RecordingsUpdateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Audio
+ *
+ * Presigned GET for streaming or caching; `download=true` asks the browser to save it.
+ */
+export const recordingsAudio = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsAudioData, ThrowOnError>,
+): RequestResult<RecordingsAudioResponses, RecordingsAudioErrors, ThrowOnError> =>
+  (options.client ?? client).get<RecordingsAudioResponses, RecordingsAudioErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/audio',
+    ...options,
+  })
+
+/**
+ * Events
+ *
+ * The «История» journal, newest first.
+ */
+export const recordingsEvents = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsEventsData, ThrowOnError>,
+): RequestResult<RecordingsEventsResponses, RecordingsEventsErrors, ThrowOnError> =>
+  (options.client ?? client).get<RecordingsEventsResponses, RecordingsEventsErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/events',
+    ...options,
+  })
+
+/**
+ * Revoke Share
+ */
+export const recordingsRevokeShare = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsRevokeShareData, ThrowOnError>,
+): RequestResult<RecordingsRevokeShareResponses, RecordingsRevokeShareErrors, ThrowOnError> =>
+  (options.client ?? client).delete<RecordingsRevokeShareResponses, RecordingsRevokeShareErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/share',
+    ...options,
+  })
+
+/**
+ * Share
+ *
+ * The active public link, or null.
+ */
+export const recordingsShare = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsShareData, ThrowOnError>,
+): RequestResult<RecordingsShareResponses, RecordingsShareErrors, ThrowOnError> =>
+  (options.client ?? client).get<RecordingsShareResponses, RecordingsShareErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/share',
+    ...options,
+  })
+
+/**
+ * Update Share
+ *
+ * Create the public link or change what it exposes (the token stays).
+ */
+export const recordingsUpdateShare = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsUpdateShareData, ThrowOnError>,
+): RequestResult<RecordingsUpdateShareResponses, RecordingsUpdateShareErrors, ThrowOnError> =>
+  (options.client ?? client).put<RecordingsUpdateShareResponses, RecordingsUpdateShareErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/share',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Restore
+ */
+export const recordingsRestore = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsRestoreData, ThrowOnError>,
+): RequestResult<RecordingsRestoreResponses, RecordingsRestoreErrors, ThrowOnError> =>
+  (options.client ?? client).post<RecordingsRestoreResponses, RecordingsRestoreErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/restore',
+    ...options,
+  })
+
+/**
+ * Accept Project Suggestion
+ */
+export const recordingsAcceptProjectSuggestion = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsAcceptProjectSuggestionData, ThrowOnError>,
+): RequestResult<RecordingsAcceptProjectSuggestionResponses, RecordingsAcceptProjectSuggestionErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    RecordingsAcceptProjectSuggestionResponses,
+    RecordingsAcceptProjectSuggestionErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/project-suggestion/accept',
+    ...options,
+  })
+
+/**
+ * Dismiss Project Suggestion
+ */
+export const recordingsDismissProjectSuggestion = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsDismissProjectSuggestionData, ThrowOnError>,
+): RequestResult<RecordingsDismissProjectSuggestionResponses, RecordingsDismissProjectSuggestionErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    RecordingsDismissProjectSuggestionResponses,
+    RecordingsDismissProjectSuggestionErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/project-suggestion/dismiss',
+    ...options,
+  })
+
+/**
+ * Upload Complete
+ *
+ * Verify the uploaded object and start processing. Author only; repeating it is harmless.
+ */
+export const recordingsUploadComplete = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsUploadCompleteData, ThrowOnError>,
+): RequestResult<RecordingsUploadCompleteResponses, RecordingsUploadCompleteErrors, ThrowOnError> =>
+  (options.client ?? client).post<RecordingsUploadCompleteResponses, RecordingsUploadCompleteErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/upload/complete',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Upload Parts
+ *
+ * Fresh upload URLs (resume after a restart or expiry). Author only.
+ */
+export const recordingsUploadParts = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsUploadPartsData, ThrowOnError>,
+): RequestResult<RecordingsUploadPartsResponses, RecordingsUploadPartsErrors, ThrowOnError> =>
+  (options.client ?? client).post<RecordingsUploadPartsResponses, RecordingsUploadPartsErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/upload/parts',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Retrieve
+ *
+ * Public, no auth: exactly what the link exposes. 404 when the link is unknown, revoked or expired.
+ */
+export const publicShareRetrieve = <ThrowOnError extends boolean = false>(
+  options: Options<PublicShareRetrieveData, ThrowOnError>,
+): RequestResult<PublicShareRetrieveResponses, PublicShareRetrieveErrors, ThrowOnError> =>
+  (options.client ?? client).get<PublicShareRetrieveResponses, PublicShareRetrieveErrors, ThrowOnError>({
+    url: '/api/v1/public/share/{token}',
+    ...options,
   })
 
 /**
