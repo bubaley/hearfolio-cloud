@@ -49,7 +49,13 @@ describe('resource descriptor', () => {
     const form = organizationUserResource.toForm({ organization_id: 'viewed-org' })
     expect(() => organizationUserResource.toCreate!(form)).toThrow()
     form.user = { id: 'user-1' } as never
-    expect(organizationUserResource.toCreate!(form)).toEqual({ organization_id: 'viewed-org', user_id: 'user-1' })
+    expect(organizationUserResource.toCreate!(form)).toEqual({
+      organization_id: 'viewed-org',
+      user_id: 'user-1',
+      role: 'member',
+    })
+    form.role = 'admin'
+    expect(organizationUserResource.toUpdate!({ ...form, id: 'm-1' })).toEqual({ role: 'admin' })
   })
 })
 

@@ -2,6 +2,6 @@
 
 <script setup lang="ts">
 definePageMeta({
-  redirect: { name: 'settings-profile' },
+  redirect: { name: 'settings-organization' },
 })
 </script>

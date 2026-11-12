@@ -104,7 +104,7 @@ Page meta drives the global middleware (`app/middleware/`):
 
 ### Rendering
 
-`routeRules` in `nuxt.config.ts`: app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) are `ssr: false` — the server sends the SPA shell and guards run in the browser. Everything else renders on the server. A public page:
+`routeRules` in `nuxt.config.ts`: app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) and the public-but-personal pages `/invite/**` (every lookup counts against the per-IP limit, so it must come from the visitor) and `/oauth/**` are `ssr: false` — the server sends the SPA shell and guards run in the browser. Everything else renders on the server. A public page:
 
 - lives under `pages/` with `definePageMeta({ auth: false })` and mounts a feature view (example: `pages/index.vue` → `features/landing/views/LandingView.vue`);
 - sets `useSeoMeta` (title, description, `og:*`);
@@ -172,6 +172,8 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppFilterToolbar` | List filter bar: search, fixed fields, compact conditions added through **+**, quick/actions slots |
 | `AppFilters` | Internal condition editor; toolbar uses `inline` mode. Specification and `v-model` are shared; feature owns query mapping |
 | `AppCheckbox` / `AppSwitch` / `AppRadioGroup` | Choice controls on the shadcn primitives. `AppRadioGroup` takes `:items="[{ label, value }]"` + `v-model` |
+| `AppSettingRow` | One settings line: label and description left, control right (`stacked`: full-width control below); hairline between rows. Settings screens stack them instead of cards |
+| `AppResultState` | Centered outcome or empty state: icon in a tinted circle (`tone`), title, text, full-width `#actions` |
 | `AppBadge` / `AppAlert` / `AppTooltip` | Status chip (`tone` × `solid`/`soft`/`outline`), inline message (`tone`, role alert/status), hover/focus hint |
 | `AppProgress` / `AppSkeleton` / `AppScrollArea` | Linear progress with `tone`, loading placeholder lines, bounded area with themed scrollbars |
 | `AppImageLightbox` | Mounted once in `app.vue`; open with `useAppImageLightboxStore().open(urls, index)` |
@@ -312,7 +314,20 @@ import ProjectListView from '~/features/project/views/ProjectListView.vue'
 </script>
 ```
 
-**Drawer** — the settings drawer is data: `app/navigation/settings.ts` (`settingsNavigation`), rendered by `layouts/settings.vue`. Add an entry above the marker line (`make new-domain` does it); `superuserOnly: true` hides it from other users:
+**App shell** — `shared/components/layout/AppLayout.vue` is a Notion-style sidebar shell: a fixed sidebar on `md+`
+(hidden with its own button; `useSidebar().collapsed` is kept in the `sidebar-collapsed` cookie), a sheet (`AppDrawer
+overlay`) on phones opened from a slim top bar, and the page in `<main>`. Layouts fill its slots and may import
+features (the architecture guard forbids it only for `shared/**`): `sidebar-header` (organization switcher or «Назад»),
+`sidebar` (`AppSidebarNav` with `SidebarSection[]`: optional title, items `{ to, label, icon, hint }`, a heading
+`action` such as «+», an `empty` text), `sidebar-footer` (settings link, `AppSidebarUser`) and `topbar` (what the top
+bar shows on phones). One item is active: the route name matches (or nests under it) and the item's own query matches,
+so `?personal=1` beats the bare route. Items are 44px tall on phones, 32px on desktop. The workspace sidebar is data in
+`app/navigation/workspace.ts`; product sections (projects) are added by `layouts/default.vue`.
+
+**Settings sidebar** — data: `app/navigation/settings.ts` (`settingsNavigation`), rendered by `layouts/settings.vue`
+in groups (`settingsSections`: organization, account, instance; `section` defaults to organization). Add an entry above
+the marker line (`make new-domain` does it); `adminOnly: true` shows it to org owners/admins only, `superuserOnly: true`
+to superusers only:
 
 ```typescript
 import { Folder } from '@lucide/vue'
@@ -499,7 +514,7 @@ custom loadIcons/currentIcon/normalizeIcon props remain supported. The grid is
 virtualized and searchable by icon name. AppColorPicker wraps `vue-color` (ChromePicker) and maps its variables
 to theme tokens, including portalled popovers. Emoji selection is removed.
 
-AppDrawer slides in (200ms) and out (300ms) from its `side` and uses only the inner edge border (right for left drawers, left for right drawers). Modal headers use the shared header gap between title and description. Motion respects reduced-motion preferences.
+AppDrawer slides in (200ms) and out (300ms) from its `side`; overlay drawers take `contentClass` (merged last, e.g. `p-0`) and `closeable` (the corner close button) and uses only the inner edge border (right for left drawers, left for right drawers). Modal headers use the shared header gap between title and description. Motion respects reduced-motion preferences.
 
 Overlay drawers participate in the same opening-order stack as modals, menus and
 pickers. A surface opened inside a drawer appears above it; interacting with that
@@ -515,8 +530,8 @@ The Overlays catalogue demonstrates a date picker and a modal opened from a draw
 forwards these slots. `subtitle` remains an alias for `subheader`, with subheader
 winning when both are supplied. Description appears once in the standard header.
 `titleSize`, `backAction` and `contentClass` configure the heading, return action
-and body spacing. HomeView is a working Russian example with search, actions,
-example visibility and reset; pages/home/index.vue remains a thin wrapper.
+and body spacing. `/ui` → Layout shows every region. (The template's HomeView demo is replaced in Hearfolio by the
+workspace placeholder `HomeView` until the recording screens exist; pages/home/index.vue stays a thin wrapper.)
 
 `AppListTemplate` enables `infiniteScroll` by default for server-backed queries.
 The existing `AppInfiniteScroll` observes a sentinel within the visible scroll

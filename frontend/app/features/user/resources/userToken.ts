@@ -9,6 +9,10 @@ import {
 } from '~/shared/api/generated'
 import { defineResource } from '~/shared/api/resource'
 
+/** Name prefix of tokens the Hearfolio app gets through OAuth («Hearfolio · {device}»): shown as devices. */
+export const DEVICE_TOKEN_PREFIX = 'Hearfolio · '
+export const isDeviceToken = (token: { name: string }) => token.name.startsWith(DEVICE_TOKEN_PREFIX)
+
 /** `value` (the full secret) is present only in the create response. */
 export type UserToken = UserTokenReadSchema & Partial<Pick<UserTokenCreatedReadSchema, 'value'>>
 export type UserTokenForm = {
