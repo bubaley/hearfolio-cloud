@@ -1,3 +1,4 @@
+import re
 from typing import Annotated
 from uuid import UUID
 
@@ -19,6 +20,8 @@ class AuthState(BaseModel):
     organization: Organization | None = None
     # How the user authenticated; e.g. API tokens cannot mint new API tokens.
     auth_method: AuthMethod | None = None
+    # The API token behind the request, so it can revoke itself (`POST /oauth/revoke`).
+    api_token_id: UUID | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -31,11 +34,27 @@ class AuthState(BaseModel):
         return self.organization.id if self.organization else None
 
 
-PUBLIC_PATHS = frozenset({'/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/auth/logout'})
+# Routes that work without credentials (a credential, when present, is still resolved). `{param}` matches one
+# path segment; OpenAPI declares `security: []` for exactly these templates.
+PUBLIC_PATHS = frozenset(
+    {
+        '/api/v1/auth/login',
+        '/api/v1/auth/refresh',
+        '/api/v1/auth/logout',
+        '/api/v1/invites/{token}',
+        '/api/v1/invites/{token}/accept',
+        '/api/v1/oauth/token',
+        '/.well-known/hearfolio',
+    }
+)
+_PUBLIC_PATH_PATTERNS = tuple(
+    re.compile('^' + re.sub(r'\\\{[^/]+?\\\}', '[^/]+', re.escape(path)) + '$') for path in PUBLIC_PATHS
+)
 
 
 def is_public_route(request: Request) -> bool:
-    return request.url.path.rstrip('/') in PUBLIC_PATHS
+    path = request.url.path.rstrip('/')
+    return any(pattern.match(path) for pattern in _PUBLIC_PATH_PATTERNS)
 
 
 async def _authenticate(credential: Credential) -> Authentication | None:
@@ -89,6 +108,7 @@ async def get_auth_state(
         user=user,
         organization=data.organization,
         auth_method=authentication.method if authentication else None,
+        api_token_id=authentication.api_token_id if authentication else None,
     )
     state = BaseStateManager.get_state()
     state.set('auth_state', auth_state)

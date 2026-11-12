@@ -40,7 +40,7 @@ Same change, all of this (skip a row only if it does not apply):
 
 ```
 backend/app/
-  main.py                 # FastAPI app: middleware, discovered /api/v1 routers, /ws, /health
+  main.py                 # FastAPI app: middleware, discovered /api/v1 routers, /ws, /health, /.well-known/hearfolio
   conftest.py             # Shared pytest fixtures: `db` on a PostgreSQL test database (`--sqlite` for in-memory, `--keepdb` to reuse)
   core/                   # Application kernel — not a business domain
   domains/                # One folder per business module
@@ -128,7 +128,7 @@ frontend/
   openapi.json            # API contract, written by `make openapi`
   openapi-ts.config.ts    # `pnpm gen:api`: generated client into app/shared/api/generated/
   colada.options.ts       # Pinia Colada defaults (staleTime)
-  modules/dev-proxy.ts    # `nuxt dev` only: /api/v1 and /ws on the Nuxt origin -> FastAPI
+  modules/dev-proxy.ts    # `nuxt dev` only: /api/v1, /ws and /.well-known/hearfolio on the Nuxt origin -> FastAPI
 frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views

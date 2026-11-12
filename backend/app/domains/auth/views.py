@@ -4,6 +4,7 @@ from fastapi_ronin.permissions import IsAuthenticated
 
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
+from app.core.utils.request_utils import client_ip
 from app.core.viewsets import BaseGenericViewSet
 from app.domains.auth.schemas import LoginRequest, MeSchema, SessionExpirySchema, SessionSchema
 from app.domains.auth.services.auth_service import AuthService
@@ -13,11 +14,6 @@ from app.domains.user.schemas import UserReadSchema
 
 auth_router = APIRouter(prefix='/auth', tags=['auth'])
 routers = (auth_router,)
-
-
-def _client_ip(request: Request) -> str:
-    # Behind Caddy this is the real client only when uvicorn runs with --proxy-headers.
-    return request.client.host if request.client else 'unknown'
 
 
 @viewset(auth_router)
@@ -38,7 +34,7 @@ class AuthViewSet(BaseGenericViewSet):
     @action(methods=['POST'])
     async def login(self, request: Request, response: Response, data: LoginRequest) -> SessionSchema:
         """Check the password and start a session: sets the `access_token` and `refresh_token` cookies."""
-        session = await AuthService.login(data.email, data.password, client_ip=_client_ip(request))
+        session = await AuthService.login(data.email, data.password, client_ip=client_ip(request))
         set_auth_cookies(response, session.tokens)
         return await SessionSchema.build(session.user, session.tokens)
 

@@ -33,6 +33,39 @@ import type {
   AuthRefreshData,
   AuthRefreshErrors,
   AuthRefreshResponses,
+  InvitesAcceptData,
+  InvitesAcceptErrors,
+  InvitesAcceptResponses,
+  InvitesPreviewData,
+  InvitesPreviewErrors,
+  InvitesPreviewResponses,
+  MeOrganizationsData,
+  MeOrganizationsErrors,
+  MeOrganizationsResponses,
+  OauthAuthorizeData,
+  OauthAuthorizeErrors,
+  OauthAuthorizeInfoData,
+  OauthAuthorizeInfoErrors,
+  OauthAuthorizeInfoResponses,
+  OauthAuthorizeResponses,
+  OauthRevokeData,
+  OauthRevokeErrors,
+  OauthRevokeResponses,
+  OauthTokenData,
+  OauthTokenErrors,
+  OauthTokenResponses,
+  OrganizationInvitesCreateData,
+  OrganizationInvitesCreateErrors,
+  OrganizationInvitesCreateResponses,
+  OrganizationInvitesListData,
+  OrganizationInvitesListErrors,
+  OrganizationInvitesListResponses,
+  OrganizationInvitesRetrieveData,
+  OrganizationInvitesRetrieveErrors,
+  OrganizationInvitesRetrieveResponses,
+  OrganizationInvitesRevokeData,
+  OrganizationInvitesRevokeErrors,
+  OrganizationInvitesRevokeResponses,
   OrganizationsCreateData,
   OrganizationsCreateErrors,
   OrganizationsCreateResponses,
@@ -126,6 +159,9 @@ import type {
   UserTokensUpdateData,
   UserTokensUpdateErrors,
   UserTokensUpdateResponses,
+  WellKnownHearfolioData,
+  WellKnownHearfolioErrors,
+  WellKnownHearfolioResponses,
 } from './types.gen'
 
 export type Options<
@@ -794,6 +830,149 @@ export const organizationUsersUpdate = <ThrowOnError extends boolean = false>(
   })
 
 /**
+ * List
+ */
+export const organizationInvitesList = <ThrowOnError extends boolean = false>(
+  options?: Options<OrganizationInvitesListData, ThrowOnError>,
+): RequestResult<OrganizationInvitesListResponses, OrganizationInvitesListErrors, ThrowOnError> =>
+  (options?.client ?? client).get<OrganizationInvitesListResponses, OrganizationInvitesListErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/organization-invites',
+    ...options,
+  })
+
+/**
+ * Create
+ *
+ * Create an invite. The token and the link are returned only here.
+ */
+export const organizationInvitesCreate = <ThrowOnError extends boolean = false>(
+  options: Options<OrganizationInvitesCreateData, ThrowOnError>,
+): RequestResult<OrganizationInvitesCreateResponses, OrganizationInvitesCreateErrors, ThrowOnError> =>
+  (options.client ?? client).post<OrganizationInvitesCreateResponses, OrganizationInvitesCreateErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/organization-invites',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Retrieve
+ */
+export const organizationInvitesRetrieve = <ThrowOnError extends boolean = false>(
+  options: Options<OrganizationInvitesRetrieveData, ThrowOnError>,
+): RequestResult<OrganizationInvitesRetrieveResponses, OrganizationInvitesRetrieveErrors, ThrowOnError> =>
+  (options.client ?? client).get<OrganizationInvitesRetrieveResponses, OrganizationInvitesRetrieveErrors, ThrowOnError>(
+    {
+      security: [
+        {
+          in: 'cookie',
+          name: 'access_token',
+          type: 'apiKey',
+        },
+        { name: 'Authorization', type: 'apiKey' },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/organization-invites/{item_id}',
+      ...options,
+    },
+  )
+
+/**
+ * Revoke
+ *
+ * Revoke an unused invite; its link stops working.
+ */
+export const organizationInvitesRevoke = <ThrowOnError extends boolean = false>(
+  options: Options<OrganizationInvitesRevokeData, ThrowOnError>,
+): RequestResult<OrganizationInvitesRevokeResponses, OrganizationInvitesRevokeErrors, ThrowOnError> =>
+  (options.client ?? client).post<OrganizationInvitesRevokeResponses, OrganizationInvitesRevokeErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/organization-invites/{item_id}/revoke',
+    ...options,
+  })
+
+/**
+ * Preview
+ *
+ * Organization, role, inviter and state (`valid | expired | used | revoked`) of an invite.
+ */
+export const invitesPreview = <ThrowOnError extends boolean = false>(
+  options: Options<InvitesPreviewData, ThrowOnError>,
+): RequestResult<InvitesPreviewResponses, InvitesPreviewErrors, ThrowOnError> =>
+  (options.client ?? client).get<InvitesPreviewResponses, InvitesPreviewErrors, ThrowOnError>({
+    url: '/api/v1/invites/{token}',
+    ...options,
+  })
+
+/**
+ * Accept
+ *
+ * Join the organization. Signed in: the body is ignored. Anonymous: `{name, email, password}` creates the
+ * account, signs it in (sets the session cookies) and joins.
+ */
+export const invitesAccept = <ThrowOnError extends boolean = false>(
+  options: Options<InvitesAcceptData, ThrowOnError>,
+): RequestResult<InvitesAcceptResponses, InvitesAcceptErrors, ThrowOnError> =>
+  (options.client ?? client).post<InvitesAcceptResponses, InvitesAcceptErrors, ThrowOnError>({
+    url: '/api/v1/invites/{token}/accept',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Organizations
+ *
+ * Organizations the caller belongs to, with the caller's role in each.
+ */
+export const meOrganizations = <ThrowOnError extends boolean = false>(
+  options?: Options<MeOrganizationsData, ThrowOnError>,
+): RequestResult<MeOrganizationsResponses, MeOrganizationsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<MeOrganizationsResponses, MeOrganizationsErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/me/organizations',
+    ...options,
+  })
+
+/**
  * Current
  *
  * AI settings; the API key is never returned (`has_api_key`, `api_key_hint`).
@@ -1045,4 +1224,107 @@ export const summaryTemplatesUpdate = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * Authorize Info
+ *
+ * Validate an authorization request for the consent screen (client name, device name).
+ */
+export const oauthAuthorizeInfo = <ThrowOnError extends boolean = false>(
+  options: Options<OauthAuthorizeInfoData, ThrowOnError>,
+): RequestResult<OauthAuthorizeInfoResponses, OauthAuthorizeInfoErrors, ThrowOnError> =>
+  (options.client ?? client).get<OauthAuthorizeInfoResponses, OauthAuthorizeInfoErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/oauth/authorize',
+    ...options,
+  })
+
+/**
+ * Authorize
+ *
+ * The signed-in user approves the app: a single-use code valid 60 s and the redirect URL.
+ */
+export const oauthAuthorize = <ThrowOnError extends boolean = false>(
+  options: Options<OauthAuthorizeData, ThrowOnError>,
+): RequestResult<OauthAuthorizeResponses, OauthAuthorizeErrors, ThrowOnError> =>
+  (options.client ?? client).post<OauthAuthorizeResponses, OauthAuthorizeErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/oauth/authorize',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Revoke
+ *
+ * Revoke the API token this request is authenticated with (`Authorization: Token ...`).
+ */
+export const oauthRevoke = <ThrowOnError extends boolean = false>(
+  options?: Options<OauthRevokeData, ThrowOnError>,
+): RequestResult<OauthRevokeResponses, OauthRevokeErrors, ThrowOnError> =>
+  (options?.client ?? client).post<OauthRevokeResponses, OauthRevokeErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/oauth/revoke',
+    ...options,
+  })
+
+/**
+ * Token
+ *
+ * Exchange the code (`grant_type=authorization_code`, `code`, `code_verifier`, `redirect_uri`,
+ * `client_id`; form or JSON) for an API token named «Hearfolio · {device_name}». Errors use the RFC 6749
+ * body `{error, error_description}`: 400 `invalid_request | invalid_client | invalid_grant |
+ * unsupported_grant_type`, 429 `rate_limited`.
+ */
+export const oauthToken = <ThrowOnError extends boolean = false>(
+  options: Options<OauthTokenData, ThrowOnError>,
+): RequestResult<OauthTokenResponses, OauthTokenErrors, ThrowOnError> =>
+  (options.client ?? client).post<OauthTokenResponses, OauthTokenErrors, ThrowOnError>({
+    url: '/api/v1/oauth/token',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Hearfolio
+ *
+ * Server identity, versions, OAuth endpoints and upload limits. Public.
+ */
+export const wellKnownHearfolio = <ThrowOnError extends boolean = false>(
+  options?: Options<WellKnownHearfolioData, ThrowOnError>,
+): RequestResult<WellKnownHearfolioResponses, WellKnownHearfolioErrors, ThrowOnError> =>
+  (options?.client ?? client).get<WellKnownHearfolioResponses, WellKnownHearfolioErrors, ThrowOnError>({
+    url: '/.well-known/hearfolio',
+    ...options,
   })

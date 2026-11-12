@@ -32,6 +32,8 @@ class Authentication:
     method: AuthMethod
     # When the credential stops being valid; None for API tokens without expiry.
     expires_at: datetime | None = None
+    # The API token that authenticated the request (AuthMethod.API_TOKEN only).
+    api_token_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -199,4 +201,6 @@ class AuthService:
         touch_interval = timedelta(seconds=settings.api_token_touch_interval_seconds)
         if token.last_used_at is None or now - as_utc(token.last_used_at) >= touch_interval:
             await UserToken.filter(id=token.id).update(last_used_at=now)
-        return Authentication(user=token.user, method=AuthMethod.API_TOKEN, expires_at=expires_at)
+        return Authentication(
+            user=token.user, method=AuthMethod.API_TOKEN, expires_at=expires_at, api_token_id=token.id
+        )

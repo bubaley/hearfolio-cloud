@@ -27,15 +27,24 @@ All business tables are organization-scoped (`Scope(user=..., organization='orga
 
 ### Roles — `OrganizationUser.role`
 
-`owner | admin | member` (default `member`). The creator of an organization becomes `owner`. Owner and admin are "org admins"; superusers act as org admins everywhere. At least one owner must remain; only an owner can grant/revoke `owner`. Helper: `OrganizationService.is_admin(user, organization) -> bool` (superuser → True) and the viewset permission `IsOrganizationAdmin` (`app/shared/permissions/`, organization from `Organization-Key`).
+`owner | admin | member` (default `member`). The creator of an organization becomes `owner`. Owner and admin are "org admins"; superusers act as org admins everywhere. At least one owner must remain; only an owner can grant/revoke `owner`. Helpers: `OrganizationService.is_admin(user, organization_id)` / `is_owner(...)` (superuser → True); for endpoints of the `Organization-Key` organization the viewset permission `IsOrganizationAdmin` and the dependency `RequireOrgAdmin` (`app/shared/permissions/is_organization_admin.py`).
+
+Membership rules (`/organization-users`, `role` in create/read/PATCH):
+
+- Org admins add and remove members and change roles (admin ↔ member). Granting `owner`, revoking it and removing an owner need an owner (or a superuser).
+- Every member can leave (`DELETE` of their own membership).
+- The last owner cannot be demoted, removed or leave, not even by a superuser: 409 `details.reason = last_owner`.
+- Renaming an organization needs an org admin; deleting it needs an owner.
+- Role errors are 403 with `details.reason` `not_admin` or `not_owner`.
 
 ### Invite (`organization` domain)
 
 `organization, role (admin|member), token_hash, created_by, expires_at (default now+7 days), accepted_by nullable, accepted_at, revoked_at`. Single use. The raw token is returned once on creation; the admin copies the link `{PUBLIC_URL}/invite/{token}`. No email is sent (no SMTP in v1).
 
-- `GET /api/v1/invites/{token}` (public): organization name, role, inviter name, state (`valid | expired | used | revoked`).
-- `POST /api/v1/invites/{token}/accept`: signed-in user → becomes member with the invite role (already a member → 409, invite stays usable). Anonymous with `{name, email, password}` → creates the user, signs in (sets cookies) and joins. Existing email for an anonymous accept → 409 "Войдите, чтобы принять приглашение".
-- Admin list/create/revoke under the organization.
+- `GET /api/v1/invites/{token}` (public): organization name, role, inviter name, state (`valid | expired | used | revoked`), `expires_at`.
+- `POST /api/v1/invites/{token}/accept`: signed-in user → becomes member with the invite role (already a member → 409, invite stays usable). Anonymous with `{name, email, password}` → creates the user (`name` is split into first/last name at the first space; the usual password policy), signs in (sets cookies) and joins. Existing email for an anonymous accept → 409 "Войдите, чтобы принять приглашение". Anonymous without a body → 401. Response: `{user, organization, role}`. A signed-in cookie request follows the template CSRF rule (trusted `Origin`).
+- Admin endpoints (`Organization-Key`, `IsOrganizationAdmin`): `GET /organization-invites` (all invites with `state`, newest first, never the token), `POST /organization-invites {role: admin|member, expires_in_days: 1–30 = INVITE_EXPIRE_DAYS}` → the invite plus `token` and `url` (`{PUBLIC_URL}/invite/{token}`, shown once), `POST /organization-invites/{id}/revoke` (idempotent; a used invite → 409).
+- Errors carry `details.reason`: 404 `invite_not_found`; 409 `invite_expired | invite_used | invite_revoked | already_member | email_exists`; 401 `registration_required`. Failed lookups and taken emails count per client IP (`PUBLIC_RATE_LIMIT_ATTEMPTS` per `PUBLIC_RATE_LIMIT_WINDOW_SECONDS`, 20 per 15 min) → 429 with `Retry-After`.
 
 Superusers can still create users with passwords in «Настройки → Пользователи» and attach them with a role.
 
@@ -118,9 +127,12 @@ Permissions: everyone who sees a recording can rename, move between visible proj
 
 Breaking changes only in a new `/api/v2`. The desktop/Android app depends on these.
 
-- `GET /.well-known/hearfolio` (public JSON): `{product: "hearfolio", name, server_version, api_version: 1, min_app_version, oauth: {authorize_url, token_url, revoke_url}, upload: {multipart_threshold_bytes, part_size_bytes}}`.
+- `GET /.well-known/hearfolio` (public JSON): `{product: "hearfolio", name, server_version, api_version: 1, min_app_version, oauth: {authorize_url, token_url, revoke_url}, upload: {multipart_threshold_bytes, part_size_bytes}}`. `name` = `INSTANCE_NAME` (`Hearfolio`), `server_version` = `APP_VERSION` (from `version.json` at build), `min_app_version` = `MIN_APP_VERSION` (`0.10.0`), upload sizes = `UPLOAD_MULTIPART_THRESHOLD_BYTES` (16 MiB) / `UPLOAD_PART_SIZE_BYTES` (8 MiB). URLs are built from `PUBLIC_URL` (fallback: the request origin): `authorize_url` is the web consent page `/oauth/authorize`, `token_url`/`revoke_url` the API endpoints. Caddy routes this path to the API.
 - **OAuth 2.0 authorization code + PKCE (S256) for native apps.** Public client `hearfolio-app`. Allowed redirect URIs: `hearfolio://oauth/callback` and loopback `http://127.0.0.1:{port}/callback`. Flow: app opens `{server}/oauth/authorize?client_id&redirect_uri&code_challenge&code_challenge_method=S256&state&device_name` in the system browser → Nuxt page (requires sign-in, returns after `/auth`) shows «Подключить Hearfolio на {device_name}?» with the account → `POST /api/v1/oauth/authorize` returns a single-use code (60 s, stored hashed) → redirect to `redirect_uri?code&state`. `POST /api/v1/oauth/token` (`grant_type=authorization_code`, `code`, `code_verifier`, `redirect_uri`, `client_id`) → `{access_token, token_type: "Token", user, organizations}`. The token is a regular named API token («Hearfolio · {device_name}», no expiry) so it appears in Профиль → Токены and can be revoked there; `POST /api/v1/oauth/revoke` revokes it from the app.
-- `GET /api/v1/me/organizations`: organizations with the caller's role (no `Organization-Key` needed).
+  - `GET /api/v1/oauth/authorize?<same params>` validates the request for the consent page → `{client_id, client_name, redirect_uri, device_name}`. `POST /api/v1/oauth/authorize {client_id, redirect_uri, code_challenge, code_challenge_method, state?, device_name}` → `{code, state, redirect_to}`. Both need a signed-in web session (an API token cannot authorize, 403) and answer bad requests with the API envelope, 400 `details.error` = `invalid_client | invalid_request`. Loopback redirects: `http://127.0.0.1:{1–65535}/callback` exactly (no `localhost`, no IPv6, no query). `device_name` 1–64 chars, trimmed.
+  - Token endpoint: form or JSON, public, `Cache-Control: no-store`. Errors in RFC 6749 form `{error, error_description}`: 400 `invalid_request | invalid_client | invalid_grant | unsupported_grant_type`, 429 `rate_limited` (failed exchanges per client IP, same limit as invites). A code is claimed before it is checked, so a wrong verifier burns it; presenting a used code again deletes the token issued for it.
+  - Revoke: `Authorization: Token …` only (otherwise 400 `invalid_request`), 204.
+- `GET /api/v1/me/organizations`: organizations with the caller's role (no `Organization-Key` needed), `[{id, name, key, role, created_at, updated_at}]`. `GET /auth/me` and the login response carry the same `role` per organization.
 - Recordings (`Organization-Key` header): `POST /recordings` (create with `client_id`, metadata, optional `project_id`, `visibility`, optional `transcript_text`/`transcript_segments` when copying an already transcribed local recording → no transcription), returns the recording and an upload plan: single presigned PUT below the threshold, otherwise S3 multipart (`upload_id`, presigned part URLs). `POST /recordings/{id}/upload/complete {parts?}` → verifies the object, sets `uploaded`, enqueues the pipeline per settings. `POST /recordings/{id}/upload/parts` refreshes expired part URLs (resume after app restart).
 - `GET /recordings/sync?cursor=` → `{items, deleted_ids, next_cursor, has_more}` ordered by `(updated_at, id)`; the cursor is opaque. Items include everything the list shows plus transcript and results metadata. The app polls it and listens to the websocket.
 - `GET /recordings/{id}/audio` → `{url, expires_at}` presigned GET for streaming/caching.
@@ -159,5 +171,7 @@ Email delivery, public sign-up, billing/quotas, guests limited to projects, comm
 
 - Organization memberships get roles (`owner | admin | member`); the template had none.
 - Invite links let users join (and register) without a superuser.
-- An OAuth authorization-code + PKCE endpoint issues API tokens to the Hearfolio app.
+- Only org admins manage members and rename the organization; only owners delete it (the template let every member do it).
+- An OAuth authorization-code + PKCE endpoint issues API tokens to the Hearfolio app (`domains/oauth`).
+- Template-owned files touched for this: `core/auth.py` (`PUBLIC_PATHS` takes `{param}` templates and lists the invite, OAuth token and well-known paths; `AuthState.api_token_id`), `domains/auth` (`Authentication.api_token_id`; `MeSchema.organizations` carry `role`), `core/settings.py` (Hearfolio settings), `core/services/rate_limiter.py` (invite/OAuth limiters), `core/utils/request_utils.py`, `main.py` (well-known router, `OAuthError` handler), `Caddyfile` and `frontend/modules/dev-proxy.ts` (`/.well-known/hearfolio`).
 - The Docker image includes `ffmpeg`.

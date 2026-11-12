@@ -110,3 +110,15 @@ login_rate_limiter = RateLimiter(
     limit=lambda: settings.login_rate_limit_attempts,
     window_seconds=lambda: settings.login_rate_limit_window_seconds,
 )
+
+# Failed invite lookups/accepts and OAuth token exchanges per client IP.
+invite_rate_limiter = RateLimiter(
+    'invite',
+    limit=lambda: settings.public_rate_limit_attempts,
+    window_seconds=lambda: settings.public_rate_limit_window_seconds,
+)
+oauth_rate_limiter = RateLimiter(
+    'oauth',
+    limit=lambda: settings.public_rate_limit_attempts,
+    window_seconds=lambda: settings.public_rate_limit_window_seconds,
+)

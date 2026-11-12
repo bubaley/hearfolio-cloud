@@ -54,6 +54,11 @@
 		reverse_proxy 127.0.0.1:8000
 	}
 
+	# Server discovery for the Hearfolio apps (FastAPI, outside /api/v1).
+	handle /.well-known/hearfolio {
+		reverse_proxy 127.0.0.1:8000
+	}
+
 	# Hashed build assets: served by Caddy, cached forever.
 	handle /_nuxt/* {
 		root * /app/frontend/.output/public

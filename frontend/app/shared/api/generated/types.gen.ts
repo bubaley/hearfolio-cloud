@@ -153,6 +153,90 @@ export type ErrorResponse = {
 }
 
 /**
+ * HearfolioDiscoverySchema
+ */
+export type HearfolioDiscoverySchema = {
+  /**
+   * Product
+   */
+  product?: 'hearfolio'
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Server Version
+   */
+  server_version: string
+  /**
+   * Api Version
+   */
+  api_version: number
+  /**
+   * Min App Version
+   */
+  min_app_version: string
+  oauth: OAuthEndpointsSchema
+  upload: UploadLimitsSchema
+}
+
+/**
+ * InviteAcceptSchema
+ *
+ * Anonymous accept: the account to create. Ignored when the request is signed in.
+ */
+export type InviteAcceptSchema = {
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Email
+   */
+  email: string
+  /**
+   * Password
+   */
+  password: string
+}
+
+/**
+ * InviteAcceptedSchema
+ */
+export type InviteAcceptedSchema = {
+  user: UserReadSchema
+  organization: OrganizationReadSchema
+  role: OrganizationRole
+}
+
+/**
+ * InvitePreviewSchema
+ *
+ * What the public invite page shows before accepting.
+ */
+export type InvitePreviewSchema = {
+  /**
+   * Organization Name
+   */
+  organization_name: string
+  role: OrganizationRole
+  /**
+   * Inviter Name
+   */
+  inviter_name: string | null
+  state: InviteState
+  /**
+   * Expires At
+   */
+  expires_at: string
+}
+
+/**
+ * InviteState
+ */
+export type InviteState = 'valid' | 'expired' | 'used' | 'revoked'
+
+/**
  * LightPageNumberPagination
  *
  * Page number based pagination.
@@ -198,7 +282,122 @@ export type MeSchema = {
   /**
    * Organizations
    */
-  organizations: Array<OrganizationReadSchema>
+  organizations: Array<UserOrganizationSchema>
+}
+
+/**
+ * OAuthAuthorizeInfoSchema
+ *
+ * A validated authorization request, for the consent screen.
+ */
+export type OAuthAuthorizeInfoSchema = {
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Client Name
+   */
+  client_name: string
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string
+  /**
+   * Device Name
+   */
+  device_name: string
+}
+
+/**
+ * OAuthAuthorizeRequest
+ *
+ * What the native app put into `/oauth/authorize?...`, forwarded by the consent page.
+ */
+export type OAuthAuthorizeRequest = {
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string
+  /**
+   * Code Challenge
+   */
+  code_challenge: string
+  /**
+   * Code Challenge Method
+   */
+  code_challenge_method?: string
+  /**
+   * State
+   */
+  state?: string | null
+  /**
+   * Device Name
+   */
+  device_name: string
+}
+
+/**
+ * OAuthAuthorizeResponse
+ *
+ * The single-use code (valid 60 s) and where to send the browser: `redirect_uri?code=...&state=...`.
+ */
+export type OAuthAuthorizeResponse = {
+  /**
+   * Code
+   */
+  code: string
+  /**
+   * State
+   */
+  state: string | null
+  /**
+   * Redirect To
+   */
+  redirect_to: string
+}
+
+/**
+ * OAuthEndpointsSchema
+ */
+export type OAuthEndpointsSchema = {
+  /**
+   * Authorize Url
+   */
+  authorize_url: string
+  /**
+   * Token Url
+   */
+  token_url: string
+  /**
+   * Revoke Url
+   */
+  revoke_url: string
+}
+
+/**
+ * OAuthTokenResponse
+ *
+ * A regular named API token (`Authorization: Token <access_token>`), plus the user and their organizations.
+ */
+export type OAuthTokenResponse = {
+  user: UserReadSchema
+  /**
+   * Organizations
+   */
+  organizations: Array<UserOrganizationSchema>
+  /**
+   * Access Token
+   */
+  access_token: string
+  /**
+   * Token Type
+   */
+  token_type?: 'Token'
 }
 
 /**
@@ -213,6 +412,103 @@ export type OrganizationCreateSchema = {
    * Key
    */
   key: string
+}
+
+/**
+ * OrganizationInviteCreateSchema
+ */
+export type OrganizationInviteCreateSchema = {
+  role?: OrganizationRole
+  /**
+   * Expires In Days
+   */
+  expires_in_days?: number
+}
+
+/**
+ * OrganizationInviteCreatedSchema
+ *
+ * Returned once on creation: the raw token and the link to share. Neither can be read again.
+ */
+export type OrganizationInviteCreatedSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  role: OrganizationRole
+  state: InviteState
+  /**
+   * Expires At
+   */
+  expires_at: string
+  /**
+   * Accepted At
+   */
+  accepted_at: string | null
+  /**
+   * Revoked At
+   */
+  revoked_at: string | null
+  created_by: UserReadSchema | null
+  accepted_by: UserReadSchema | null
+  /**
+   * Token
+   */
+  token: string
+  /**
+   * Url
+   */
+  url: string
+}
+
+/**
+ * OrganizationInviteReadSchema
+ */
+export type OrganizationInviteReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  role: OrganizationRole
+  state: InviteState
+  /**
+   * Expires At
+   */
+  expires_at: string
+  /**
+   * Accepted At
+   */
+  accepted_at: string | null
+  /**
+   * Revoked At
+   */
+  revoked_at: string | null
+  created_by: UserReadSchema | null
+  accepted_by: UserReadSchema | null
 }
 
 /**
@@ -240,6 +536,11 @@ export type OrganizationReadSchema = {
    */
   updated_at: string
 }
+
+/**
+ * OrganizationRole
+ */
+export type OrganizationRole = 'owner' | 'admin' | 'member'
 
 /**
  * OrganizationSettingsReadSchema
@@ -385,6 +686,7 @@ export type OrganizationUserCreateSchema = {
    * User Id
    */
   user_id: string
+  role?: OrganizationRole
 }
 
 /**
@@ -399,6 +701,7 @@ export type OrganizationUserReadSchema = {
    * User Id
    */
   user_id: string
+  role?: OrganizationRole
   /**
    * Id
    */
@@ -417,10 +720,21 @@ export type OrganizationUserReadSchema = {
 /**
  * OrganizationUserUpdateSchema
  *
- * A membership has no mutable fields yet: user and organization are fixed after creation.
+ * Only the role changes; user and organization are fixed after creation. Omitted role → unchanged.
  */
 export type OrganizationUserUpdateSchema = {
-  [key: string]: never
+  role?: OrganizationRole | null
+}
+
+/**
+ * OrganizationInviteReadSchemaPage
+ */
+export type OrganizationInviteReadSchemaPage = {
+  /**
+   * Data
+   */
+  data: Array<OrganizationInviteReadSchema>
+  meta: LightPageNumberPagination
 }
 
 /**
@@ -512,7 +826,7 @@ export type SessionSchema = {
   /**
    * Organizations
    */
-  organizations: Array<OrganizationReadSchema>
+  organizations: Array<UserOrganizationSchema>
 }
 
 /**
@@ -598,6 +912,20 @@ export type SummaryTemplateUpdateSchema = {
 }
 
 /**
+ * UploadLimitsSchema
+ */
+export type UploadLimitsSchema = {
+  /**
+   * Multipart Threshold Bytes
+   */
+  multipart_threshold_bytes: number
+  /**
+   * Part Size Bytes
+   */
+  part_size_bytes: number
+}
+
+/**
  * UserChangePasswordSchema
  */
 export type UserChangePasswordSchema = {
@@ -635,6 +963,35 @@ export type UserCreateSchema = {
    * Is Superuser
    */
   is_superuser?: boolean
+}
+
+/**
+ * UserOrganizationSchema
+ *
+ * An organization of the current user together with the user's role in it.
+ */
+export type UserOrganizationSchema = {
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Key
+   */
+  key: string
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  role: OrganizationRole
 }
 
 /**
@@ -820,15 +1177,6 @@ export type ErrorResponseWritable = {
    */
   data?: null
   error: ErrorData
-}
-
-/**
- * OrganizationUserUpdateSchema
- *
- * A membership has no mutable fields yet: user and organization are fixed after creation.
- */
-export type OrganizationUserUpdateSchemaWritable = {
-  [key: string]: never
 }
 
 export type AuthMeData = {
@@ -2466,7 +2814,7 @@ export type OrganizationUsersRetrieveResponse =
   OrganizationUsersRetrieveResponses[keyof OrganizationUsersRetrieveResponses]
 
 export type OrganizationUsersPartialUpdateData = {
-  body: OrganizationUserUpdateSchemaWritable
+  body: OrganizationUserUpdateSchema
   path: {
     /**
      * Item Id
@@ -2526,7 +2874,7 @@ export type OrganizationUsersPartialUpdateResponse =
   OrganizationUsersPartialUpdateResponses[keyof OrganizationUsersPartialUpdateResponses]
 
 export type OrganizationUsersUpdateData = {
-  body: OrganizationUserUpdateSchemaWritable
+  body: OrganizationUserUpdateSchema
   path: {
     /**
      * Item Id
@@ -2582,6 +2930,451 @@ export type OrganizationUsersUpdateResponses = {
 }
 
 export type OrganizationUsersUpdateResponse = OrganizationUsersUpdateResponses[keyof OrganizationUsersUpdateResponses]
+
+export type OrganizationInvitesListData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number
+    /**
+     * Page Size
+     *
+     * Number of records per page
+     */
+    page_size?: number
+  }
+  url: '/api/v1/organization-invites'
+}
+
+export type OrganizationInvitesListErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OrganizationInvitesListError = OrganizationInvitesListErrors[keyof OrganizationInvitesListErrors]
+
+export type OrganizationInvitesListResponses = {
+  /**
+   * Successful Response
+   */
+  200: OrganizationInviteReadSchemaPage
+}
+
+export type OrganizationInvitesListResponse = OrganizationInvitesListResponses[keyof OrganizationInvitesListResponses]
+
+export type OrganizationInvitesCreateData = {
+  body: OrganizationInviteCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/organization-invites'
+}
+
+export type OrganizationInvitesCreateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OrganizationInvitesCreateError = OrganizationInvitesCreateErrors[keyof OrganizationInvitesCreateErrors]
+
+export type OrganizationInvitesCreateResponses = {
+  /**
+   * Successful Response
+   */
+  201: OrganizationInviteCreatedSchema
+}
+
+export type OrganizationInvitesCreateResponse =
+  OrganizationInvitesCreateResponses[keyof OrganizationInvitesCreateResponses]
+
+export type OrganizationInvitesRetrieveData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/organization-invites/{item_id}'
+}
+
+export type OrganizationInvitesRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OrganizationInvitesRetrieveError =
+  OrganizationInvitesRetrieveErrors[keyof OrganizationInvitesRetrieveErrors]
+
+export type OrganizationInvitesRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: OrganizationInviteReadSchema
+}
+
+export type OrganizationInvitesRetrieveResponse =
+  OrganizationInvitesRetrieveResponses[keyof OrganizationInvitesRetrieveResponses]
+
+export type OrganizationInvitesRevokeData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/organization-invites/{item_id}/revoke'
+}
+
+export type OrganizationInvitesRevokeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OrganizationInvitesRevokeError = OrganizationInvitesRevokeErrors[keyof OrganizationInvitesRevokeErrors]
+
+export type OrganizationInvitesRevokeResponses = {
+  /**
+   * Successful Response
+   */
+  200: OrganizationInviteReadSchema
+}
+
+export type OrganizationInvitesRevokeResponse =
+  OrganizationInvitesRevokeResponses[keyof OrganizationInvitesRevokeResponses]
+
+export type InvitesPreviewData = {
+  body?: never
+  path: {
+    /**
+     * Token
+     */
+    token: string
+  }
+  query?: never
+  url: '/api/v1/invites/{token}'
+}
+
+export type InvitesPreviewErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type InvitesPreviewError = InvitesPreviewErrors[keyof InvitesPreviewErrors]
+
+export type InvitesPreviewResponses = {
+  /**
+   * Successful Response
+   */
+  200: InvitePreviewSchema
+}
+
+export type InvitesPreviewResponse = InvitesPreviewResponses[keyof InvitesPreviewResponses]
+
+export type InvitesAcceptData = {
+  /**
+   * Data
+   */
+  body?: InviteAcceptSchema | null
+  path: {
+    /**
+     * Token
+     */
+    token: string
+  }
+  query?: never
+  url: '/api/v1/invites/{token}/accept'
+}
+
+export type InvitesAcceptErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type InvitesAcceptError = InvitesAcceptErrors[keyof InvitesAcceptErrors]
+
+export type InvitesAcceptResponses = {
+  /**
+   * Successful Response
+   */
+  200: InviteAcceptedSchema
+}
+
+export type InvitesAcceptResponse = InvitesAcceptResponses[keyof InvitesAcceptResponses]
+
+export type MeOrganizationsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/me/organizations'
+}
+
+export type MeOrganizationsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type MeOrganizationsError = MeOrganizationsErrors[keyof MeOrganizationsErrors]
+
+export type MeOrganizationsResponses = {
+  /**
+   * Response Me Organizations
+   *
+   * Successful Response
+   */
+  200: Array<UserOrganizationSchema>
+}
+
+export type MeOrganizationsResponse = MeOrganizationsResponses[keyof MeOrganizationsResponses]
 
 export type AiSettingsCurrentData = {
   body?: never
@@ -3306,3 +4099,319 @@ export type SummaryTemplatesUpdateResponses = {
 }
 
 export type SummaryTemplatesUpdateResponse = SummaryTemplatesUpdateResponses[keyof SummaryTemplatesUpdateResponses]
+
+export type OauthAuthorizeInfoData = {
+  body?: never
+  path?: never
+  query: {
+    /**
+     * Client Id
+     */
+    client_id: string
+    /**
+     * Redirect Uri
+     */
+    redirect_uri: string
+    /**
+     * Code Challenge
+     */
+    code_challenge: string
+    /**
+     * Code Challenge Method
+     */
+    code_challenge_method?: string
+    /**
+     * State
+     */
+    state?: string | null
+    /**
+     * Device Name
+     */
+    device_name: string
+  }
+  url: '/api/v1/oauth/authorize'
+}
+
+export type OauthAuthorizeInfoErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OauthAuthorizeInfoError = OauthAuthorizeInfoErrors[keyof OauthAuthorizeInfoErrors]
+
+export type OauthAuthorizeInfoResponses = {
+  /**
+   * Successful Response
+   */
+  200: OAuthAuthorizeInfoSchema
+}
+
+export type OauthAuthorizeInfoResponse = OauthAuthorizeInfoResponses[keyof OauthAuthorizeInfoResponses]
+
+export type OauthAuthorizeData = {
+  body: OAuthAuthorizeRequest
+  path?: never
+  query?: never
+  url: '/api/v1/oauth/authorize'
+}
+
+export type OauthAuthorizeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OauthAuthorizeError = OauthAuthorizeErrors[keyof OauthAuthorizeErrors]
+
+export type OauthAuthorizeResponses = {
+  /**
+   * Successful Response
+   */
+  200: OAuthAuthorizeResponse
+}
+
+export type OauthAuthorizeResponse = OauthAuthorizeResponses[keyof OauthAuthorizeResponses]
+
+export type OauthRevokeData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/oauth/revoke'
+}
+
+export type OauthRevokeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OauthRevokeError = OauthRevokeErrors[keyof OauthRevokeErrors]
+
+export type OauthRevokeResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type OauthRevokeResponse = OauthRevokeResponses[keyof OauthRevokeResponses]
+
+export type OauthTokenData = {
+  /**
+   * OAuthTokenRequest
+   *
+   * RFC 6749 §4.1.3 + RFC 7636. Sent as form (`application/x-www-form-urlencoded`) or JSON.
+   */
+  body: {
+    /**
+     * Grant Type
+     */
+    grant_type?: string | null
+    /**
+     * Code
+     */
+    code?: string | null
+    /**
+     * Code Verifier
+     */
+    code_verifier?: string | null
+    /**
+     * Redirect Uri
+     */
+    redirect_uri?: string | null
+    /**
+     * Client Id
+     */
+    client_id?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/oauth/token'
+}
+
+export type OauthTokenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type OauthTokenError = OauthTokenErrors[keyof OauthTokenErrors]
+
+export type OauthTokenResponses = {
+  /**
+   * Successful Response
+   */
+  200: OAuthTokenResponse
+}
+
+export type OauthTokenResponse = OauthTokenResponses[keyof OauthTokenResponses]
+
+export type WellKnownHearfolioData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/.well-known/hearfolio'
+}
+
+export type WellKnownHearfolioErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type WellKnownHearfolioError = WellKnownHearfolioErrors[keyof WellKnownHearfolioErrors]
+
+export type WellKnownHearfolioResponses = {
+  /**
+   * Successful Response
+   */
+  200: HearfolioDiscoverySchema
+}
+
+export type WellKnownHearfolioResponse = WellKnownHearfolioResponses[keyof WellKnownHearfolioResponses]

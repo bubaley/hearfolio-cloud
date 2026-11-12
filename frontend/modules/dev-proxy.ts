@@ -20,6 +20,7 @@ export default defineNuxtModule<DevProxyOptions>({
     nuxt.options.nitro.devProxy = {
       ...nuxt.options.nitro.devProxy,
       '/api/v1': { target: `${target}/api/v1` },
+      '/.well-known/hearfolio': { target: `${target}/.well-known/hearfolio` },
     }
 
     const proxy = createProxyServer({ target, ws: true })
