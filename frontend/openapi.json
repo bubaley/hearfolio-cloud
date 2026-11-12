@@ -12984,6 +12984,40 @@
               "maxLength": 64,
               "title": "Device Name"
             }
+          },
+          {
+            "name": "response_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Response Type"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scope"
+            }
           }
         ],
         "responses": {
@@ -14228,6 +14262,30 @@
             "maxLength": 64,
             "minLength": 1,
             "title": "Device Name"
+          },
+          "response_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Type"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
           }
         },
         "type": "object",
@@ -15579,6 +15637,16 @@
             ],
             "title": "Title"
           },
+          "title_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TitleSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "recorded_at": {
             "type": "string",
             "format": "date-time",
@@ -16396,6 +16464,17 @@
             "type": "string",
             "title": "Content"
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
           "error_message": {
             "anyOf": [
               {
@@ -16432,6 +16511,7 @@
           "model",
           "status",
           "content",
+          "error_code",
           "error_message",
           "created_by_id"
         ],

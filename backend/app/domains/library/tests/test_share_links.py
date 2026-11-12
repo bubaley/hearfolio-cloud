@@ -3,9 +3,11 @@ from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
+from tortoise.exceptions import IntegrityError
 
 from app.domains.library.models import Recording, ShareLink, UploadState
 from app.domains.library.services.pipeline import RecordingPipeline
+from app.domains.library.services.share_link_service import ShareLinkService
 
 
 @pytest.fixture
@@ -16,9 +18,60 @@ def results_provider():
         calls.append((recording.id, result_ids))
         return [{'id': str(result_id), 'title': 'Кратко', 'content': '- пункт'} for result_id in result_ids]
 
+    async def checker(recording, result_ids):
+        return {result_id for result_id in result_ids if str(result_id) not in FOREIGN_RESULT_IDS}
+
+    previous = (RecordingPipeline._share_results_provider, RecordingPipeline._result_ids_checker)
     RecordingPipeline.register_share_results_provider(provider)
+    RecordingPipeline.register_result_ids_checker(checker)
     yield calls
-    RecordingPipeline.register_share_results_provider(None)
+    RecordingPipeline.register_share_results_provider(previous[0])
+    RecordingPipeline.register_result_ids_checker(previous[1])
+
+
+FOREIGN_RESULT_IDS = {str(uuid4())}
+
+
+@pytest.mark.asyncio
+async def test_share_link_rejects_results_of_other_recordings(api_client, s3, library, results_provider):
+    recording = await library.recording()
+    foreign = next(iter(FOREIGN_RESULT_IDS))
+    response = await api_client.put(
+        f'/api/v1/recordings/{recording.id}/share', json={'result_ids': [foreign]}, headers=library.h(library.member)
+    )
+    assert response.status_code == 400
+    assert response.json()['error']['details'] == {'reason': 'unknown_result_ids', 'result_ids': [foreign]}
+    assert not await ShareLink.exists(recording_id=recording.id)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_first_share_edits_the_winner(api_client, s3, library, results_provider, monkeypatch):
+    """Two first shares at once: the loser of the one-active-link index edits the winner's link, no 500."""
+    recording = await library.recording()
+    winner = await ShareLink.create(recording=recording, token='winner-token')
+    calls = 0
+
+    async def active(recording_):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return None  # the loser looked before the winner committed
+        return winner
+
+    async def save_conflict(self, *args, **kwargs):
+        if self.id != winner.id:
+            raise IntegrityError('share_link_one_active')
+        return await original_save(self, *args, **kwargs)
+
+    original_save = ShareLink.save
+    monkeypatch.setattr(ShareLinkService, 'active', staticmethod(active))
+    monkeypatch.setattr(ShareLink, 'save', save_conflict)
+    response = await api_client.put(
+        f'/api/v1/recordings/{recording.id}/share', json={'include_audio': False}, headers=library.h(library.member)
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()['token'] == 'winner-token'
+    assert (await ShareLink.get(id=winner.id)).include_audio is False
 
 
 @pytest.mark.asyncio

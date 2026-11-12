@@ -3,12 +3,14 @@ from typing import Any
 from uuid import UUID
 
 from tortoise import fields
+from tortoise.backends.base.client import BaseDBAsyncClient
 from tortoise.contrib.postgres.fields import TSVectorField
 from tortoise.expressions import Q, Subquery
+from tortoise.signals import post_delete, pre_delete
 
 from app.core.models import BaseModel
 from app.core.scope import Scope
-from app.domains.organization.models import OrganizationUser
+from app.domains.organization.models import Organization, OrganizationUser
 
 
 def _member_organizations(user_id: UUID) -> Q:
@@ -135,6 +137,15 @@ class RecordingStatus(StrEnum):
     FAILED = 'failed'
 
 
+class RecordingErrorCode(StrEnum):
+    """
+    Library-owned values of `Recording.error_code`. The pipeline adds its own (`AIErrorCode` in the ai domain);
+    the full list for clients is in docs/product.md. Codes are stable; `error_message` is a Russian fallback.
+    """
+
+    UPLOAD_SIZE_MISMATCH = 'upload_size_mismatch'
+
+
 class Recording(BaseModel):
     organization = fields.ForeignKeyField('models.Organization', related_name='recordings', on_delete=fields.CASCADE)
     organization_id: UUID
@@ -246,3 +257,42 @@ class RecordingEvent(BaseModel):
     class Meta:
         table = 'recording_event'
         ordering = ('-created_at',)
+
+
+# SIGNALS: the organization domain does not know the library; the library reacts to its changes here.
+
+
+@pre_delete(Organization)
+async def collect_organization_audio(
+    sender: type[Organization], instance: Organization, using_db: BaseDBAsyncClient | None
+) -> None:
+    """Remember the audio of every recording before the cascade removes the rows (deleted after the delete)."""
+    from app.domains.library.services.storage_cleanup import StorageCleanup
+
+    instance.__dict__['_library_audio'] = await StorageCleanup.collect(instance.id)
+
+
+@post_delete(Organization)
+async def delete_organization_audio(
+    sender: type[Organization], instance: Organization, using_db: BaseDBAsyncClient | None
+) -> None:
+    from app.domains.library.services.storage_cleanup import StorageCleanup
+
+    keys, uploads = instance.__dict__.pop('_library_audio', ([], []))
+    if keys or uploads:
+        await StorageCleanup.enqueue(keys, uploads)
+
+
+@post_delete(OrganizationUser)
+async def drop_project_memberships(
+    sender: type[OrganizationUser], instance: OrganizationUser, using_db: BaseDBAsyncClient | None
+) -> None:
+    """A user who leaves (or is removed from) an organization leaves its private projects too."""
+    await (
+        ProjectMember.filter(
+            user_id=instance.user_id,
+            project_id__in=Subquery(Project.filter(organization_id=instance.organization_id).values('id')),
+        )
+        .using_db(using_db)
+        .delete()
+    )

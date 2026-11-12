@@ -140,11 +140,15 @@ async def test_multipart_flow(api_client, s3, library, enqueued, monkeypatch):
         headers=library.h(library.author),
     )
     assert response.status_code == 400
+    assert response.json()['error']['details'] == {'reason': 'upload_parts_missing', 'missing_parts': [1, 2, 3]}
     s3.complete_multipart_upload.assert_not_called()
 
     # Without `parts` the server lists them itself.
     s3.list_parts.return_value = {
-        'Parts': [{'PartNumber': n, 'ETag': f'"e{n}"', 'Size': 1} for n in (1, 2, 3)],
+        'Parts': [
+            {'PartNumber': n, 'ETag': f'"e{n}"', 'Size': part}
+            for n, part in ((1, 8 * 1024 * 1024), (2, 8 * 1024 * 1024), (3, 4 * 1024 * 1024))
+        ],
         'IsTruncated': False,
     }
     key = (await Recording.get(id=recording_id)).audio_key

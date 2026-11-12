@@ -15,6 +15,10 @@ class OAuthAuthorizeRequest(BaseSchema):
     code_challenge_method: str = Field('S256', max_length=16)
     state: str | None = Field(None, max_length=512)
     device_name: str = Field(min_length=1, max_length=64)
+    # Standard parameters some OAuth libraries always send: `response_type` must be `code` when present, `scope`
+    # is accepted and ignored (an app token has the user's full access).
+    response_type: str | None = Field(None, max_length=32)
+    scope: str | None = Field(None, max_length=512)
 
 
 class OAuthAuthorizeInfoSchema(BaseSchema):

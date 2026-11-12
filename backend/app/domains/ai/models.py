@@ -95,6 +95,8 @@ class RecordingResult(BaseModel):
     model = fields.CharField(max_length=255)
     status = fields.CharEnumField(ResultStatus, max_length=16, default=ResultStatus.QUEUED)
     content = fields.TextField(default='')
+    # Stable machine code of a failure (an `AIErrorCode` value); `error_message` is the Russian fallback
+    error_code = fields.CharField(max_length=64, null=True)
     error_message = fields.CharField(max_length=2000, null=True)
     # null: created automatically after transcription
     created_by = fields.ForeignKeyField(

@@ -243,7 +243,7 @@ Domains are discovered, not registered (`app/core/discovery.py`):
 2. Order is deterministic: kernel domains `auth`, `user`, `organization` first, then the rest alphabetically; inside a domain, the order of `routers`. It decides the path order in `openapi.json`.
 3. A domain module that fails to import (or exports no router) stops the app with `DomainDiscoveryError` naming the module — fix it, do not catch it.
 4. `tenant_scope` on every model (`Scope(...)` or `Unscoped(reason=...)`).
-5. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask.
+5. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask. Hand-written SQL in a migration: plain `ops.RunSQL` when it is portable (indexes, data fixes), `app/shared/migration_ops.PostgresRunSQL` for PostgreSQL-only statements (GIN, generated columns), so SQLite databases still migrate.
 
 ## Scaffolding
 

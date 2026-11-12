@@ -235,7 +235,7 @@ class RecordingService:
             base = recording.title or recording.original_filename or 'recording'
             download_name = f'{base}.{extension}' if extension and not base.endswith(f'.{extension}') else base
         url = await get_s3_service().presigned_get_url(
-            recording.audio_key, expires_in=expires_in, download_name=download_name
+            recording.audio_key, expires_in=expires_in, download_name=download_name, content_type=recording.audio_mime
         )
         return AudioUrlSchema(url=url, expires_at=utcnow() + timedelta(seconds=expires_in))
 
@@ -244,17 +244,27 @@ class RecordingService:
     @classmethod
     async def mark_uploaded(cls, recording: Recording, actor: User | None = None) -> Recording:
         """The audio is in S3: set `uploaded`, queue processing (unless a transcript came with the recording)."""
-        recording.upload_state = UploadState.UPLOADED
-        recording.upload_id = None
-        fields = ['upload_state', 'upload_id']
-        if recording.status in (RecordingStatus.AWAITING_UPLOAD, RecordingStatus.FAILED):
-            recording.status = RecordingStatus.QUEUED
-            recording.error_code = None
-            recording.error_message = None
-            fields += ['status', 'error_code', 'error_message']
+        fields: list[str] = []
         async with in_transaction():
-            await cls._save(recording, *fields)
-            await cls.record_event(recording, RecordingEventKind.UPLOADED, actor, {'size': recording.audio_size})
+            # Claim the transition: of two concurrent `complete` calls only one journals and enqueues.
+            claimed = (
+                await Recording.filter(id=recording.id)
+                .exclude(upload_state=UploadState.UPLOADED)
+                .update(upload_state=UploadState.UPLOADED, upload_id=None)
+            )
+            if claimed:
+                recording.upload_state = UploadState.UPLOADED
+                recording.upload_id = None
+                if recording.status in (RecordingStatus.AWAITING_UPLOAD, RecordingStatus.FAILED):
+                    recording.status = RecordingStatus.QUEUED
+                    recording.error_code = None
+                    recording.error_message = None
+                    fields += ['status', 'error_code', 'error_message']
+                await cls._save(recording, *fields)
+                await cls.record_event(recording, RecordingEventKind.UPLOADED, actor, {'size': recording.audio_size})
+        if not claimed:
+            await recording.refresh_from_db()
+            return recording
         await LibraryRealtime.recording_updated(recording)
         await RecordingPipeline.enqueue(recording)
         return recording

@@ -13,6 +13,7 @@ from app.domains.ai.models import OrganizationSettings
 from app.domains.ai.services.audio_segmenter import AudioSegmenter
 from app.domains.ai.services.model_catalog_service import ModelCatalogService
 from app.domains.ai.services.openrouter_client import OpenRouterClient
+from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
 from app.domains.ai.services.recording_processor import RecordingProcessor
 from app.domains.ai.tests.fakes import chat_reply
 from app.domains.library.models import Project, Recording, RecordingStatus, UploadState
@@ -58,6 +59,18 @@ class FakeAI:
         if 'organize voice recordings' in system:
             return chat_reply(json.dumps(self.classification, ensure_ascii=False))
         return chat_reply(self.summary)
+
+
+@pytest.fixture(autouse=True)
+def fake_dns(monkeypatch) -> dict[str, list[str]]:
+    """No real DNS in tests: names resolve to a public address unless listed here."""
+    names: dict[str, list[str]] = {'gateway.internal.test': ['10.0.0.5']}
+
+    async def lookup(host: str) -> list[str]:
+        return names.get(host, ['8.8.8.8'])
+
+    monkeypatch.setattr(OrganizationSettingsService, 'lookup_host', staticmethod(lookup))
+    return names
 
 
 @pytest.fixture

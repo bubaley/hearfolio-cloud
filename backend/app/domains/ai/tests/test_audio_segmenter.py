@@ -77,6 +77,24 @@ async def test_unreadable_file_raises_russian_error(tmp_path):
     assert raised.value.message == 'Не удалось прочитать аудиофайл'
 
 
+@needs_ffmpeg
+@pytest.mark.asyncio
+async def test_playlists_referencing_other_files_are_refused(tmp_path):
+    """An uploaded HLS/concat playlist must not make ffmpeg read other local files (or the network)."""
+    real = tmp_path / 'real.wav'
+    await _generate(real, 'sine=frequency=440', 3)
+    playlist = tmp_path / 'source'
+    playlist.write_text(f'#EXTM3U\n#EXTINF:3,\nfile://{real}\n#EXT-X-ENDLIST\n')
+    with pytest.raises(AudioProcessingError):
+        await AudioSegmenter().probe_duration_ms(playlist)
+    concat = tmp_path / 'concat'
+    concat.write_text(f"ffconcat version 1.0\nfile '{real}'\n")
+    with pytest.raises(AudioProcessingError):
+        await AudioSegmenter().probe_duration_ms(concat)
+    # Ordinary audio still works.
+    assert abs(await AudioSegmenter().probe_duration_ms(real) - 3000) < 100
+
+
 @pytest.mark.asyncio
 async def test_missing_ffmpeg_is_reported(tmp_path):
     with pytest.raises(AudioProcessingError) as raised:

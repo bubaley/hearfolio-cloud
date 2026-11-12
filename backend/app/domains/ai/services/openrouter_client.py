@@ -33,6 +33,10 @@ class AIErrorCode(StrEnum):
     INCOMPLETE = 'incomplete'
     EMPTY = 'empty'
     CONTENT_FILTER = 'content_filter'
+    # Pipeline failures outside the provider (Recording.error_code / RecordingResult.error_code)
+    STORAGE = 'storage'
+    AUDIO = 'audio'
+    INTERNAL = 'internal'
 
 
 ERROR_MESSAGES: dict[AIErrorCode, str] = {
@@ -51,6 +55,9 @@ ERROR_MESSAGES: dict[AIErrorCode, str] = {
     AIErrorCode.INCOMPLETE: 'Модель вернула только часть текста',
     AIErrorCode.EMPTY: 'Модель вернула пустой ответ',
     AIErrorCode.CONTENT_FILTER: 'Провайдер модели отказался обрабатывать этот фрагмент',
+    AIErrorCode.STORAGE: 'Не удалось получить аудио из хранилища',
+    AIErrorCode.AUDIO: 'Не удалось прочитать аудиофайл',
+    AIErrorCode.INTERNAL: 'Не удалось обработать запись, попробуйте ещё раз',
 }
 
 RETRYABLE_CODES = frozenset(

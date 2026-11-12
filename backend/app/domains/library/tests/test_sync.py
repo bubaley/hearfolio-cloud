@@ -1,6 +1,17 @@
+from datetime import timedelta
+
 import pytest
 
-from app.domains.library.models import RecordingVisibility
+from app.core.utils.date_utils import utcnow
+from app.domains.library.models import Recording, RecordingVisibility
+from app.domains.library.services import recording_query
+
+
+@pytest.fixture(autouse=True)
+def no_overlap(request, monkeypatch):
+    """Exact cursors keep these tests about paging; test_sync_overlap_* checks the safety margin."""
+    if 'overlap' not in request.node.name:
+        monkeypatch.setattr(recording_query, 'SYNC_OVERLAP', timedelta(0))
 
 
 async def _sync_all(api_client, headers, cursor=None, limit=2):
@@ -83,3 +94,36 @@ async def test_invalid_cursor(api_client, library):
         '/api/v1/recordings/sync', params={'cursor': 'not-a-cursor'}, headers=library.h(library.member)
     )
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_sync_overlap_returns_rows_committed_late_behind_the_cursor(api_client, library):
+    headers = library.h(library.member)
+    old = await library.recording(title='Old')
+    await Recording.filter(id=old.id).update(updated_at=utcnow() - timedelta(minutes=5))
+    _, _, cursor, _ = await _sync_all(api_client, headers)
+    # Nothing recent: the cursor is exact and the next sync is empty.
+    items, _, same, _ = await _sync_all(api_client, headers, cursor)
+    assert (items, same) == ([], cursor)
+
+    fresh = await library.recording(title='Fresh')
+    items, _, cursor, _ = await _sync_all(api_client, headers, cursor)
+    assert items == [str(fresh.id)]
+
+    # A transaction that set updated_at earlier but committed after that sync still shows up.
+    late = await library.recording(title='Late')
+    fresh_updated_at = (await Recording.get(id=fresh.id)).updated_at
+    await Recording.filter(id=late.id).update(updated_at=fresh_updated_at - timedelta(seconds=1))
+    items, _, _, _ = await _sync_all(api_client, headers, cursor)
+    assert str(late.id) in items
+    # Recent rows may come again; clients upsert them by id.
+    assert set(items) <= {str(fresh.id), str(late.id)}
+
+
+@pytest.mark.asyncio
+async def test_sync_overlap_never_loops_when_paging(api_client, library):
+    headers = library.h(library.member)
+    created = [await library.recording(title=f'R{i}') for i in range(5)]
+    items, _, _, pages = await _sync_all(api_client, headers, limit=2)
+    assert sorted(items) == sorted(str(recording.id) for recording in created)
+    assert pages == 3

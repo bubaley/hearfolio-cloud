@@ -12,10 +12,10 @@ from app.domains.ai.services.audio_segmenter import AudioProcessingError, AudioS
 from app.domains.ai.services.model_catalog_service import ModelCatalogService
 from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderError
 from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
-from app.domains.ai.services.processing_lock import ProcessingLock
+from app.domains.ai.services.processing_lock import LockUnavailableError, ProcessingLock
 from app.domains.ai.services.result_service import ResultRequest, ResultService
 from app.domains.ai.services.summary_template_service import SummaryTemplateService
-from app.domains.ai.services.task_kicker import GENERATE_RESULT_TASK, AITaskKicker
+from app.domains.ai.services.task_kicker import GENERATE_RESULT_TASK, PROCESS_RECORDING_TASK, AITaskKicker
 from app.domains.ai.services.text_task_service import TextTaskService
 from app.domains.ai.services.transcription_engine import (
     SegmentSink,
@@ -36,6 +36,9 @@ AudioDownloader = Callable[[Recording, Path], Awaitable[None]]
 # A transcript shorter than this (ms of audio left) is treated as complete.
 RESUME_TOLERANCE_MS = 1000
 CLASSIFY_TAG_CONTEXT = 300
+# Redis unavailable for the lock: retry after 30 s, 60 s, 120 s, ...
+LOCK_RETRY_ATTEMPTS = 5
+LOCK_RETRY_DELAY_SECONDS = 30
 
 
 class ProcessingFailure(Exception):
@@ -51,7 +54,7 @@ async def download_from_s3(recording: Recording, target: Path) -> None:
         await asyncio.to_thread(service.client.download_file, service.bucket, recording.audio_key, str(target))
     except Exception as e:
         logger.warning('Download of {} failed: {}', recording.audio_key, e)
-        raise ProcessingFailure('storage', 'Не удалось получить аудио из хранилища') from e
+        raise ProcessingFailure(AIErrorCode.STORAGE, 'Не удалось получить аудио из хранилища') from e
 
 
 def _segment_dicts(segments: list[Any]) -> list[dict[str, Any]]:
@@ -74,15 +77,52 @@ class RecordingProcessor:
         self.segmenter = segmenter or AudioSegmenter()
         self.download = download
 
-    async def process(self, recording_id: UUID, *, force: bool = False) -> None:
-        lock = ProcessingLock(f'recording:{recording_id}')
-        if not await lock.acquire():
-            logger.info('Recording {} is already being processed', recording_id)
-            return
+    async def process(self, recording_id: UUID, *, force: bool = False, attempt: int = 0) -> None:
+        """
+        Run the pipeline under the per-recording lock. A request that finds the lock busy leaves a pending marker
+        and returns; the holder re-checks the marker after releasing and runs again, so a «Повторить» or a
+        re-transcription asked for during post-processing is never lost. Without Redis nothing runs (fail closed):
+        the task is rescheduled with a growing delay, up to LOCK_RETRY_ATTEMPTS times.
+        """
+        name = f'recording:{recording_id}'
         try:
-            await self._process(recording_id, force=force, lock=lock)
-        finally:
+            while True:
+                lock = ProcessingLock(name)
+                if not await lock.acquire():
+                    await lock.mark_pending(force)
+                    # The holder may have released between the two calls; then nobody would read the marker.
+                    if not await lock.acquire():
+                        logger.info('Recording {} is being processed; the request runs after it', recording_id)
+                        return
+                # Requests that arrived before this run started are served by it.
+                force = bool(await lock.take_pending()) or force
+                try:
+                    await self._process(recording_id, force=force, lock=lock)
+                finally:
+                    await self._release(lock)
+                pending = await lock.take_pending()
+                if pending is None:
+                    return
+                force = pending
+        except LockUnavailableError as e:
+            logger.warning('Processing lock for recording {} unavailable: {}', recording_id, e)
+            if attempt >= LOCK_RETRY_ATTEMPTS:
+                logger.error('Giving up on recording {} after {} lock retries', recording_id, attempt)
+                return
+            await AITaskKicker.kick_later(
+                PROCESS_RECORDING_TASK,
+                LOCK_RETRY_DELAY_SECONDS * 2**attempt,
+                str(recording_id),
+                force=force,
+                attempt=attempt + 1,
+            )
+
+    @staticmethod
+    async def _release(lock: ProcessingLock) -> None:
+        try:
             await lock.release()
+        except Exception as e:
+            logger.warning('Processing lock release failed, it expires by itself: {}', e)
 
     async def _process(self, recording_id: UUID, *, force: bool, lock: ProcessingLock) -> None:
         recording = await Recording.get_or_none(id=recording_id)
@@ -103,7 +143,7 @@ class RecordingProcessor:
         except Exception:
             logger.exception('Processing of recording {} failed', recording.id)
             await RecordingService.set_failed(
-                recording, code='internal', message='Не удалось обработать запись, попробуйте ещё раз'
+                recording, code=AIErrorCode.INTERNAL, message='Не удалось обработать запись, попробуйте ещё раз'
             )
             return
         if recording.status == RecordingStatus.TRANSCRIBED:
@@ -206,7 +246,7 @@ class RecordingProcessor:
                 raise ProcessingFailure(error.code, error.message) from error
             except AudioProcessingError as error:
                 logger.warning('Audio processing of {} failed: {}', recording.id, error.detail)
-                raise ProcessingFailure('audio', error.message) from error
+                raise ProcessingFailure(AIErrorCode.AUDIO, error.message) from error
 
     # AFTER TRANSCRIPTION
 
@@ -279,6 +319,13 @@ class RecordingProcessor:
     ) -> None:
         templates = await SummaryTemplateService.auto_templates(recording.organization_id)
         model = settings.summary_default_model
+        # A crash after creating them but before the `summarized` flag must not duplicate them on the next run.
+        existing = set(
+            await RecordingResult.filter(
+                recording_id=recording.id, created_by_id=None, template_id__in=[template.id for template in templates]
+            ).values_list('template_id', flat=True)
+        )
+        templates = [template for template in templates if template.id not in existing]
         if not templates or not model:
             return
         await ResultService.create(

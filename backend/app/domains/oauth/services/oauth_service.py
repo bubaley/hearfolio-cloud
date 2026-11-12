@@ -4,12 +4,13 @@ import hmac
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 from urllib.parse import urlencode
 from uuid import UUID
 
 from loguru import logger
+from tortoise.transactions import in_transaction
 
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
@@ -23,6 +24,7 @@ from app.domains.user.models import User, UserToken
 from app.domains.user.services.user_service import UserService
 
 CODE_TTL = timedelta(seconds=60)
+CODE_RETENTION = timedelta(days=1)
 TOKEN_NAME = 'Hearfolio · {device_name}'
 APP_REDIRECT_URI = 'hearfolio://oauth/callback'
 # RFC 8252 §7.3: loopback redirect on any port; only the IPv4 literal, never `localhost`.
@@ -101,6 +103,8 @@ class OAuthService:
             raise _authorize_error(OAuthErrorCode.INVALID_CLIENT, 'Unknown client')
         if not is_allowed_redirect_uri(data.redirect_uri):
             raise _authorize_error(OAuthErrorCode.INVALID_REQUEST, 'redirect_uri is not allowed for this client')
+        if data.response_type is not None and data.response_type != 'code':
+            raise _authorize_error(OAuthErrorCode.INVALID_REQUEST, 'response_type must be code')
         if data.code_challenge_method != 'S256':
             raise _authorize_error(OAuthErrorCode.INVALID_REQUEST, 'code_challenge_method must be S256')
         if not CODE_CHALLENGE.match(data.code_challenge):
@@ -166,36 +170,66 @@ class OAuthService:
         if not CODE_VERIFIER.match(verifier):
             raise OAuthError(OAuthErrorCode.INVALID_REQUEST, 'code_verifier is malformed')
 
-        code = await OAuthAuthorizationCode.filter(code_hash=CryptoService.hash_value(raw_code)).first()
-        if code is None:
-            raise OAuthError(OAuthErrorCode.INVALID_GRANT, 'Invalid authorization code')
-        # Claim first: whatever happens next, a code is redeemed at most once.
-        now = utcnow()
-        if not await OAuthAuthorizationCode.filter(id=code.id, used_at=None).update(used_at=now, updated_at=now):
-            await OAuthService._handle_reuse(code)
-        if as_utc(code.expires_at) <= now:
-            raise OAuthError(OAuthErrorCode.INVALID_GRANT, 'Authorization code expired')
-        if code.client_id != client_id or code.redirect_uri != redirect_uri:
-            raise OAuthError(OAuthErrorCode.INVALID_GRANT, 'client_id or redirect_uri does not match the request')
-        if not hmac.compare_digest(pkce_challenge(verifier), code.code_challenge):
-            raise OAuthError(OAuthErrorCode.INVALID_GRANT, 'code_verifier does not match')
-        user = await User.get_or_none(id=code.user_id, is_active=True)
-        if user is None:
-            raise OAuthError(OAuthErrorCode.INVALID_GRANT, 'User is not active')
-
-        token, value = await UserService.create_api_token(
-            user.id, TOKEN_NAME.format(device_name=code.device_name), expires_at=None
+        user, value, error = await OAuthService._redeem(
+            CryptoService.hash_value(raw_code), verifier, client_id, redirect_uri
         )
-        await OAuthAuthorizationCode.filter(id=code.id).update(token_id=token.id)
+        if error is not None or user is None or value is None:
+            raise error or OAuthError(OAuthErrorCode.INVALID_GRANT, 'Invalid authorization code')
         return user, value
 
     @staticmethod
-    async def _handle_reuse(code: OAuthAuthorizationCode) -> None:
-        # RFC 6749 §4.1.2: a code used twice may have leaked; revoke the token issued for it.
-        if code.token_id:
-            await UserToken.filter(id=code.token_id).delete()
-        logger.warning('OAuth code reuse for user {}: issued token revoked', code.user_id)
-        raise OAuthError(OAuthErrorCode.INVALID_GRANT, 'Authorization code already used')
+    async def _redeem(
+        code_hash: str, verifier: str, client_id: str, redirect_uri: str
+    ) -> tuple[User | None, str | None, OAuthError | None]:
+        """
+        Claim the code and issue its token in one transaction with the code row locked, so a concurrent reuse waits
+        until `token_id` is set and then revokes that token (RFC 6749 §4.1.2). Errors are returned, not raised:
+        raising would roll back the claim (a failed attempt must still burn the code) and the reuse revocation.
+        """
+        now = utcnow()
+        async with in_transaction():
+            code = await OAuthAuthorizationCode.filter(code_hash=code_hash).select_for_update().first()
+            if code is None:
+                return None, None, OAuthError(OAuthErrorCode.INVALID_GRANT, 'Invalid authorization code')
+            if code.used_at is not None:
+                if code.token_id:
+                    await UserToken.filter(id=code.token_id).delete()
+                logger.warning('OAuth code reuse for user {}: issued token revoked', code.user_id)
+                return None, None, OAuthError(OAuthErrorCode.INVALID_GRANT, 'Authorization code already used')
+            # Claim first: whatever happens next, a code is redeemed at most once.
+            code.used_at = now
+            await code.save(update_fields=['used_at', 'updated_at'])
+            error = OAuthService._check_code(code, verifier, client_id, redirect_uri, now)
+            if error is not None:
+                return None, None, error
+            user = await User.get_or_none(id=code.user_id, is_active=True)
+            if user is None:
+                return None, None, OAuthError(OAuthErrorCode.INVALID_GRANT, 'User is not active')
+            token, value = await UserService.create_api_token(
+                user.id, TOKEN_NAME.format(device_name=code.device_name), expires_at=None
+            )
+            code.token_id = token.id
+            await code.save(update_fields=['token_id', 'updated_at'])
+        return user, value, None
+
+    @staticmethod
+    def _check_code(
+        code: OAuthAuthorizationCode, verifier: str, client_id: str, redirect_uri: str, now: datetime
+    ) -> OAuthError | None:
+        if as_utc(code.expires_at) <= now:
+            return OAuthError(OAuthErrorCode.INVALID_GRANT, 'Authorization code expired')
+        if code.client_id != client_id or code.redirect_uri != redirect_uri:
+            return OAuthError(OAuthErrorCode.INVALID_GRANT, 'client_id or redirect_uri does not match the request')
+        if not hmac.compare_digest(pkce_challenge(verifier), code.code_challenge):
+            return OAuthError(OAuthErrorCode.INVALID_GRANT, 'code_verifier does not match')
+        return None
+
+    # CLEANUP
+
+    @staticmethod
+    async def purge_expired_codes() -> int:
+        """Periodic: codes expired over a day ago (kept that long so a late reuse still revokes its token)."""
+        return await OAuthAuthorizationCode.filter(expires_at__lt=utcnow() - CODE_RETENTION).delete()
 
     # REVOKE
 
