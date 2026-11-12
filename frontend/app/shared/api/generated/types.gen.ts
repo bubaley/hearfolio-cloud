@@ -818,6 +818,17 @@ export type RecordingReadSchemaPage = {
 }
 
 /**
+ * RecordingResultReadSchemaPage
+ */
+export type RecordingResultReadSchemaPage = {
+  /**
+   * Data
+   */
+  data: Array<RecordingResultReadSchema>
+  meta: LightPageNumberPagination
+}
+
+/**
  * SummaryTemplateReadSchemaPage
  */
 export type SummaryTemplateReadSchemaPage = {
@@ -1417,6 +1428,77 @@ export type RecordingReadSchema = {
 }
 
 /**
+ * RecordingResultReadSchema
+ */
+export type RecordingResultReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Recording Id
+   */
+  recording_id: string
+  /**
+   * Template Id
+   */
+  template_id: string | null
+  /**
+   * Title
+   */
+  title: string
+  /**
+   * Prompt
+   */
+  prompt: string
+  /**
+   * Model
+   */
+  model: string
+  status: ResultStatus
+  /**
+   * Content
+   */
+  content: string
+  /**
+   * Error Message
+   */
+  error_message: string | null
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+}
+
+/**
+ * RecordingResultsCreateSchema
+ *
+ * Summaries to make: one per template plus one for `custom_prompt`; `model` defaults to the organization's.
+ */
+export type RecordingResultsCreateSchema = {
+  /**
+   * Template Ids
+   */
+  template_ids?: Array<string>
+  /**
+   * Custom Prompt
+   */
+  custom_prompt?: string | null
+  /**
+   * Model
+   */
+  model?: string | null
+}
+
+/**
  * RecordingSource
  */
 export type RecordingSource = 'desktop' | 'android' | 'web' | 'import'
@@ -1476,6 +1558,23 @@ export type RecordingUpdateSchema = {
  * RecordingVisibility
  */
 export type RecordingVisibility = 'organization' | 'personal'
+
+/**
+ * ResultStatus
+ */
+export type ResultStatus = 'queued' | 'running' | 'done' | 'failed'
+
+/**
+ * RetranscribeSchema
+ *
+ * `model` must be an allowed transcription model; omitted means the organization's default.
+ */
+export type RetranscribeSchema = {
+  /**
+   * Model
+   */
+  model?: string | null
+}
 
 /**
  * SessionExpirySchema
@@ -5134,6 +5233,561 @@ export type SummaryTemplatesUpdateResponses = {
 }
 
 export type SummaryTemplatesUpdateResponse = SummaryTemplatesUpdateResponses[keyof SummaryTemplatesUpdateResponses]
+
+export type RecordingAiResultsData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/results'
+}
+
+export type RecordingAiResultsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingAiResultsError = RecordingAiResultsErrors[keyof RecordingAiResultsErrors]
+
+export type RecordingAiResultsResponses = {
+  /**
+   * Response Recording Ai Results
+   *
+   * Successful Response
+   */
+  200: Array<RecordingResultReadSchema>
+}
+
+export type RecordingAiResultsResponse = RecordingAiResultsResponses[keyof RecordingAiResultsResponses]
+
+export type RecordingAiCreateResultsData = {
+  body: RecordingResultsCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/results'
+}
+
+export type RecordingAiCreateResultsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingAiCreateResultsError = RecordingAiCreateResultsErrors[keyof RecordingAiCreateResultsErrors]
+
+export type RecordingAiCreateResultsResponses = {
+  /**
+   * Response Recording Ai Create Results
+   *
+   * Successful Response
+   */
+  201: Array<RecordingResultReadSchema>
+}
+
+export type RecordingAiCreateResultsResponse =
+  RecordingAiCreateResultsResponses[keyof RecordingAiCreateResultsResponses]
+
+export type RecordingAiRetranscribeData = {
+  body: RetranscribeSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/retranscribe'
+}
+
+export type RecordingAiRetranscribeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingAiRetranscribeError = RecordingAiRetranscribeErrors[keyof RecordingAiRetranscribeErrors]
+
+export type RecordingAiRetranscribeResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingAiRetranscribeResponse = RecordingAiRetranscribeResponses[keyof RecordingAiRetranscribeResponses]
+
+export type RecordingAiRetryData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/retry'
+}
+
+export type RecordingAiRetryErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingAiRetryError = RecordingAiRetryErrors[keyof RecordingAiRetryErrors]
+
+export type RecordingAiRetryResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingAiRetryResponse = RecordingAiRetryResponses[keyof RecordingAiRetryResponses]
+
+export type RecordingResultsListData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number
+    /**
+     * Page Size
+     *
+     * Number of records per page
+     */
+    page_size?: number
+    /**
+     * Recording Id
+     */
+    recording_id?: string | null
+    /**
+     * Status
+     */
+    status?: string | null
+    /**
+     * Updated After
+     */
+    updated_after?: string | null
+  }
+  url: '/api/v1/recording-results'
+}
+
+export type RecordingResultsListErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingResultsListError = RecordingResultsListErrors[keyof RecordingResultsListErrors]
+
+export type RecordingResultsListResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingResultReadSchemaPage
+}
+
+export type RecordingResultsListResponse = RecordingResultsListResponses[keyof RecordingResultsListResponses]
+
+export type RecordingResultsDestroyData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recording-results/{item_id}'
+}
+
+export type RecordingResultsDestroyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingResultsDestroyError = RecordingResultsDestroyErrors[keyof RecordingResultsDestroyErrors]
+
+export type RecordingResultsDestroyResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type RecordingResultsDestroyResponse = RecordingResultsDestroyResponses[keyof RecordingResultsDestroyResponses]
+
+export type RecordingResultsRetrieveData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recording-results/{item_id}'
+}
+
+export type RecordingResultsRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingResultsRetrieveError = RecordingResultsRetrieveErrors[keyof RecordingResultsRetrieveErrors]
+
+export type RecordingResultsRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingResultReadSchema
+}
+
+export type RecordingResultsRetrieveResponse =
+  RecordingResultsRetrieveResponses[keyof RecordingResultsRetrieveResponses]
+
+export type RecordingResultsRegenerateData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recording-results/{item_id}/regenerate'
+}
+
+export type RecordingResultsRegenerateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingResultsRegenerateError = RecordingResultsRegenerateErrors[keyof RecordingResultsRegenerateErrors]
+
+export type RecordingResultsRegenerateResponses = {
+  /**
+   * Successful Response
+   */
+  201: RecordingResultReadSchema
+}
+
+export type RecordingResultsRegenerateResponse =
+  RecordingResultsRegenerateResponses[keyof RecordingResultsRegenerateResponses]
 
 export type ProjectsListData = {
   body?: never

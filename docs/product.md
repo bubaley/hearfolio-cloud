@@ -123,7 +123,9 @@ Settled details (`domains/library`):
 
 ### RecordingResult (summaries)
 
-`recording, template nullable, title, prompt (snapshot), model, status (queued|running|done|failed), content (markdown), error_message, created_by`. Several can be requested in one call: `POST /recordings/{id}/results {template_ids: [...], custom_prompt?: str, model?: str}`; each is an independent task. Regenerate = new result; delete own or as admin.
+`recording, template nullable, title, prompt (snapshot), model, status (queued|running|done|failed), content (markdown), error_message, created_by` (null for automatic ones). Only after the recording is transcribed. Several can be requested in one call: `POST /recordings/{id}/results {template_ids: [...], custom_prompt?: str, model?: str}` (one result per template, plus «Свой запрос» for `custom_prompt`; `model` must be an allowed summary model, default the organization's); each is an independent task (`ai.generate_result`). Regenerate = new result with the same prompt snapshot (`POST /recording-results/{id}/regenerate`); delete (`DELETE /recording-results/{id}`) own results, automatic ones also by the recording's author, anything as org admin.
+
+Reading results (decided on the ai side so the library schema stays free of ai types): `GET /recordings/{id}/results` for one recording, `GET /recording-results?recording_id=&status=&updated_after=` across every recording the caller sees. Recording detail and sync items carry no `results` field; every result change bumps the recording's `updated_at` (so `/recordings/sync` reports it) and sends `result.updated` `{id, recording_id, status, deleted, updated_at}`; clients then refetch the recording's results (the app: `updated_after` with its last sync time).
 
 ### ShareLink
 
@@ -163,7 +165,9 @@ Breaking changes only in a new `/api/v2`. The desktop/Android app depends on the
 3. **Tags** (`auto_tags`) and **project suggestion** (`auto_project`): one JSON-mode call to the summary model with existing tag and visible project names; unknown project names are ignored; suggestion only if confidence is reasonable.
 4. **Auto summaries**: one `RecordingResult` per template with `auto=true`.
 
-Failures set `status=failed` with a Russian `error_message` and keep finished segments; «Повторить» resumes. Re-transcribe with another allowed model creates a fresh transcript but keeps the old one until the new one succeeds. Every state change publishes `recording.updated` (and `result.updated`) through `OrganizationWebSocketService` to org members who can see the recording.
+Failures set `status=failed` with a Russian `error_message` and keep finished segments; «Повторить» (`POST /recordings/{id}/retry`, for `failed` or `queued`) resumes after the last saved chunk, also when `auto_transcribe` is off. Re-transcribe (`POST /recordings/{id}/retranscribe {model?}`, an allowed transcription model) collects the new chunks aside and keeps the old transcript until the new one is complete; a failed re-transcription keeps the old text and resumes on «Повторить». After it succeeds the title is regenerated (unless renamed by a user); tags, project suggestion and summaries are not repeated. Both are open to everyone who sees the recording.
+
+Steps 2–4 run once per recording (a re-delivered or retried task repeats nothing). A failed title/tags/summary step does not fail the recording: it is logged and retried on the next run. One run per recording at a time (Redis lock). Silent chunks become empty segments, not errors. Every state change publishes `recording.updated` (and `result.updated`) through `OrganizationWebSocketService` to org members who can see the recording.
 
 The Docker image must contain `ffmpeg`.
 

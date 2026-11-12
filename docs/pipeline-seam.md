@@ -33,7 +33,9 @@ Helpers the pipeline may use: `TagService.get_or_create_many(organization_id, na
 
 `LibraryRealtime` (`services/realtime.py`): `recording.updated` / `recording.deleted` with `{id, updated_at}`; bulk changes over 50 recordings send `recordings.resync`. The ai domain sends its own `result.updated` the same way (minimal payload, clients refetch through the visibility-checked API).
 
-## Open for the ai domain
+## The ai side
 
-- `RecordingDetailSchema` (sync items, detail) does not carry results metadata yet: add a `results` field (or a separate list endpoint) from the ai side.
-- Retry / re-transcribe endpoints and their permission (anyone who sees the recording) belong to ai; use `LibraryVisibility.recordings` to load the recording.
+- Tasks in `ai/tasks.py`: `ai.process_recording(recording_id: str, force: bool = False)` (`RecordingProcessor`) and `ai.generate_result(result_id: str)` (`ResultService.generate`). The API process kicks them by name (`AITaskKicker`, like `RecordingPipeline.enqueue`) and never imports the pipeline code.
+- Per-recording bookkeeping lives in `RecordingProcessing` (ai): which post-transcription steps are done, and a pending re-transcription's model and chunks.
+- Results metadata is not part of `RecordingDetailSchema`: clients read `GET /recordings/{id}/results` or `GET /recording-results?updated_after=`; result changes call `touch_for_result` so sync reports the recording (docs/product.md, RecordingResult).
+- Retry / re-transcribe (`POST /recordings/{id}/retry`, `/retranscribe`) load the recording through `LibraryVisibility.recordings`.
