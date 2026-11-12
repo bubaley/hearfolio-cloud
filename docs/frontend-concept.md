@@ -111,6 +111,14 @@ Page meta drives the global middleware (`app/middleware/`):
 - may read `useSession()`: during SSR it runs with the forwarded cookie and the result is serialized into the payload, so the client hydrates without a refetch or mismatch. Any other query on a public page must be a GET and must render the same with and without a session;
 - use `prerender: true` in `routeRules` instead when the page does not depend on the visitor.
 
+Data on a public page (example: `/s/{token}`, `features/share/`): a Pinia Colada `useQuery` fetches during SSR by itself
+(`onServerPrefetch`) and hydrates from the payload without a second request. Set `ssrCatchError: true` so a failed fetch
+renders the page's own error state instead of the Nuxt error page, map a 404 to `null` inside the query function and
+call `setResponseStatus(event, 404)` there (`useRequestEvent()` captured in setup), and give counted endpoints
+`staleTime: Infinity`. Head tags are resolved once on the server after rendering, when the query entry may already be
+released: `await refresh()` on the server at the top of the view, copy the SEO values into a plain `ref` and pass
+getters to `useSeoMeta` (`title: () => seo.value.title`) instead of reading the query data there.
+
 ### Realtime
 
 `useWebSocketService(channel)` (`shared/composables/useWebSocket.ts`) connects to the same origin (`/ws/<channel>`, proxied like `/api/v1`); the browser sends the access cookie with the handshake. The organization channel is `organizations/<organization_id>`. The backend sends no events yet, so nothing uses it; when it does, invalidate the matching query key in `onMessage` (e.g. `[organization-users, 'list']` on a membership event) instead of patching data.
@@ -178,6 +186,9 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppProgress` / `AppSkeleton` / `AppScrollArea` | Linear progress with `tone`, loading placeholder lines, bounded area with themed scrollbars |
 | `AppImageLightbox` | Mounted once in `app.vue`; open with `useAppImageLightboxStore().open(urls, index)` |
 | `AppThemeSwitcher` | Theme (system/light/dark) and palette controls; used in the profile menu and on `/ui` |
+| `AppPopover` | Anchored panel for small pickers and forms: `#trigger` (as-child) + content, `v-model:open`, `align`/`side`, joins the overlay stack |
+| `AppEmojiPicker` | Curated emoji grid (`emojiCatalog.ts`, ~64 emoji in 4 groups) in an `AppPopover`; `v-model` is the emoji or `null` («Убрать»); `#trigger` replaces the default button (project icons) |
+| `AppMarkdown` | Renders Markdown (AI summaries) safely, see [Markdown](#markdown) |
 
 `templateVariant`: `page` | `section` | `flat-section`. Page templates use `AppPageView`; both nested variants use structural `AppSection`. Do not wrap a page template in another page heading. Use `AppCard` when a nested block needs visual emphasis; `AppBlock` is removed.
 
@@ -320,9 +331,14 @@ overlay`) on phones opened from a slim top bar, and the page in `<main>`. Layout
 features (the architecture guard forbids it only for `shared/**`): `sidebar-header` (organization switcher or «Назад»),
 `sidebar` (`AppSidebarNav` with `SidebarSection[]`: optional title, items `{ to, label, icon, hint }`, a heading
 `action` such as «+», an `empty` text), `sidebar-footer` (settings link, `AppSidebarUser`) and `topbar` (what the top
-bar shows on phones). One item is active: the route name matches (or nests under it) and the item's own query matches,
-so `?personal=1` beats the bare route. Items are 44px tall on phones, 32px on desktop. The workspace sidebar is data in
-`app/navigation/workspace.ts`; product sections (projects) are added by `layouts/default.vue`.
+bar shows on phones). Items may show an `emoji` instead of the icon and a muted `trailingIcon` (+ `trailingLabel` for
+screen readers: the lock of a private project). A section with `collapsibleId` folds from its heading (remembered in
+the `sidebar-folded` cookie), `limit` shows that many items plus «Показать ещё N» (the active item always stays
+visible), `loading` shows skeleton rows instead of the `empty` text. One item is active: the route name matches (or
+nests under it), the item's own params and query match, so `?personal=1` beats the bare route and only the open project
+is active. Items are 44px tall on phones, 32px on desktop. The workspace sidebar is data in `app/navigation/workspace.ts`;
+`layouts/default.vue` adds «Проекты» from `features/project/composables/useProjectsSidebar.ts` (and mounts the
+«Новый проект» modal its «+» opens).
 
 **Settings sidebar** — data: `app/navigation/settings.ts` (`settingsNavigation`), rendered by `layouts/settings.vue`
 in groups (`settingsSections`: organization, account, instance; `section` defaults to organization). Add an entry above
@@ -512,7 +528,24 @@ defaults to h1/xl; AppSection defaults to h2/lg. Both honor titleSize through Ap
 AppAppearancePicker defaults to the full, dynamically imported Lucide catalog;
 custom loadIcons/currentIcon/normalizeIcon props remain supported. The grid is
 virtualized and searchable by icon name. AppColorPicker wraps `vue-color` (ChromePicker) and maps its variables
-to theme tokens, including portalled popovers. Emoji selection is removed.
+to theme tokens, including portalled popovers. Emoji are picked with `AppEmojiPicker` (a small curated grid, no emoji
+database); AppAppearancePicker has no emoji mode.
+
+### Markdown
+
+`AppMarkdown :source` renders AI summaries. `shared/lib/markdown.ts` parses a small Markdown subset into a tree
+(headings, paragraphs with line breaks, nested lists, quotes, fenced code, rules, tables; bold, italic, strikethrough,
+inline code, links and bare http(s) URLs) and the component renders that tree with `h()`. There is no `v-html`
+anywhere on this path: raw HTML in the source stays text, only `http(s)://` and `mailto:` become links
+(`target="_blank" rel="noopener noreferrer nofollow"`). Extend the parser (and `tests/markdown.test.ts`) for new syntax;
+never render model output with `v-html`.
+
+### Tag palette
+
+Tags use their own Notion-like palette, not the status tones: `--tag-<color>` (chip background) and
+`--tag-<color>-foreground` for `gray | brown | orange | yellow | green | blue | purple | pink | red` in both themes,
+exposed as `bg-tag-blue text-tag-blue-foreground`. `features/tag/composables/tagColors.ts` (`TAG_COLORS`,
+`tagChipClass`) and `TagChip` are the only places that map a `TagColor` to classes.
 
 AppDrawer slides in (200ms) and out (300ms) from its `side`; overlay drawers take `contentClass` (merged last, e.g. `p-0`) and `closeable` (the corner close button) and uses only the inner edge border (right for left drawers, left for right drawers). Modal headers use the shared header gap between title and description. Motion respects reduced-motion preferences.
 

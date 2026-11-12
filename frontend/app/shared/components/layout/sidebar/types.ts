@@ -5,8 +5,13 @@ export type SidebarItem = {
   to: RouteLocationRaw
   label: string
   icon?: Component
+  /** Shown instead of `icon` (project emoji). */
+  emoji?: string
   /** Short muted text on the right (a count, «скоро»). */
   hint?: string
+  /** Small muted icon on the right (lock of a private project); `trailingLabel` names it for screen readers. */
+  trailingIcon?: Component
+  trailingLabel?: string
 }
 
 export type SidebarSection = {
@@ -17,4 +22,10 @@ export type SidebarSection = {
   action?: { label: string; icon: Component; onClick: () => void }
   /** Shown instead of items when the section is empty. */
   empty?: string
+  /** Skeleton rows instead of the empty text while the items load. */
+  loading?: boolean
+  /** The heading folds the section; the state is remembered under this id. */
+  collapsibleId?: string
+  /** Show this many items and «Показать все» for the rest (the active item always stays visible). */
+  limit?: number
 }

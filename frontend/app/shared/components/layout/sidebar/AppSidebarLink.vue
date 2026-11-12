@@ -9,14 +9,29 @@
         : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
     "
   >
+    <span
+      v-if="item.emoji"
+      class="flex size-4 shrink-0 items-center justify-center text-sm leading-none"
+      aria-hidden="true"
+      >{{ item.emoji }}</span
+    >
     <AppIcon
-      v-if="item.icon"
+      v-else-if="item.icon"
       :icon="item.icon"
       size="sm"
       class="shrink-0"
       :class="active ? 'opacity-100' : 'opacity-70'"
     />
     <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+    <AppIcon
+      v-if="item.trailingIcon"
+      :icon="item.trailingIcon"
+      size="xs"
+      class="shrink-0 text-muted-foreground"
+      :aria-label="item.trailingLabel"
+      :aria-hidden="item.trailingLabel ? undefined : 'true'"
+      role="img"
+    />
     <span
       v-if="item.hint"
       class="shrink-0 text-xs text-muted-foreground"
