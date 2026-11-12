@@ -82,10 +82,12 @@ Members get `GET /ai-settings/options`: `configured`, allowed models and default
 - Public project: visible to every member.
 - Private project: visible (and its recordings) only to its members. Org admins see private projects in the settings list and manage members, but do not see the recordings unless they are members (Notion-like teamspace). The creator becomes a member.
 - Create/rename: any member for public; private projects are created by any member (creator becomes member) and managed by its members and org admins.
+- Making a project private/public and deleting it: the project's creator or an org admin (the actor becomes a member when it turns private). Deleting a project keeps its recordings (they lose the project). `archived` (PATCH) sets `archived_at`; archived projects stay usable.
+- API (`domains/library`): `GET /projects` — visible ones (public + member of), for pickers and the sidebar; filters `name`, `is_private`, `archived`. `GET /projects/manage` — the settings list: visible ones, plus every private project for org admins. `POST/PATCH/DELETE /projects/{id}`, members of private projects: `GET/POST /projects/{id}/members {user_id}`, `DELETE /projects/{id}/members/{user_id}` (project members and org admins; the user must be in the organization).
 
 ### Tag
 
-`name` (unique per org, case-insensitive), `color` (one of the palette tones). Created manually or by AI.
+`name` (unique per org, case-insensitive, whitespace collapsed, ≤ 64 chars), `color`: `gray | brown | orange | yellow | green | blue | purple | pink | red` (Notion-like tag palette; a tag created without a color, e.g. by AI, gets a stable one from its name). Any member creates tags (`POST /tags`, 409 on a duplicate name); renaming, recoloring, deleting and merging (`POST /tags/{id}/merge {target_id}`: every recording of the tag gets the target, the tag is deleted) are for org admins.
 
 ### Recording
 
@@ -105,11 +107,19 @@ Members get `GET /ai-settings/options`: `configured`, allowed models and default
 | `progress` | 0–100 during transcription; `segments_done`, `segments_total` |
 | `transcript_text`, `transcript_segments` | Segments JSON: `[{start_ms, end_ms, text}]`, enough for highlighting in the player |
 | `transcription_model`, `language`, `error_code`, `error_message` | `error_message` is human-readable Russian, never raw provider JSON |
-| `deleted_at` | Soft delete: tombstone for app sync; purged (and S3 object deleted) after 30 days by a scheduled task |
+| `deleted_at` | Soft delete: tombstone for app sync; purged (and S3 object deleted) after `RECORDING_PURGE_AFTER_DAYS` (30) by the daily task `library.purge_deleted_recordings` (03:17 UTC); a recording whose audio cannot be deleted waits for the next run |
 
 Visibility rule (one queryset helper used everywhere, tested): a user sees a recording if it is in their organization, not deleted, and (`created_by = user`) or (`visibility = organization` and (`project` is null or project is public or user is a project member)).
 
-Permissions: everyone who sees a recording can rename, move between visible projects, edit tags, create summaries and share links. Delete: author or org admin. Changing `visibility` to `personal`: author only.
+Permissions: everyone who sees a recording can rename, move between visible projects, edit tags, create summaries and share links. Delete: author or org admin. Changing `visibility` (either way): author only. Restore (`POST /recordings/{id}/restore`, within the 30 days): author or org admin; `GET /recordings?deleted=true` lists the caller's visible deleted recordings.
+
+Settled details (`domains/library`):
+
+- The rule lives in `LibraryVisibility.recordings(user, organization_id, deleted=False|True|None)`; list, detail, search, sync, audio, events, share management and every write start from it, so an invisible recording is a 404. Projects: `LibraryVisibility.projects` (public or member of); "visible to the author" for `project_id` means this set.
+- `PATCH /recordings/{id} {title?, project_id? (null removes), tag_ids?, visibility?}`: a title from a user sets `title_source=user`. Moving answers a pending project suggestion (accepted if it is the suggested project, dismissed otherwise). Banner buttons: `POST /recordings/{id}/project-suggestion/accept|dismiss`.
+- List filters: `project_id, tag_id, created_by_id, status, personal (true: my personal ones; false: shared ones), recorded_from, recorded_to (dates, inclusive), search, deleted`; newest `recorded_at` first, paginated like every list. `search` is PostgreSQL full-text (`simple` config, no stemming, so it works the same for Russian and English) over title + transcript on a generated, GIN-indexed `search_vector`; each hit carries `snippet: [{text, highlight}] | null` — a transcript fragment split into plain and highlighted parts (null when only the title matched), never HTML.
+- `GET /recordings/{id}/events`: the journal, newest first; `actor` null means AI/system.
+- `GET /recordings/{id}/audio?download=true` adds a `Content-Disposition` with the title as file name.
 
 ### RecordingResult (summaries)
 
@@ -118,6 +128,9 @@ Permissions: everyone who sees a recording can rename, move between visible proj
 ### ShareLink
 
 `recording, token (random, url-safe), include_audio, include_transcript, result_ids (list), expires_at nullable, revoked_at, created_by, views`. One active link per recording (editing settings keeps the token). Public SSR page `/s/{token}` shows title, date, duration and exactly what is included; audio through a short-lived presigned URL. Revoking makes the page 404.
+
+- Management (anyone who sees the recording): `GET /recordings/{id}/share` (the active link or null), `PUT /recordings/{id}/share {include_audio, include_transcript, result_ids, expires_at?}` creates or edits it, `DELETE` revokes it (a later share gets a new token). The read schema carries `url` = `{PUBLIC_URL}/s/{token}` (null without `PUBLIC_URL`; the web app then builds it from its origin). A database index enforces one active link.
+- Public: `GET /api/v1/public/share/{token}` (no auth) → `{title, recorded_at, duration_ms, language, audio: {url, expires_at} | null, transcript_text | null, transcript_segments | null, results}`; audio URLs live `SHARE_AUDIO_PRESIGN_EXPIRE_SECONDS` (10 min); every open increments `views`. Unknown, revoked, expired links and deleted recordings are 404. `results` come from the ai domain through `RecordingPipeline.register_share_results_provider` (only the ids in `result_ids`), see [pipeline-seam.md](pipeline-seam.md).
 
 ### RecordingEvent (short journal, not an audit log)
 
@@ -134,7 +147,10 @@ Breaking changes only in a new `/api/v2`. The desktop/Android app depends on the
   - Revoke: `Authorization: Token …` only (otherwise 400 `invalid_request`), 204.
 - `GET /api/v1/me/organizations`: organizations with the caller's role (no `Organization-Key` needed), `[{id, name, key, role, created_at, updated_at}]`. `GET /auth/me` and the login response carry the same `role` per organization.
 - Recordings (`Organization-Key` header): `POST /recordings` (create with `client_id`, metadata, optional `project_id`, `visibility`, optional `transcript_text`/`transcript_segments` when copying an already transcribed local recording → no transcription), returns the recording and an upload plan: single presigned PUT below the threshold, otherwise S3 multipart (`upload_id`, presigned part URLs). `POST /recordings/{id}/upload/complete {parts?}` → verifies the object, sets `uploaded`, enqueues the pipeline per settings. `POST /recordings/{id}/upload/parts` refreshes expired part URLs (resume after app restart).
-- `GET /recordings/sync?cursor=` → `{items, deleted_ids, next_cursor, has_more}` ordered by `(updated_at, id)`; the cursor is opaque. Items include everything the list shows plus transcript and results metadata. The app polls it and listens to the websocket.
+  - Upload details: `audio_size` is required (> 0, ≤ `UPLOAD_MAX_BYTES`, 10 GiB) and must match the uploaded object. Single: `{method: "single", url, headers: {Content-Type}, expires_at}`. Multipart: `{method: "multipart", upload_id, part_size, parts_count, parts: [{part_number, url}], expires_at}`; the app keeps each part's `ETag` and sends `{parts: [{part_number, etag}]}` to `complete` (omitted → the server lists the uploaded parts itself). Part URLs live `UPLOAD_PRESIGN_EXPIRE_SECONDS` (6 h); `upload/parts {part_numbers?}` returns fresh ones. Only the author uploads. `complete` without the object is 400 and changes nothing (retry later); a size mismatch sets `upload_state=failed` with a Russian `error_message`, and the next `upload/parts` starts the upload over. `complete` is idempotent. A re-POST with a known `client_id` by the same author returns the recording and a fresh plan (`upload: null` once uploaded); another user's `client_id` is 409.
+  - `upload_state`: `pending` (single PUT expected), `uploading` (multipart started), `uploaded`, `failed`. `status`: `awaiting_upload` until `complete`, then `queued` (or stays `transcribed` when the transcript came with the recording); the pipeline takes it from there.
+- `GET /recordings/sync?cursor=&limit=` (limit 1–500, default 100) → `{items, deleted_ids, next_cursor, has_more}` ordered by `(updated_at, id)`; the cursor is opaque (pass `next_cursor` back; with no changes it comes back unchanged). Items are the recording detail (list fields + `transcript_text`, `transcript_segments`); results metadata is added by the ai domain. `deleted_ids` lists every recording of the organization changed in the window that the caller cannot see now — deleted, made personal by its author, moved into a private project, its project made private or the caller removed from it — so the client drops it if it has it (ids of recordings it never had may appear; ignore them). Bulk changes (project access, tag rename/merge/delete) bump `updated_at` of the affected recordings.
+- Realtime on `/ws/organizations/{organization_id}`: `recording.updated` / `recording.deleted` with `{id, updated_at}` only (every member receives them; clients refetch the detail or run sync, which applies visibility); a bulk change of more than 50 recordings sends one `recordings.resync {updated_at}` instead.
 - `GET /recordings/{id}/audio` → `{url, expires_at}` presigned GET for streaming/caching.
 - Projects, tags, ai-options: plain list endpoints the app uses for pickers.
 

@@ -106,6 +106,20 @@ export type AiOptionsSchema = {
 }
 
 /**
+ * AudioUrlSchema
+ */
+export type AudioUrlSchema = {
+  /**
+   * Url
+   */
+  url: string
+  /**
+   * Expires At
+   */
+  expires_at: string
+}
+
+/**
  * ErrorCode
  */
 export type ErrorCode =
@@ -235,6 +249,28 @@ export type InvitePreviewSchema = {
  * InviteState
  */
 export type InviteState = 'valid' | 'expired' | 'used' | 'revoked'
+
+/**
+ * LibraryUserSchema
+ */
+export type LibraryUserSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * First Name
+   */
+  first_name: string
+  /**
+   * Last Name
+   */
+  last_name: string
+  /**
+   * Email
+   */
+  email: string
+}
 
 /**
  * LightPageNumberPagination
@@ -760,6 +796,28 @@ export type OrganizationUserReadSchemaPage = {
 }
 
 /**
+ * ProjectReadSchemaPage
+ */
+export type ProjectReadSchemaPage = {
+  /**
+   * Data
+   */
+  data: Array<ProjectReadSchema>
+  meta: LightPageNumberPagination
+}
+
+/**
+ * RecordingReadSchemaPage
+ */
+export type RecordingReadSchemaPage = {
+  /**
+   * Data
+   */
+  data: Array<RecordingReadSchema>
+  meta: LightPageNumberPagination
+}
+
+/**
  * SummaryTemplateReadSchemaPage
  */
 export type SummaryTemplateReadSchemaPage = {
@@ -767,6 +825,17 @@ export type SummaryTemplateReadSchemaPage = {
    * Data
    */
   data: Array<SummaryTemplateReadSchema>
+  meta: LightPageNumberPagination
+}
+
+/**
+ * TagReadSchemaPage
+ */
+export type TagReadSchemaPage = {
+  /**
+   * Data
+   */
+  data: Array<TagReadSchema>
   meta: LightPageNumberPagination
 }
 
@@ -791,6 +860,622 @@ export type UserTokenReadSchemaPage = {
   data: Array<UserTokenReadSchema>
   meta: LightPageNumberPagination
 }
+
+/**
+ * ProjectBriefSchema
+ */
+export type ProjectBriefSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Emoji
+   */
+  emoji: string | null
+  /**
+   * Is Private
+   */
+  is_private: boolean
+}
+
+/**
+ * ProjectCreateSchema
+ */
+export type ProjectCreateSchema = {
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Emoji
+   */
+  emoji?: string | null
+  /**
+   * Description
+   */
+  description?: string
+  /**
+   * Is Private
+   */
+  is_private?: boolean
+}
+
+/**
+ * ProjectMemberCreateSchema
+ */
+export type ProjectMemberCreateSchema = {
+  /**
+   * User Id
+   */
+  user_id: string
+}
+
+/**
+ * ProjectMemberReadSchema
+ */
+export type ProjectMemberReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Project Id
+   */
+  project_id: string
+  /**
+   * User Id
+   */
+  user_id: string
+  user: LibraryUserSchema
+}
+
+/**
+ * ProjectReadSchema
+ */
+export type ProjectReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Emoji
+   */
+  emoji: string | null
+  /**
+   * Description
+   */
+  description: string
+  /**
+   * Is Private
+   */
+  is_private: boolean
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  /**
+   * Archived At
+   */
+  archived_at: string | null
+  /**
+   * Members
+   */
+  members: Array<ProjectMemberReadSchema>
+}
+
+/**
+ * ProjectSuggestionState
+ */
+export type ProjectSuggestionState = 'none' | 'pending' | 'accepted' | 'dismissed'
+
+/**
+ * ProjectUpdateSchema
+ */
+export type ProjectUpdateSchema = {
+  /**
+   * Name
+   */
+  name?: string | null
+  /**
+   * Emoji
+   */
+  emoji?: string | null
+  /**
+   * Description
+   */
+  description?: string | null
+  /**
+   * Is Private
+   */
+  is_private?: boolean | null
+  /**
+   * Archived
+   */
+  archived?: boolean | null
+}
+
+/**
+ * PublicShareSchema
+ *
+ * Exactly what the link exposes; `audio` is a short-lived presigned URL.
+ */
+export type PublicShareSchema = {
+  /**
+   * Title
+   */
+  title: string
+  /**
+   * Recorded At
+   */
+  recorded_at: string
+  /**
+   * Duration Ms
+   */
+  duration_ms: number
+  /**
+   * Language
+   */
+  language: string | null
+  audio: AudioUrlSchema | null
+  /**
+   * Transcript Text
+   */
+  transcript_text: string | null
+  /**
+   * Transcript Segments
+   */
+  transcript_segments: Array<TranscriptSegmentSchema> | null
+  /**
+   * Results
+   */
+  results: Array<{
+    [key: string]: unknown
+  }>
+}
+
+/**
+ * RecordingCreateSchema
+ *
+ * Create a recording before its audio is uploaded. Re-sending the same `client_id` returns the existing recording.
+ * With `transcript_text` (an already transcribed local recording) no transcription runs.
+ */
+export type RecordingCreateSchema = {
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Title
+   */
+  title?: string | null
+  /**
+   * Recorded At
+   */
+  recorded_at: string
+  /**
+   * Duration Ms
+   */
+  duration_ms?: number
+  source?: RecordingSource
+  /**
+   * Original Filename
+   */
+  original_filename?: string
+  /**
+   * Audio Mime
+   */
+  audio_mime: string
+  /**
+   * Audio Size
+   */
+  audio_size: number
+  /**
+   * Project Id
+   */
+  project_id?: string | null
+  visibility?: RecordingVisibility
+  /**
+   * Tag Ids
+   */
+  tag_ids?: Array<string>
+  /**
+   * Transcript Text
+   */
+  transcript_text?: string | null
+  /**
+   * Transcript Segments
+   */
+  transcript_segments?: Array<TranscriptSegmentSchema> | null
+  /**
+   * Transcription Model
+   */
+  transcription_model?: string | null
+  /**
+   * Language
+   */
+  language?: string | null
+}
+
+/**
+ * RecordingCreatedSchema
+ */
+export type RecordingCreatedSchema = {
+  recording: RecordingDetailSchema
+  upload: UploadPlanSchema | null
+}
+
+/**
+ * RecordingDetailSchema
+ */
+export type RecordingDetailSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  created_by: LibraryUserSchema | null
+  visibility: RecordingVisibility
+  /**
+   * Project Id
+   */
+  project_id: string | null
+  project: ProjectBriefSchema | null
+  /**
+   * Suggested Project Id
+   */
+  suggested_project_id: string | null
+  suggested_project: ProjectBriefSchema | null
+  project_suggestion_state: ProjectSuggestionState
+  /**
+   * Tags
+   */
+  tags: Array<TagBriefSchema>
+  /**
+   * Title
+   */
+  title: string
+  title_source: TitleSource
+  /**
+   * Recorded At
+   */
+  recorded_at: string
+  /**
+   * Duration Ms
+   */
+  duration_ms: number
+  source: RecordingSource
+  /**
+   * Audio Size
+   */
+  audio_size: number
+  /**
+   * Audio Mime
+   */
+  audio_mime: string
+  /**
+   * Original Filename
+   */
+  original_filename: string
+  upload_state: UploadState
+  status: RecordingStatus
+  /**
+   * Progress
+   */
+  progress: number
+  /**
+   * Segments Done
+   */
+  segments_done: number
+  /**
+   * Segments Total
+   */
+  segments_total: number
+  /**
+   * Transcription Model
+   */
+  transcription_model: string | null
+  /**
+   * Language
+   */
+  language: string | null
+  /**
+   * Error Code
+   */
+  error_code: string | null
+  /**
+   * Error Message
+   */
+  error_message: string | null
+  /**
+   * Deleted At
+   */
+  deleted_at: string | null
+  /**
+   * Snippet
+   */
+  snippet?: Array<SnippetPartSchema> | null
+  /**
+   * Transcript Text
+   */
+  transcript_text: string
+  /**
+   * Transcript Segments
+   */
+  transcript_segments: Array<TranscriptSegmentSchema>
+}
+
+/**
+ * RecordingEventKind
+ */
+export type RecordingEventKind =
+  | 'created'
+  | 'uploaded'
+  | 'transcribed'
+  | 'failed'
+  | 'renamed'
+  | 'moved'
+  | 'tagged'
+  | 'shared'
+  | 'unshared'
+  | 'result_created'
+  | 'restored'
+  | 'deleted'
+
+/**
+ * RecordingEventReadSchema
+ */
+export type RecordingEventReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Recording Id
+   */
+  recording_id: string
+  /**
+   * Actor Id
+   */
+  actor_id: string | null
+  actor: LibraryUserSchema | null
+  kind: RecordingEventKind
+  /**
+   * Data
+   */
+  data: {
+    [key: string]: unknown
+  }
+}
+
+/**
+ * RecordingReadSchema
+ *
+ * What the list shows. `snippet` is set only by a search: transcript fragment split into highlighted parts.
+ */
+export type RecordingReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  created_by: LibraryUserSchema | null
+  visibility: RecordingVisibility
+  /**
+   * Project Id
+   */
+  project_id: string | null
+  project: ProjectBriefSchema | null
+  /**
+   * Suggested Project Id
+   */
+  suggested_project_id: string | null
+  suggested_project: ProjectBriefSchema | null
+  project_suggestion_state: ProjectSuggestionState
+  /**
+   * Tags
+   */
+  tags: Array<TagBriefSchema>
+  /**
+   * Title
+   */
+  title: string
+  title_source: TitleSource
+  /**
+   * Recorded At
+   */
+  recorded_at: string
+  /**
+   * Duration Ms
+   */
+  duration_ms: number
+  source: RecordingSource
+  /**
+   * Audio Size
+   */
+  audio_size: number
+  /**
+   * Audio Mime
+   */
+  audio_mime: string
+  /**
+   * Original Filename
+   */
+  original_filename: string
+  upload_state: UploadState
+  status: RecordingStatus
+  /**
+   * Progress
+   */
+  progress: number
+  /**
+   * Segments Done
+   */
+  segments_done: number
+  /**
+   * Segments Total
+   */
+  segments_total: number
+  /**
+   * Transcription Model
+   */
+  transcription_model: string | null
+  /**
+   * Language
+   */
+  language: string | null
+  /**
+   * Error Code
+   */
+  error_code: string | null
+  /**
+   * Error Message
+   */
+  error_message: string | null
+  /**
+   * Deleted At
+   */
+  deleted_at: string | null
+  /**
+   * Snippet
+   */
+  snippet?: Array<SnippetPartSchema> | null
+}
+
+/**
+ * RecordingSource
+ */
+export type RecordingSource = 'desktop' | 'android' | 'web' | 'import'
+
+/**
+ * RecordingStatus
+ */
+export type RecordingStatus = 'awaiting_upload' | 'queued' | 'transcribing' | 'transcribed' | 'failed'
+
+/**
+ * RecordingSyncSchema
+ *
+ * Changes after `cursor`, ordered by (updated_at, id). `deleted_ids`: recordings the client must drop if it has
+ * them (deleted, or no longer visible to the caller). Pass `next_cursor` back until `has_more` is false.
+ */
+export type RecordingSyncSchema = {
+  /**
+   * Items
+   */
+  items: Array<RecordingDetailSchema>
+  /**
+   * Deleted Ids
+   */
+  deleted_ids: Array<string>
+  /**
+   * Next Cursor
+   */
+  next_cursor: string | null
+  /**
+   * Has More
+   */
+  has_more: boolean
+}
+
+/**
+ * RecordingUpdateSchema
+ *
+ * Anyone who sees the recording may rename, move between visible projects and edit tags. Visibility: author only.
+ */
+export type RecordingUpdateSchema = {
+  /**
+   * Title
+   */
+  title?: string | null
+  /**
+   * Project Id
+   */
+  project_id?: string | null
+  /**
+   * Tag Ids
+   */
+  tag_ids?: Array<string> | null
+  visibility?: RecordingVisibility | null
+}
+
+/**
+ * RecordingVisibility
+ */
+export type RecordingVisibility = 'organization' | 'personal'
 
 /**
  * SessionExpirySchema
@@ -827,6 +1512,102 @@ export type SessionSchema = {
    * Organizations
    */
   organizations: Array<UserOrganizationSchema>
+}
+
+/**
+ * ShareLinkReadSchema
+ */
+export type ShareLinkReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Recording Id
+   */
+  recording_id: string
+  /**
+   * Token
+   */
+  token: string
+  /**
+   * Include Audio
+   */
+  include_audio: boolean
+  /**
+   * Include Transcript
+   */
+  include_transcript: boolean
+  /**
+   * Result Ids
+   */
+  result_ids: Array<string>
+  /**
+   * Expires At
+   */
+  expires_at: string | null
+  /**
+   * Revoked At
+   */
+  revoked_at: string | null
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  /**
+   * Views
+   */
+  views: number
+  /**
+   * Url
+   *
+   * The public page `{PUBLIC_URL}/s/{token}`; null when PUBLIC_URL is not configured.
+   */
+  readonly url: string | null
+}
+
+/**
+ * ShareLinkUpsertSchema
+ */
+export type ShareLinkUpsertSchema = {
+  /**
+   * Include Audio
+   */
+  include_audio?: boolean
+  /**
+   * Include Transcript
+   */
+  include_transcript?: boolean
+  /**
+   * Result Ids
+   */
+  result_ids?: Array<string>
+  /**
+   * Expires At
+   */
+  expires_at?: string | null
+}
+
+/**
+ * SnippetPartSchema
+ */
+export type SnippetPartSchema = {
+  /**
+   * Text
+   */
+  text: string
+  /**
+   * Highlight
+   */
+  highlight: boolean
 }
 
 /**
@@ -912,6 +1693,120 @@ export type SummaryTemplateUpdateSchema = {
 }
 
 /**
+ * TagBriefSchema
+ */
+export type TagBriefSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Name
+   */
+  name: string
+  color: TagColor
+}
+
+/**
+ * TagColor
+ */
+export type TagColor = 'gray' | 'brown' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'red'
+
+/**
+ * TagCreateSchema
+ */
+export type TagCreateSchema = {
+  /**
+   * Name
+   */
+  name: string
+  color?: TagColor | null
+}
+
+/**
+ * TagMergeSchema
+ *
+ * Move every recording of this tag to `target_id`, then delete this tag.
+ */
+export type TagMergeSchema = {
+  /**
+   * Target Id
+   */
+  target_id: string
+}
+
+/**
+ * TagReadSchema
+ */
+export type TagReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Name
+   */
+  name: string
+  color: TagColor
+}
+
+/**
+ * TagUpdateSchema
+ */
+export type TagUpdateSchema = {
+  /**
+   * Name
+   */
+  name?: string | null
+  color?: TagColor | null
+}
+
+/**
+ * TitleSource
+ */
+export type TitleSource = 'auto' | 'user'
+
+/**
+ * TranscriptSegmentSchema
+ */
+export type TranscriptSegmentSchema = {
+  /**
+   * Start Ms
+   */
+  start_ms: number
+  /**
+   * End Ms
+   */
+  end_ms: number
+  /**
+   * Text
+   */
+  text: string
+}
+
+/**
+ * UploadCompleteSchema
+ */
+export type UploadCompleteSchema = {
+  /**
+   * Parts
+   */
+  parts?: Array<UploadedPartSchema> | null
+}
+
+/**
  * UploadLimitsSchema
  */
 export type UploadLimitsSchema = {
@@ -923,6 +1818,92 @@ export type UploadLimitsSchema = {
    * Part Size Bytes
    */
   part_size_bytes: number
+}
+
+/**
+ * UploadPartSchema
+ */
+export type UploadPartSchema = {
+  /**
+   * Part Number
+   */
+  part_number: number
+  /**
+   * Url
+   */
+  url: string
+}
+
+/**
+ * UploadPartsRequestSchema
+ */
+export type UploadPartsRequestSchema = {
+  /**
+   * Part Numbers
+   */
+  part_numbers?: Array<number> | null
+}
+
+/**
+ * UploadPlanSchema
+ *
+ * `single`: PUT the whole file to `url` with the `headers`. `multipart`: PUT each part (`part_size` bytes, the
+ * last one shorter) to its URL, keep each response's `ETag`, then call `upload/complete`.
+ */
+export type UploadPlanSchema = {
+  /**
+   * Method
+   */
+  method: 'single' | 'multipart'
+  /**
+   * Url
+   */
+  url?: string | null
+  /**
+   * Headers
+   */
+  headers?: {
+    [key: string]: string
+  }
+  /**
+   * Upload Id
+   */
+  upload_id?: string | null
+  /**
+   * Part Size
+   */
+  part_size?: number | null
+  /**
+   * Parts Count
+   */
+  parts_count?: number | null
+  /**
+   * Parts
+   */
+  parts?: Array<UploadPartSchema>
+  /**
+   * Expires At
+   */
+  expires_at: string
+}
+
+/**
+ * UploadState
+ */
+export type UploadState = 'pending' | 'uploading' | 'uploaded' | 'failed'
+
+/**
+ * UploadedPartSchema
+ */
+export type UploadedPartSchema = {
+  /**
+   * Part Number
+   */
+  part_number: number
+  /**
+   * Etag
+   */
+  etag: string
 }
 
 /**
@@ -1177,6 +2158,60 @@ export type ErrorResponseWritable = {
    */
   data?: null
   error: ErrorData
+}
+
+/**
+ * ShareLinkReadSchema
+ */
+export type ShareLinkReadSchemaWritable = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Recording Id
+   */
+  recording_id: string
+  /**
+   * Token
+   */
+  token: string
+  /**
+   * Include Audio
+   */
+  include_audio: boolean
+  /**
+   * Include Transcript
+   */
+  include_transcript: boolean
+  /**
+   * Result Ids
+   */
+  result_ids: Array<string>
+  /**
+   * Expires At
+   */
+  expires_at: string | null
+  /**
+   * Revoked At
+   */
+  revoked_at: string | null
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  /**
+   * Views
+   */
+  views: number
 }
 
 export type AuthMeData = {
@@ -4099,6 +5134,2390 @@ export type SummaryTemplatesUpdateResponses = {
 }
 
 export type SummaryTemplatesUpdateResponse = SummaryTemplatesUpdateResponses[keyof SummaryTemplatesUpdateResponses]
+
+export type ProjectsListData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number
+    /**
+     * Page Size
+     *
+     * Number of records per page
+     */
+    page_size?: number
+    /**
+     * Name
+     */
+    name?: string | null
+    /**
+     * Is Private
+     */
+    is_private?: boolean | null
+    /**
+     * Archived
+     */
+    archived?: boolean | null
+  }
+  url: '/api/v1/projects'
+}
+
+export type ProjectsListErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsListError = ProjectsListErrors[keyof ProjectsListErrors]
+
+export type ProjectsListResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectReadSchemaPage
+}
+
+export type ProjectsListResponse = ProjectsListResponses[keyof ProjectsListResponses]
+
+export type ProjectsCreateData = {
+  body: ProjectCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/projects'
+}
+
+export type ProjectsCreateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsCreateError = ProjectsCreateErrors[keyof ProjectsCreateErrors]
+
+export type ProjectsCreateResponses = {
+  /**
+   * Successful Response
+   */
+  201: ProjectReadSchema
+}
+
+export type ProjectsCreateResponse = ProjectsCreateResponses[keyof ProjectsCreateResponses]
+
+export type ProjectsManageData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/projects/manage'
+}
+
+export type ProjectsManageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsManageError = ProjectsManageErrors[keyof ProjectsManageErrors]
+
+export type ProjectsManageResponses = {
+  /**
+   * Response Projects Manage
+   *
+   * Successful Response
+   */
+  200: Array<ProjectReadSchema>
+}
+
+export type ProjectsManageResponse = ProjectsManageResponses[keyof ProjectsManageResponses]
+
+export type ProjectsDestroyData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}'
+}
+
+export type ProjectsDestroyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsDestroyError = ProjectsDestroyErrors[keyof ProjectsDestroyErrors]
+
+export type ProjectsDestroyResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type ProjectsDestroyResponse = ProjectsDestroyResponses[keyof ProjectsDestroyResponses]
+
+export type ProjectsRetrieveData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}'
+}
+
+export type ProjectsRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsRetrieveError = ProjectsRetrieveErrors[keyof ProjectsRetrieveErrors]
+
+export type ProjectsRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectReadSchema
+}
+
+export type ProjectsRetrieveResponse = ProjectsRetrieveResponses[keyof ProjectsRetrieveResponses]
+
+export type ProjectsPartialUpdateData = {
+  body: ProjectUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}'
+}
+
+export type ProjectsPartialUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsPartialUpdateError = ProjectsPartialUpdateErrors[keyof ProjectsPartialUpdateErrors]
+
+export type ProjectsPartialUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectReadSchema
+}
+
+export type ProjectsPartialUpdateResponse = ProjectsPartialUpdateResponses[keyof ProjectsPartialUpdateResponses]
+
+export type ProjectsUpdateData = {
+  body: ProjectUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}'
+}
+
+export type ProjectsUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsUpdateError = ProjectsUpdateErrors[keyof ProjectsUpdateErrors]
+
+export type ProjectsUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectReadSchema
+}
+
+export type ProjectsUpdateResponse = ProjectsUpdateResponses[keyof ProjectsUpdateResponses]
+
+export type ProjectsMembersData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}/members'
+}
+
+export type ProjectsMembersErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsMembersError = ProjectsMembersErrors[keyof ProjectsMembersErrors]
+
+export type ProjectsMembersResponses = {
+  /**
+   * Response Projects Members
+   *
+   * Successful Response
+   */
+  200: Array<ProjectMemberReadSchema>
+}
+
+export type ProjectsMembersResponse = ProjectsMembersResponses[keyof ProjectsMembersResponses]
+
+export type ProjectsAddMemberData = {
+  body: ProjectMemberCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}/members'
+}
+
+export type ProjectsAddMemberErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsAddMemberError = ProjectsAddMemberErrors[keyof ProjectsAddMemberErrors]
+
+export type ProjectsAddMemberResponses = {
+  /**
+   * Successful Response
+   */
+  201: ProjectMemberReadSchema
+}
+
+export type ProjectsAddMemberResponse = ProjectsAddMemberResponses[keyof ProjectsAddMemberResponses]
+
+export type ProjectsRemoveMemberData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+    /**
+     * Member
+     */
+    member: string
+  }
+  query?: never
+  url: '/api/v1/projects/{item_id}/members/{member}'
+}
+
+export type ProjectsRemoveMemberErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type ProjectsRemoveMemberError = ProjectsRemoveMemberErrors[keyof ProjectsRemoveMemberErrors]
+
+export type ProjectsRemoveMemberResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type ProjectsRemoveMemberResponse = ProjectsRemoveMemberResponses[keyof ProjectsRemoveMemberResponses]
+
+export type TagsListData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number
+    /**
+     * Page Size
+     *
+     * Number of records per page
+     */
+    page_size?: number
+    /**
+     * Name
+     */
+    name?: string | null
+  }
+  url: '/api/v1/tags'
+}
+
+export type TagsListErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsListError = TagsListErrors[keyof TagsListErrors]
+
+export type TagsListResponses = {
+  /**
+   * Successful Response
+   */
+  200: TagReadSchemaPage
+}
+
+export type TagsListResponse = TagsListResponses[keyof TagsListResponses]
+
+export type TagsCreateData = {
+  body: TagCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/tags'
+}
+
+export type TagsCreateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsCreateError = TagsCreateErrors[keyof TagsCreateErrors]
+
+export type TagsCreateResponses = {
+  /**
+   * Successful Response
+   */
+  201: TagReadSchema
+}
+
+export type TagsCreateResponse = TagsCreateResponses[keyof TagsCreateResponses]
+
+export type TagsDestroyData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/tags/{item_id}'
+}
+
+export type TagsDestroyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsDestroyError = TagsDestroyErrors[keyof TagsDestroyErrors]
+
+export type TagsDestroyResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type TagsDestroyResponse = TagsDestroyResponses[keyof TagsDestroyResponses]
+
+export type TagsRetrieveData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/tags/{item_id}'
+}
+
+export type TagsRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsRetrieveError = TagsRetrieveErrors[keyof TagsRetrieveErrors]
+
+export type TagsRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: TagReadSchema
+}
+
+export type TagsRetrieveResponse = TagsRetrieveResponses[keyof TagsRetrieveResponses]
+
+export type TagsPartialUpdateData = {
+  body: TagUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/tags/{item_id}'
+}
+
+export type TagsPartialUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsPartialUpdateError = TagsPartialUpdateErrors[keyof TagsPartialUpdateErrors]
+
+export type TagsPartialUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: TagReadSchema
+}
+
+export type TagsPartialUpdateResponse = TagsPartialUpdateResponses[keyof TagsPartialUpdateResponses]
+
+export type TagsUpdateData = {
+  body: TagUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/tags/{item_id}'
+}
+
+export type TagsUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsUpdateError = TagsUpdateErrors[keyof TagsUpdateErrors]
+
+export type TagsUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: TagReadSchema
+}
+
+export type TagsUpdateResponse = TagsUpdateResponses[keyof TagsUpdateResponses]
+
+export type TagsMergeData = {
+  body: TagMergeSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/tags/{item_id}/merge'
+}
+
+export type TagsMergeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsMergeError = TagsMergeErrors[keyof TagsMergeErrors]
+
+export type TagsMergeResponses = {
+  /**
+   * Successful Response
+   */
+  200: TagReadSchema
+}
+
+export type TagsMergeResponse = TagsMergeResponses[keyof TagsMergeResponses]
+
+export type RecordingsListData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Project Id
+     */
+    project_id?: string | null
+    /**
+     * Tag Id
+     */
+    tag_id?: string | null
+    /**
+     * Created By Id
+     */
+    created_by_id?: string | null
+    /**
+     * Status
+     */
+    status?: RecordingStatus | null
+    /**
+     * Personal
+     */
+    personal?: boolean | null
+    /**
+     * Recorded From
+     */
+    recorded_from?: string | null
+    /**
+     * Recorded To
+     */
+    recorded_to?: string | null
+    /**
+     * Search
+     */
+    search?: string | null
+    /**
+     * Deleted
+     */
+    deleted?: boolean
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number
+    /**
+     * Page Size
+     *
+     * Number of records per page
+     */
+    page_size?: number
+  }
+  url: '/api/v1/recordings'
+}
+
+export type RecordingsListErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsListError = RecordingsListErrors[keyof RecordingsListErrors]
+
+export type RecordingsListResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingReadSchemaPage
+}
+
+export type RecordingsListResponse = RecordingsListResponses[keyof RecordingsListResponses]
+
+export type RecordingsCreateData = {
+  body: RecordingCreateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/recordings'
+}
+
+export type RecordingsCreateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsCreateError = RecordingsCreateErrors[keyof RecordingsCreateErrors]
+
+export type RecordingsCreateResponses = {
+  /**
+   * Successful Response
+   */
+  201: RecordingCreatedSchema
+}
+
+export type RecordingsCreateResponse = RecordingsCreateResponses[keyof RecordingsCreateResponses]
+
+export type RecordingsSyncData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: {
+    /**
+     * Cursor
+     */
+    cursor?: string | null
+    /**
+     * Limit
+     */
+    limit?: number
+  }
+  url: '/api/v1/recordings/sync'
+}
+
+export type RecordingsSyncErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsSyncError = RecordingsSyncErrors[keyof RecordingsSyncErrors]
+
+export type RecordingsSyncResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingSyncSchema
+}
+
+export type RecordingsSyncResponse = RecordingsSyncResponses[keyof RecordingsSyncResponses]
+
+export type RecordingsDestroyData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}'
+}
+
+export type RecordingsDestroyErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsDestroyError = RecordingsDestroyErrors[keyof RecordingsDestroyErrors]
+
+export type RecordingsDestroyResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type RecordingsDestroyResponse = RecordingsDestroyResponses[keyof RecordingsDestroyResponses]
+
+export type RecordingsRetrieveData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}'
+}
+
+export type RecordingsRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsRetrieveError = RecordingsRetrieveErrors[keyof RecordingsRetrieveErrors]
+
+export type RecordingsRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsRetrieveResponse = RecordingsRetrieveResponses[keyof RecordingsRetrieveResponses]
+
+export type RecordingsPartialUpdateData = {
+  body: RecordingUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}'
+}
+
+export type RecordingsPartialUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsPartialUpdateError = RecordingsPartialUpdateErrors[keyof RecordingsPartialUpdateErrors]
+
+export type RecordingsPartialUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsPartialUpdateResponse = RecordingsPartialUpdateResponses[keyof RecordingsPartialUpdateResponses]
+
+export type RecordingsUpdateData = {
+  body: RecordingUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}'
+}
+
+export type RecordingsUpdateErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsUpdateError = RecordingsUpdateErrors[keyof RecordingsUpdateErrors]
+
+export type RecordingsUpdateResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsUpdateResponse = RecordingsUpdateResponses[keyof RecordingsUpdateResponses]
+
+export type RecordingsAudioData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: {
+    /**
+     * Download
+     */
+    download?: boolean
+  }
+  url: '/api/v1/recordings/{item_id}/audio'
+}
+
+export type RecordingsAudioErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsAudioError = RecordingsAudioErrors[keyof RecordingsAudioErrors]
+
+export type RecordingsAudioResponses = {
+  /**
+   * Successful Response
+   */
+  200: AudioUrlSchema
+}
+
+export type RecordingsAudioResponse = RecordingsAudioResponses[keyof RecordingsAudioResponses]
+
+export type RecordingsEventsData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/events'
+}
+
+export type RecordingsEventsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsEventsError = RecordingsEventsErrors[keyof RecordingsEventsErrors]
+
+export type RecordingsEventsResponses = {
+  /**
+   * Response Recordings Events
+   *
+   * Successful Response
+   */
+  200: Array<RecordingEventReadSchema>
+}
+
+export type RecordingsEventsResponse = RecordingsEventsResponses[keyof RecordingsEventsResponses]
+
+export type RecordingsRevokeShareData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/share'
+}
+
+export type RecordingsRevokeShareErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsRevokeShareError = RecordingsRevokeShareErrors[keyof RecordingsRevokeShareErrors]
+
+export type RecordingsRevokeShareResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type RecordingsRevokeShareResponse = RecordingsRevokeShareResponses[keyof RecordingsRevokeShareResponses]
+
+export type RecordingsShareData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/share'
+}
+
+export type RecordingsShareErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsShareError = RecordingsShareErrors[keyof RecordingsShareErrors]
+
+export type RecordingsShareResponses = {
+  /**
+   * Response Recordings Share
+   *
+   * Successful Response
+   */
+  200: ShareLinkReadSchema | null
+}
+
+export type RecordingsShareResponse = RecordingsShareResponses[keyof RecordingsShareResponses]
+
+export type RecordingsUpdateShareData = {
+  body: ShareLinkUpsertSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/share'
+}
+
+export type RecordingsUpdateShareErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsUpdateShareError = RecordingsUpdateShareErrors[keyof RecordingsUpdateShareErrors]
+
+export type RecordingsUpdateShareResponses = {
+  /**
+   * Successful Response
+   */
+  200: ShareLinkReadSchema
+}
+
+export type RecordingsUpdateShareResponse = RecordingsUpdateShareResponses[keyof RecordingsUpdateShareResponses]
+
+export type RecordingsRestoreData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/restore'
+}
+
+export type RecordingsRestoreErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsRestoreError = RecordingsRestoreErrors[keyof RecordingsRestoreErrors]
+
+export type RecordingsRestoreResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsRestoreResponse = RecordingsRestoreResponses[keyof RecordingsRestoreResponses]
+
+export type RecordingsAcceptProjectSuggestionData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/project-suggestion/accept'
+}
+
+export type RecordingsAcceptProjectSuggestionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsAcceptProjectSuggestionError =
+  RecordingsAcceptProjectSuggestionErrors[keyof RecordingsAcceptProjectSuggestionErrors]
+
+export type RecordingsAcceptProjectSuggestionResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsAcceptProjectSuggestionResponse =
+  RecordingsAcceptProjectSuggestionResponses[keyof RecordingsAcceptProjectSuggestionResponses]
+
+export type RecordingsDismissProjectSuggestionData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/project-suggestion/dismiss'
+}
+
+export type RecordingsDismissProjectSuggestionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsDismissProjectSuggestionError =
+  RecordingsDismissProjectSuggestionErrors[keyof RecordingsDismissProjectSuggestionErrors]
+
+export type RecordingsDismissProjectSuggestionResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsDismissProjectSuggestionResponse =
+  RecordingsDismissProjectSuggestionResponses[keyof RecordingsDismissProjectSuggestionResponses]
+
+export type RecordingsUploadCompleteData = {
+  body: UploadCompleteSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/upload/complete'
+}
+
+export type RecordingsUploadCompleteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsUploadCompleteError = RecordingsUploadCompleteErrors[keyof RecordingsUploadCompleteErrors]
+
+export type RecordingsUploadCompleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingDetailSchema
+}
+
+export type RecordingsUploadCompleteResponse =
+  RecordingsUploadCompleteResponses[keyof RecordingsUploadCompleteResponses]
+
+export type RecordingsUploadPartsData = {
+  body: UploadPartsRequestSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/upload/parts'
+}
+
+export type RecordingsUploadPartsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsUploadPartsError = RecordingsUploadPartsErrors[keyof RecordingsUploadPartsErrors]
+
+export type RecordingsUploadPartsResponses = {
+  /**
+   * Successful Response
+   */
+  200: UploadPlanSchema
+}
+
+export type RecordingsUploadPartsResponse = RecordingsUploadPartsResponses[keyof RecordingsUploadPartsResponses]
+
+export type PublicShareRetrieveData = {
+  body?: never
+  path: {
+    /**
+     * Token
+     */
+    token: string
+  }
+  query?: never
+  url: '/api/v1/public/share/{token}'
+}
+
+export type PublicShareRetrieveErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type PublicShareRetrieveError = PublicShareRetrieveErrors[keyof PublicShareRetrieveErrors]
+
+export type PublicShareRetrieveResponses = {
+  /**
+   * Successful Response
+   */
+  200: PublicShareSchema
+}
+
+export type PublicShareRetrieveResponse = PublicShareRetrieveResponses[keyof PublicShareRetrieveResponses]
 
 export type OauthAuthorizeInfoData = {
   body?: never

@@ -45,6 +45,7 @@ PUBLIC_PATHS = frozenset(
         '/api/v1/invites/{token}/accept',
         '/api/v1/oauth/token',
         '/.well-known/hearfolio',
+        '/api/v1/public/share/{token}',
     }
 )
 _PUBLIC_PATH_PATTERNS = tuple(

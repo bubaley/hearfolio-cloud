@@ -27,6 +27,17 @@ class S3UploadResult(BaseModel):
     url: str
 
 
+class S3ObjectInfo(BaseModel):
+    size: int
+    content_type: str | None = None
+
+
+class S3UploadedPart(BaseModel):
+    part_number: int
+    etag: str
+    size: int | None = None
+
+
 class S3Service:
     """
     Object storage. Objects are private (no ACL): share them with presigned URLs, or serve them through a
@@ -110,6 +121,79 @@ class S3Service:
         return await self._presign(
             'put_object', {'Bucket': self.bucket, 'Key': key, 'ContentType': content_type}, expires_in
         )
+
+    async def head_object(self, key: str) -> S3ObjectInfo | None:
+        """Size and content type of an object, or None when it does not exist."""
+        try:
+            response = await asyncio.to_thread(self.client.head_object, Bucket=self.bucket, Key=key)
+        except ClientError as e:
+            if e.response.get('Error', {}).get('Code') in ('404', 'NoSuchKey', 'NotFound'):
+                return None
+            raise S3Error(f'Head of {key} failed') from e
+        except BotoCoreError as e:
+            raise S3Error(f'Head of {key} failed') from e
+        return S3ObjectInfo(size=response['ContentLength'], content_type=response.get('ContentType'))
+
+    # MULTIPART UPLOADS
+
+    async def create_multipart_upload(self, key: str, content_type: str) -> str:
+        """Start a multipart upload; the client uploads parts to `presigned_upload_part_url`. Returns the upload id."""
+        try:
+            response = await asyncio.to_thread(
+                self.client.create_multipart_upload, Bucket=self.bucket, Key=key, ContentType=content_type
+            )
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Starting multipart upload of {key} failed') from e
+        return response['UploadId']
+
+    async def presigned_upload_part_url(
+        self, key: str, upload_id: str, part_number: int, expires_in: int | None = None
+    ) -> str:
+        params = {'Bucket': self.bucket, 'Key': key, 'UploadId': upload_id, 'PartNumber': part_number}
+        return await self._presign('upload_part', params, expires_in)
+
+    async def list_parts(self, key: str, upload_id: str) -> list[S3UploadedPart]:
+        """Parts the client has uploaded so far, in part order."""
+        parts: list[S3UploadedPart] = []
+        marker = 0
+        try:
+            while True:
+                response = await asyncio.to_thread(
+                    self.client.list_parts, Bucket=self.bucket, Key=key, UploadId=upload_id, PartNumberMarker=marker
+                )
+                parts.extend(
+                    S3UploadedPart(part_number=part['PartNumber'], etag=part['ETag'], size=part.get('Size'))
+                    for part in response.get('Parts', [])
+                )
+                if not response.get('IsTruncated'):
+                    return parts
+                marker = response['NextPartNumberMarker']
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Listing parts of {key} failed') from e
+
+    async def complete_multipart_upload(self, key: str, upload_id: str, parts: list[S3UploadedPart]) -> None:
+        multipart = {
+            'Parts': [
+                {'PartNumber': part.part_number, 'ETag': part.etag}
+                for part in sorted(parts, key=lambda part: part.part_number)
+            ]
+        }
+        try:
+            await asyncio.to_thread(
+                self.client.complete_multipart_upload,
+                Bucket=self.bucket,
+                Key=key,
+                UploadId=upload_id,
+                MultipartUpload=multipart,
+            )
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Completing multipart upload of {key} failed') from e
+
+    async def abort_multipart_upload(self, key: str, upload_id: str) -> None:
+        try:
+            await asyncio.to_thread(self.client.abort_multipart_upload, Bucket=self.bucket, Key=key, UploadId=upload_id)
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Aborting multipart upload of {key} failed') from e
 
     async def _presign(self, operation: str, params: dict[str, Any], expires_in: int | None) -> str:
         expires = expires_in or settings.aws_s3_presign_expire_seconds
