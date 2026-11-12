@@ -7,7 +7,13 @@ from fastapi_ronin.decorators import schema
 from pydantic import ConfigDict, Field, StringConstraints
 
 from app.core.models import BaseCreateSchema, BaseReadSchema, BaseSchema
-from app.domains.ai.models import MAX_SEGMENT_SECONDS, MIN_SEGMENT_SECONDS, SummaryTemplate
+from app.domains.ai.models import (
+    MAX_SEGMENT_SECONDS,
+    MIN_SEGMENT_SECONDS,
+    RecordingResult,
+    ResultStatus,
+    SummaryTemplate,
+)
 
 ModelId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255, pattern=r'^\S+$')]
 LanguageCode = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r'^(auto|[a-z]{2,3}(-[A-Za-z]{2,4})?)$')]
@@ -122,3 +128,37 @@ class SummaryTemplateReadSchema(BaseReadSchema):
     auto: bool
     position: int
     created_by_id: UUID | None
+
+
+# RECORDING_RESULT_SCHEMAS
+
+
+@schema(model=RecordingResult)
+class RecordingResultReadSchema(BaseReadSchema):
+    recording_id: UUID
+    template_id: UUID | None
+    title: str
+    prompt: str
+    model: str
+    status: ResultStatus
+    content: str
+    error_message: str | None
+    created_by_id: UUID | None
+
+
+class RecordingResultsCreateSchema(BaseSchema):
+    """Summaries to make: one per template plus one for `custom_prompt`; `model` defaults to the organization's."""
+
+    template_ids: list[UUID] = Field(default_factory=list, max_length=20)
+    custom_prompt: Annotated[str, StringConstraints(strip_whitespace=True, max_length=20000)] | None = None
+    model: ModelId | None = None
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class RetranscribeSchema(BaseSchema):
+    """`model` must be an allowed transcription model; omitted means the organization's default."""
+
+    model: ModelId | None = None
+
+    model_config = ConfigDict(extra='forbid')

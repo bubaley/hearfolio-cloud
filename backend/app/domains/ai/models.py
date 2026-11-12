@@ -1,13 +1,16 @@
+from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from tortoise import fields
 from tortoise.backends.base.client import BaseDBAsyncClient
+from tortoise.expressions import Q, Subquery
 from tortoise.signals import post_save
 
 from app.core.models import BaseModel
 from app.core.scope import Scope
 from app.domains.ai.services.openrouter_client import DEFAULT_BASE_URL
-from app.domains.organization.models import Organization
+from app.domains.organization.models import Organization, OrganizationUser
 
 DEFAULT_SEGMENT_SECONDS = 300
 MIN_SEGMENT_SECONDS = 60
@@ -59,6 +62,72 @@ class SummaryTemplate(BaseModel):
     class Meta:
         table = 'summary_template'
         ordering = ('position', 'created_at')
+
+
+def _member_organizations_of_recording(user_id: UUID) -> Q:
+    member_org_ids = OrganizationUser.filter(user_id=user_id).values('organization_id')
+    return Q(recording__organization_id__in=Subquery(member_org_ids))
+
+
+# Rows below hang off a recording: the tenant scope keeps them inside the caller's organizations; which recordings
+# a user sees is decided by LibraryVisibility.recordings (every endpoint starts from it).
+
+
+class ResultStatus(StrEnum):
+    QUEUED = 'queued'
+    RUNNING = 'running'
+    DONE = 'done'
+    FAILED = 'failed'
+
+
+class RecordingResult(BaseModel):
+    """A summary of a recording made by a text model from a template or a custom prompt."""
+
+    recording = fields.ForeignKeyField('models.Recording', related_name='results', on_delete=fields.CASCADE)
+    recording_id: UUID
+    template = fields.ForeignKeyField(
+        'models.SummaryTemplate', related_name='results', on_delete=fields.SET_NULL, null=True
+    )
+    template_id: UUID | None
+    title = fields.CharField(max_length=255)
+    # Snapshot: editing the template later does not change existing results.
+    prompt = fields.TextField()
+    model = fields.CharField(max_length=255)
+    status = fields.CharEnumField(ResultStatus, max_length=16, default=ResultStatus.QUEUED)
+    content = fields.TextField(default='')
+    error_message = fields.CharField(max_length=2000, null=True)
+    # null: created automatically after transcription
+    created_by = fields.ForeignKeyField(
+        'models.User', related_name='recording_results', on_delete=fields.SET_NULL, null=True
+    )
+    created_by_id: UUID | None
+
+    tenant_scope = Scope(user=_member_organizations_of_recording, organization='recording__organization_id')
+
+    class Meta:
+        table = 'recording_result'
+        ordering = ('created_at',)
+
+
+class RecordingProcessing(BaseModel):
+    """
+    Pipeline bookkeeping per recording, so a re-delivered or retried task never repeats finished steps, and a
+    re-transcription collects its segments here while the old transcript stays visible.
+    """
+
+    recording = fields.OneToOneField('models.Recording', related_name='processing', on_delete=fields.CASCADE)
+    recording_id: UUID
+    titled = fields.BooleanField(default=False)
+    classified = fields.BooleanField(default=False)
+    summarized = fields.BooleanField(default=False)
+    # A requested re-transcription: the model and its finished chunks ([{start_ms, end_ms, text}])
+    retranscribe_model = fields.CharField(max_length=255, null=True)
+    retranscribe_segments: Any = fields.JSONField(default=list)
+
+    tenant_scope = Scope(user=_member_organizations_of_recording, organization='recording__organization_id')
+
+    class Meta:
+        table = 'recording_processing'
 
 
 @post_save(Organization)

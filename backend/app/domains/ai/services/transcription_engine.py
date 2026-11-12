@@ -3,7 +3,6 @@ from collections.abc import Awaitable, Callable, Collection
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol
 
 from loguru import logger
 
@@ -36,10 +35,8 @@ class TranscribedSegment:
     text: str
 
 
-class SegmentSink(Protocol):
-    """Receives each finished segment immediately, so a crash after it loses nothing (the pipeline persists it)."""
-
-    async def __call__(self, segment: TranscribedSegment, done: int, total: int) -> None: ...
+# Receives each finished segment with (done, total) right away, so a crash after it loses nothing.
+SegmentSink = Callable[[TranscribedSegment, int, int], Awaitable[None]]
 
 
 class TranscriptionError(Exception):
