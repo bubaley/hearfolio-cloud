@@ -17,7 +17,7 @@ One image runs the whole application. Files: [`Dockerfile`](../Dockerfile), [`do
 Build arguments `APP_VERSION` and `GIT_SHA` become environment variables of the same name (the backend reports them) and OCI labels; `BUILD_DATE` sets `org.opencontainers.image.created`.
 
 ```bash
-make docker-build   # IMAGE=fastapi-nuxt-template:local, APP_VERSION from version.json, GIT_SHA from git
+make docker-build   # IMAGE=hearfolio-cloud:local, APP_VERSION from version.json, GIT_SHA from git
 make docker-run     # compose.yaml (PostgreSQL + Redis + IMAGE) as project <COMPOSE_PROJECT_NAME>-smoke; waits for healthy
 make docker-stop    # stop it and delete its volumes
 ```
@@ -73,7 +73,7 @@ The container reads the same settings as local development (`.env.example`). Pro
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `APP_IMAGE` | `fastapi-nuxt-template:local` | Image compose runs; the deploy step pins it to `registry/name@sha256:…` in the server's `.env` |
+| `APP_IMAGE` | `hearfolio-cloud:local` | Image compose runs; the deploy step pins it to `registry/name@sha256:…` in the server's `.env` |
 | `APP_ENTRY_PORT` | `127.0.0.1:8080` | Host binding of Caddy's port; keep it on loopback behind a host proxy |
 | `REDIS_PASSWORD` | empty | Optional; Redis requires it and compose puts it into `REDIS_URL` / `BROKER_REDIS_URL`. Use URL-safe characters (e.g. `openssl rand -hex 32`) |
 | `BACKEND_WORKERS` | `2` | uvicorn worker processes |
@@ -161,7 +161,7 @@ Repository **variables** (Settings → Secrets and variables → Actions → Var
 | Variable | Needed for | Example |
 |---|---|---|
 | `YC_REGISTRY_ID` | publish | `crp1a2b3c4d5e6f7g8h9` |
-| `IMAGE_NAME` | publish | `my-app` |
+| `IMAGE_NAME` | publish | `hearfolio-cloud` |
 | `YC_SA_ID` | publish, keyless (optional) | service account id for [workload identity federation](https://yandex.cloud/en/docs/iam/tutorials/wlif-github-integration) |
 | `ATTESTATIONS` | publish (optional) | `registry` (default), `ghcr` or `off` |
 | `RELEASE_APP_CLIENT_ID` | release past branch protection | GitHub App client id |

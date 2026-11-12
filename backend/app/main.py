@@ -47,7 +47,7 @@ class App(FastAPI):
 
 
 app = App(
-    title='fastapi-nuxt-template',
+    title='hearfolio-cloud',
     version=settings.app_version,
     lifespan=lifespan,
     telemetry=telemetry_config(),

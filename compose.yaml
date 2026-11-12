@@ -17,7 +17,7 @@ x-healthcheck: &healthcheck
 
 services:
   app:
-    image: ${APP_IMAGE:-fastapi-nuxt-template:local}
+    image: ${APP_IMAGE:-hearfolio-cloud:local}
     restart: unless-stopped
     init: false # s6-overlay is PID 1
     stop_grace_period: 40s

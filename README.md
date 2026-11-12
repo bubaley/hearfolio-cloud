@@ -1,4 +1,4 @@
-# FastAPI + Nuxt Production Template
+# Hearfolio
 
 Full-stack starter for internal apps with multi-organization access: CRUD entities, authentication, drawer navigation, and UI primitives for lists and forms. Built to be the seed of many products that AI agents (Claude Code) extend quickly and safely.
 
@@ -114,7 +114,7 @@ Other useful commands: `make mm` (create migrations), `make help`.
 | `make openapi` | Write the OpenAPI schema to `frontend/openapi.json` (no database needed); commit it with API changes |
 | `make gen-client` | `make openapi` + `pnpm gen:api`: regenerate the typed frontend client in `frontend/app/shared/api/generated/` (commit it; `pnpm check` fails when it is stale) |
 | `make test` / `make t` | Run backend tests (pytest, same `PYTEST_ARGS`) |
-| `make docker-build` | Build the production image (`IMAGE`, default `fastapi-nuxt-template:local`; version from `version.json`) |
+| `make docker-build` | Build the production image (`IMAGE`, default `hearfolio-cloud:local`; version from `version.json`) |
 | `make docker-run` | Run `IMAGE` with PostgreSQL + Redis from `compose.yaml` (project `<COMPOSE_PROJECT_NAME>-smoke`) and wait until healthy |
 | `make docker-stop` | Stop the `docker-run` stack and delete its volumes |
 

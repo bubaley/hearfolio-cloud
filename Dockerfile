@@ -123,7 +123,7 @@ ARG GIT_SHA=unknown
 ARG BUILD_DATE
 ENV APP_VERSION=${APP_VERSION} \
     GIT_SHA=${GIT_SHA}
-LABEL org.opencontainers.image.title="fastapi-nuxt-template" \
+LABEL org.opencontainers.image.title="hearfolio-cloud" \
       org.opencontainers.image.description="FastAPI + Nuxt application behind Caddy, supervised by s6-overlay" \
       org.opencontainers.image.source="https://github.com/bubaley/production-fastapi-docker-template" \
       org.opencontainers.image.licenses="MIT" \

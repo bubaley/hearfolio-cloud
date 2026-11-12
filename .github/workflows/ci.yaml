@@ -19,7 +19,7 @@ concurrency:
 env:
   UV_VERSION: "0.13.5" # keep in sync with UV_IMAGE in Dockerfile
   GIT_CLIFF_VERSION: "2.14.2"
-  CI_IMAGE: fastapi-nuxt-template:ci
+  CI_IMAGE: hearfolio-cloud:ci
 
 jobs:
   changes:

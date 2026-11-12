@@ -18,12 +18,12 @@ TASKIQ_WORKERS ?= $(or $(call dotenv,TASKIQ_WORKERS),1)
 TASKIQ_UPDATE_INTERVAL ?= $(or $(call dotenv,TASKIQ_UPDATE_INTERVAL),10)
 
 # Docker image for docker-build / docker-run (production services run under s6-overlay, see docker/).
-IMAGE ?= fastapi-nuxt-template:local
+IMAGE ?= hearfolio-cloud:local
 APP_VERSION ?= $(shell sed -n 's/.*"version"[^"]*"\([^"]*\)".*/\1/p' version.json)
 GIT_SHA ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
 # Extra `docker build` flags, e.g. DOCKER_BUILD_FLAGS="--platform linux/amd64 --no-cache".
 DOCKER_BUILD_FLAGS ?=
-SMOKE_PROJECT ?=$(or $(call dotenv,COMPOSE_PROJECT_NAME),fastapi-nuxt-template)-smoke
+SMOKE_PROJECT ?=$(or $(call dotenv,COMPOSE_PROJECT_NAME),hearfolio-cloud)-smoke
 
 # Extra pytest args for check-backend / test-backend, e.g. PYTEST_ARGS=--sqlite when Postgres is not running.
 PYTEST_ARGS ?= --keepdb
