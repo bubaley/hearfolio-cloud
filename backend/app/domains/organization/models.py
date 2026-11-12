@@ -1,3 +1,4 @@
+from enum import StrEnum
 from uuid import UUID
 
 from tortoise import fields
@@ -13,6 +14,15 @@ def _memberships_of_user_organizations(user_id: UUID) -> Q:
     return Q(organization_id__in=Subquery(member_org_ids))
 
 
+class OrganizationRole(StrEnum):
+    OWNER = 'owner'
+    ADMIN = 'admin'
+    MEMBER = 'member'
+
+
+ORGANIZATION_ADMIN_ROLES = (OrganizationRole.OWNER, OrganizationRole.ADMIN)
+
+
 class OrganizationUser(BaseModel):
     organization = fields.ForeignKeyField(
         'models.Organization',
@@ -22,6 +32,7 @@ class OrganizationUser(BaseModel):
     organization_id: UUID
     user = fields.ForeignKeyField('models.User', related_name='org_users', on_delete=fields.CASCADE)
     user_id: UUID
+    role = fields.CharEnumField(OrganizationRole, max_length=16, default=OrganizationRole.MEMBER)
 
     tenant_scope = Scope(user=_memberships_of_user_organizations)
 

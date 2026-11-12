@@ -1,9 +1,16 @@
+from uuid import UUID
+
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
-from app.domains.organization.models import Organization, OrganizationUser
+from app.domains.organization.models import (
+    ORGANIZATION_ADMIN_ROLES,
+    Organization,
+    OrganizationRole,
+    OrganizationUser,
+)
 from app.domains.user.models import User
 
 
@@ -12,8 +19,17 @@ class OrganizationService:
     async def create(organization: Organization, actor: User) -> Organization:
         async with in_transaction():
             await organization.save()
-            await OrganizationUser.create(organization=organization, user=actor)
+            await OrganizationUser.create(organization=organization, user=actor, role=OrganizationRole.OWNER)
         return organization
+
+    @staticmethod
+    async def is_admin(user: User, organization_id: UUID) -> bool:
+        """Owner/admin of the organization, or a superuser."""
+        if user.is_superuser:
+            return True
+        return await OrganizationUser.filter(
+            organization_id=organization_id, user_id=user.id, role__in=ORGANIZATION_ADMIN_ROLES
+        ).exists()
 
     @staticmethod
     async def validate_membership_change(membership: OrganizationUser, actor: User) -> None:
