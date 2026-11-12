@@ -97,7 +97,7 @@ No registration step: `core/discovery.py` picks up `models.py` and the `routers`
 |---|---|
 | `services/` | Cross-domain **classes** (`FilterObjectsManager`, entity resolver, …) |
 | `utils/` | Cross-domain **functions** |
-| `permissions/` | Reusable permission classes (`IsSuperuser`, …) |
+| `permissions/` | Reusable permission classes (`IsSuperuser`, `IsOrganizationAdmin`, …) |
 
 If only one domain needs it, keep it in that domain.
 

@@ -16,6 +16,7 @@ dependencies = [
     "email-validator>=2.3.0",
     "fastapi>=0.161.0",
     "fastapi-ronin>=1.0.0",
+    "httpx2>=2.16.0",
     "loguru>=0.7.3",
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
@@ -35,7 +36,6 @@ optional-dependencies.otel = [
 
 [dependency-groups]
 dev = [
-    "httpx2>=2.16.0",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
