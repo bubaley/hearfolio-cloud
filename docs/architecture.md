@@ -18,7 +18,7 @@ What the app does: [template-core.md](template-core.md) (inherited by every prod
 
 Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue). The catalogue uses local sample data and does not expose organization resources.
 
-`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data goes through resource descriptors over the generated client.
+`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; `/ui` → Layout demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data goes through resource descriptors over the generated client.
 
 ### New capability — definition of done
 
@@ -132,8 +132,8 @@ frontend/
 frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views
-  layouts/                # Shell + drawer navigation (default, settings, setup, auth)
-  navigation/             # Drawer entries as data (settings.ts)
+  layouts/                # Sidebar shell per area (default, settings) + setup, auth
+  navigation/             # Sidebar entries as data (workspace.ts, settings.ts)
   shared/                 # API layer, UI kit, composables, utils
   middleware/             # Session and organization guards (page meta `auth`, `organization`)
   plugins/                # `$api`: the generated client per app instance
@@ -170,9 +170,10 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 |---|---|
 | `pages/**/*.vue` | Route only. Import a feature view; no business logic, no API calls. `definePageMeta({ auth: false })` marks a public page |
 | `layouts/*.vue` | Chrome and **drawer items**. Nuxt route names come from the file path: `settings/organizations/[id].vue` → `settings-organizations-id` |
-| `navigation/settings.ts` | Settings drawer entries as data (`settingsNavigation`); `make new-domain` appends to it |
+| `navigation/settings.ts` | Settings sidebar entries as data (`settingsNavigation`, grouped by `settingsSections`); `make new-domain` appends to it |
+| `navigation/workspace.ts` | Main sidebar entries of the workspace (`workspaceNavigation`) |
 
-Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) render in the browser; public pages (`/`) render on the server with SEO meta. See [frontend-concept.md](frontend-concept.md#rendering).
+Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`, `/invite/**`, `/oauth/**`) render in the browser; public pages (`/`) render on the server with SEO meta. See [frontend-concept.md](frontend-concept.md#rendering).
 
 ### `shared/`
 
@@ -187,7 +188,7 @@ Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, 
 | `composables/` | App-wide composables (`useSession`, `useActionState`, `useToast`, `useWebSocketService`) |
 | `utils/` | Small frontend helpers |
 | `lib/` | Class-name composition (`cn`) for shadcn primitives; explicitly tracked despite Python `lib/` ignore rules |
-| `components/` | App chrome that is not a generic primitive (layout header, drawer) |
+| `components/` | App chrome that is not a generic primitive (sidebar shell `AppLayout`, sidebar nav, `AppAuthShell` for centered public cards, setup header) |
 | `stores/` | Rare app-level stores (`useSetupStore`: the selected organization) |
 
 Auth lives in FastAPI: it sets and rotates HttpOnly cookies, the frontend never holds a token. The browser reaches the API on its own origin; during SSR Nitro calls `NUXT_API_INTERNAL_URL` with the request's cookie (GET only). There is no Nitro API proxy.

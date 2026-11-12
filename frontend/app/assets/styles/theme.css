@@ -15,8 +15,8 @@
   --font-size-root: 87.5%;
   --app-font-sans: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 
-  /* Surfaces and text */
-  --background: #f4f5f8;
+  /* Surfaces and text. Hearfolio: white page, a slightly tinted sidebar (Notion-like). */
+  --background: #ffffff;
   --foreground: #202431;
   --card: #ffffff;
   --card-foreground: #202431;
@@ -28,11 +28,11 @@
   --muted-foreground: #60697c;
   --accent: #dde1ea;
   --accent-foreground: #202431;
-  --border: #d6dce6;
+  --border: #e4e7ed;
   --border-strong: #a5afbf;
   --input: #d6dce6;
-  --field-hover: #edf0f5;
-  --row-hover: #e9edf5;
+  --field-hover: #f3f4f7;
+  --row-hover: #f3f4f7;
 
   /* Brand (neutral palette) */
   --primary: #202431;
@@ -50,13 +50,13 @@
   --destructive-foreground: #f4f5f8;
 
   /* Sidebar */
-  --sidebar: #eef0f5;
+  --sidebar: #f7f7f9;
   --sidebar-foreground: #202431;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #dde1ea;
+  --sidebar-accent: #e9eaee;
   --sidebar-accent-foreground: #202431;
-  --sidebar-border: #d6dce6;
+  --sidebar-border: #e6e8ed;
   --sidebar-ring: var(--ring);
 
   /* Charts */

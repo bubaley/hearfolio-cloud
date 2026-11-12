@@ -4,13 +4,19 @@ import {
   organizationUsersList,
   organizationUsersRetrieve,
   organizationUsersUpdate,
+  type OrganizationRole,
   type OrganizationUserReadSchema,
   type UserReadSchema,
 } from '~/shared/api/generated'
 import { defineResource } from '~/shared/api/resource'
 
 export type OrganizationUser = OrganizationUserReadSchema
-export type OrganizationUserForm = { id: string | null; organization_id: string; user: UserReadSchema | null }
+export type OrganizationUserForm = {
+  id: string | null
+  organization_id: string
+  user: UserReadSchema | null
+  role: OrganizationRole
+}
 
 export const organizationUserResource = defineResource({
   key: 'organization-users',
@@ -25,14 +31,15 @@ export const organizationUserResource = defineResource({
     id: item?.id ?? null,
     organization_id: item?.organization_id ?? '',
     user: item?.user ?? null,
+    role: item?.role ?? 'member',
   }),
   // The organization comes from the body (the organization being viewed), not from `Organization-Key`.
   toCreate: (form) => {
     if (!form.organization_id || !form.user) throw new Error('Выберите пользователя')
-    return { organization_id: form.organization_id, user_id: form.user.id }
+    return { organization_id: form.organization_id, user_id: form.user.id, role: form.role }
   },
-  // A membership has no mutable fields.
-  toUpdate: () => ({}),
-  // Adding the current user changes the session's organizations.
+  // Only the role changes; the backend checks owner/admin rules (403 `not_admin`/`not_owner`, 409 `last_owner`).
+  toUpdate: (form) => ({ role: form.role }),
+  // Adding the current user or changing their role changes the session's organizations.
   invalidates: ['session'],
 })

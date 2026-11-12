@@ -112,6 +112,72 @@ const progressTones = ['primary', 'success', 'info', 'warning', 'destructive'] a
       </div>
     </AppSection>
     <AppSection
+      title="Settings rows and results"
+      description="AppSettingRow: label and description with a control (stacked on phones). AppResultState: centered outcome. AppAvatar variant soft, AppSkeleton circle."
+    >
+      <div class="grid gap-4 md:grid-cols-2">
+        <AppCard>
+          <AppSettingRow
+            label="Auto title"
+            description="Control on the right, stacked below on phones"
+          >
+            <AppSwitch
+              :model-value="true"
+              aria-label="Auto title"
+            />
+          </AppSettingRow>
+          <AppSettingRow
+            label="Base URL"
+            description="stacked: full-width control"
+            stacked
+          >
+            <AppInput
+              model-value="https://openrouter.ai/api/v1"
+              class="w-full"
+              aria-label="Base URL"
+            />
+          </AppSettingRow>
+          <AppSettingRow
+            label="Delete organization"
+            tone="destructive"
+          >
+            <AppButton
+              variant="outline"
+              label="Delete"
+            />
+          </AppSettingRow>
+        </AppCard>
+        <AppCard>
+          <AppResultState
+            :icon="Check"
+            tone="success"
+            title="You can return to the app"
+            description="AppResultState with an icon, tone and actions"
+          >
+            <template #actions>
+              <AppButton
+                fluid
+                variant="outline"
+                label="Open again"
+              />
+            </template>
+          </AppResultState>
+          <div class="mt-4 flex items-center gap-3">
+            <AppAvatar
+              name="Soft"
+              variant="soft"
+            />
+            <AppAvatar name="Solid" />
+            <AppSkeleton circle />
+            <AppSkeleton
+              :lines="2"
+              class="max-w-40"
+            />
+          </div>
+        </AppCard>
+      </div>
+    </AppSection>
+    <AppSection
       title="Feedback"
       description="AppAlert, AppProgress, AppCircularProgress, AppSkeleton, AppLoadingIndicator and AppEmptyData."
     >

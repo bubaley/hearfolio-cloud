@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '~/shared/ui/shadcn/sheet'
-import { computed } from 'vue'
+import { computed, type HTMLAttributes } from 'vue'
+import { cn } from '~/shared/lib/utils'
 import { useOverlayStack } from './useOverlayStack'
 
 defineOptions({ inheritAttrs: false })
@@ -12,8 +13,12 @@ const props = withDefaults(
     title?: string
     description?: string
     closeLabel?: string
+    /** Overlay only: the corner close button (Escape and the backdrop still close it). */
+    closeable?: boolean
+    /** Overlay only: classes merged last into the sheet (e.g. `p-0` for a full-bleed panel). */
+    contentClass?: HTMLAttributes['class']
   }>(),
-  { side: 'left', width: 280, title: 'Панель' },
+  { side: 'left', width: 280, title: 'Панель', closeable: true },
 )
 const model = defineModel<boolean>({ default: false })
 const overlayOpen = computed(() => !!props.overlay && model.value)
@@ -30,9 +35,10 @@ const shellTarget = '#app-shell-drawer'
       v-bind="$attrs"
       :side="side"
       :close-label="closeLabel"
+      :show-close="closeable"
       :style="{ width: `${width}px`, ...contentStyle }"
       :overlay-style="backdropStyle"
-      class="block max-w-[100vw] overflow-y-auto bg-sidebar p-6 text-foreground sm:max-w-[100vw]"
+      :class="cn('block max-w-[100vw] overflow-y-auto bg-sidebar p-6 text-foreground sm:max-w-[100vw]', contentClass)"
       @interact-outside="!isTop && $event.preventDefault()"
     >
       <SheetTitle class="sr-only">{{ title || 'Панель' }}</SheetTitle>
