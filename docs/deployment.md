@@ -232,7 +232,7 @@ The simplest self-hosted path: GitHub Actions builds the image and pushes it to 
 |---|---|---|
 | Secret | `DOCKERHUB_USERNAME` | Docker Hub user |
 | Secret | `DOCKERHUB_TOKEN` | Docker Hub access token (Account settings → Personal access tokens, scope *Read & Write*) |
-| Variable | `DOCKERHUB_IMAGE` | e.g. `bubaley/hearfolio-cloud` — publishing is off while it is empty |
+| Variable (optional) | `DOCKERHUB_IMAGE` | image name; defaults to `<DOCKERHUB_USERNAME>/hearfolio-cloud`. Publishing is off while `DOCKERHUB_USERNAME` is empty |
 | Secret (optional) | `DOKPLOY_DEPLOY_WEBHOOK` | the service's deploy webhook from Dokploy; the workflow calls it after pushing, so Dokploy redeploys with the new image |
 
 Tags: `latest`, `<version>`, `<major>.<minor>`, `sha-<commit>`. A private Docker Hub repository also needs the registry credentials in Dokploy (Settings → Registry).
