@@ -7,7 +7,7 @@
     <template #default="{ item }">
       <AppInput
         v-model="item.name"
-        label="Наименование"
+        label="Название"
       />
       <AppInput
         v-model="item.key"

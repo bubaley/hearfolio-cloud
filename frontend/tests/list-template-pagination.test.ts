@@ -68,7 +68,7 @@ describe('list template on a resource', () => {
       { filters: '<div data-test="filters">Фильтры</div>' },
     )
     await flushPromises()
-    expect(wrapper.get('main').find('input').exists()).toBe(false)
+    expect(wrapper.get('[data-slot="page-body"]').find('input').exists()).toBe(false)
     expect(wrapper.find('[data-test="filters"]').exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'AppList' }).classes()).toContain('-mx-3')
     await wrapper.get('input').setValue('500')

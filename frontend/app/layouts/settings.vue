@@ -32,6 +32,10 @@ import type { SidebarSection } from '~/shared/components/layout/sidebar/types'
 import OrganizationSwitcher from '~/features/organization/components/OrganizationSwitcher.vue'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { settingsNavigation, settingsSections } from '~/navigation/settings'
+import { PAGE_CONTAINER_CLASS } from '~/shared/ui/app/pageContainer'
+
+// Every settings screen shares one centered column; header actions stay at its edge on wide screens.
+provide(PAGE_CONTAINER_CLASS, 'max-w-3xl')
 
 const setupStore = useSetupStore()
 const { isAdmin, isSuperuser } = useOrganizationRole()

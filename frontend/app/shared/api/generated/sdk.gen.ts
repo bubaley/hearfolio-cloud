@@ -249,6 +249,9 @@ import type {
   TagsUpdateData,
   TagsUpdateErrors,
   TagsUpdateResponses,
+  TagsUsageData,
+  TagsUsageErrors,
+  TagsUsageResponses,
   UsersChangePasswordData,
   UsersChangePasswordErrors,
   UsersChangePasswordResponses,
@@ -1795,6 +1798,28 @@ export const tagsCreate = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * Usage
+ *
+ * Recordings per tag, counting only recordings the caller can see; unused tags are left out.
+ */
+export const tagsUsage = <ThrowOnError extends boolean = false>(
+  options?: Options<TagsUsageData, ThrowOnError>,
+): RequestResult<TagsUsageResponses, TagsUsageErrors, ThrowOnError> =>
+  (options?.client ?? client).get<TagsUsageResponses, TagsUsageErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/tags/usage',
+    ...options,
   })
 
 /**

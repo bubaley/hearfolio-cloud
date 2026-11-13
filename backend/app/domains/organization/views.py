@@ -134,7 +134,8 @@ class InviteViewSet(BaseGenericViewSet[OrganizationInvite]):
     @action(methods=['GET'], path='{token}')
     async def preview(self, request: Request, token: str) -> InvitePreviewSchema:
         """Organization, role, inviter and state (`valid | expired | used | revoked`) of an invite."""
-        return InviteService.preview(await InviteService.get_by_token(token, client_ip(request)))
+        invite = await InviteService.get_by_token(token, client_ip(request))
+        return await InviteService.preview(invite, self.user)
 
     @action(methods=['POST'], path='{token}/accept')
     async def accept(

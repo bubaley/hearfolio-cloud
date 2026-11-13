@@ -152,7 +152,7 @@ export type AppListProps<T> = {
 
 const props = withDefaults(defineProps<AppListProps<T>>(), {
   mode: 'table',
-  emptyText: 'Данные отсутствуют',
+  emptyText: 'Здесь пока пусто',
   infiniteScroll: false,
   hasNextPage: false,
   loading: false,

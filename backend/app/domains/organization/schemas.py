@@ -128,6 +128,8 @@ class InvitePreviewSchema(BaseSchema):
     inviter_name: str | None
     state: InviteState
     expires_at: datetime
+    # The signed-in caller already belongs to the organization (always false for anonymous visitors).
+    already_member: bool = False
 
 
 class InviteAcceptSchema(BaseSchema):

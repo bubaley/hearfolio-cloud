@@ -32,6 +32,7 @@ from app.domains.library.schemas import (
     TagMergeSchema,
     TagReadSchema,
     TagUpdateSchema,
+    TagUsageSchema,
     UploadCompleteSchema,
     UploadPartsRequestSchema,
     UploadPlanSchema,
@@ -133,6 +134,12 @@ class TagViewSet(BaseModelViewSet[Tag]):
 
     async def perform_destroy(self, obj: Tag) -> None:
         await TagService.delete(obj, self.user)
+
+    @action(methods=['GET'], detail=False)
+    async def usage(self) -> list[TagUsageSchema]:
+        """Recordings per tag, counting only recordings the caller can see; unused tags are left out."""
+        counts = await TagService.usage(self.user, _organization_id())
+        return [TagUsageSchema(tag_id=tag_id, recordings_count=count) for tag_id, count in counts.items()]
 
     @action(methods=['POST'], detail=True)
     async def merge(self, item_id: UUID, data: TagMergeSchema) -> TagReadSchema:

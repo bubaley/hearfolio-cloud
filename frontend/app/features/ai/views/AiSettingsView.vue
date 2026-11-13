@@ -12,7 +12,7 @@
         >Сохраняем…</span
       >
     </template>
-    <div class="flex max-w-3xl flex-col gap-10 pt-2">
+    <div class="flex flex-col gap-10 pt-2">
       <AppAlert
         v-if="!isAdmin"
         tone="info"
@@ -118,7 +118,7 @@
               option-value="value"
               emit-value
               :filter="false"
-              class="w-full sm:w-48"
+              class="w-full sm:w-60"
               aria-label="Длина фрагмента"
               @update:model-value="(value: number | null) => value && patch({ segment_seconds: value })"
             />
@@ -133,7 +133,7 @@
               option-label="label"
               option-value="value"
               emit-value
-              class="w-full sm:w-48"
+              class="w-full sm:w-60"
               aria-label="Язык записей"
               @update:model-value="(value: string | null) => value && patch({ language: value })"
             />

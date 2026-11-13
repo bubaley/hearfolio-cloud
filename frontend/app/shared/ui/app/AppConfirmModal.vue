@@ -12,15 +12,10 @@
         v-if="$slots.actions"
         name="actions"
       />
-      <div
+      <AppTemplateActions
         v-else
-        class="flex gap-3"
-      >
-        <AppTemplateActions
-          :actions="actions"
-          full-width
-        />
-      </div>
+        :actions="actions"
+      />
     </template>
   </AppModal>
 </template>
@@ -58,14 +53,12 @@ const actions = computed<AppTemplateAction[]>(() => {
   const declineAction: AppTemplateAction = {
     variant: 'secondary',
     ...props.declineProps,
-    fluid: true,
     label: props.declineText,
     loading: declineLoading.value,
     action: _handleDecline,
   }
   const confirmAction: AppTemplateAction = {
     ...props.confirmProps,
-    fluid: true,
     label: props.confirmText,
     loading: confirmLoading.value,
     action: _handleConfirm,

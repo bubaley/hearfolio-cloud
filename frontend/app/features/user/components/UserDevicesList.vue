@@ -3,6 +3,7 @@
     title="Подключённые устройства"
     description="Приложения Hearfolio, которые вошли через браузер. Отключите устройство, если потеряли его или больше не пользуетесь"
     template-variant="section"
+    title-size="md"
   >
     <div
       v-if="loading && !devices.length"

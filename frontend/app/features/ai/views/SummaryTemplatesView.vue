@@ -13,7 +13,7 @@
         @click="openTemplate(null)"
       />
     </template>
-    <div class="flex max-w-3xl flex-col gap-3 pt-2">
+    <div class="flex flex-col gap-3 pt-2">
       <AppAlert
         v-if="error && !items.length"
         tone="destructive"

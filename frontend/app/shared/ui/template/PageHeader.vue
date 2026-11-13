@@ -31,9 +31,10 @@ withDefaults(
         {{ description }}
       </p>
     </div>
+    <!-- Phones: every header button is a 44px touch target. -->
     <div
       v-if="$slots.actions"
-      class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2"
+      class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 max-md:[&_[data-slot=button]]:min-h-11 max-md:[&_[data-slot=button]]:min-w-11"
     >
       <slot name="actions" />
     </div>

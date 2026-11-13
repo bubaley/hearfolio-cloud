@@ -89,6 +89,31 @@ The container reads the same settings as local development (`.env.example`). Pro
 
 `compose.yaml` forces `DEBUG=False`, `COOKIE_SECURE=True` and the in-network database/Redis addresses for the app.
 
+### S3 bucket
+
+Audio never passes through the server: clients upload it to the bucket with presigned `PUT` URLs (single or multipart) and play it from presigned `GET` URLs. Settings: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_REGION_NAME`, `AWS_S3_ENDPOINT_URL` (any S3-compatible storage), `AWS_STORAGE_BUCKET_NAME`.
+
+- **Private bucket.** No public-read ACL or bucket policy: every object is reached through a short-lived presigned URL. The server's key needs `s3:PutObject`, `GetObject`, `DeleteObject`, `ListBucket`/`ListMultipartUploadParts`, `AbortMultipartUpload` on the bucket.
+- **CORS for the web app.** «Загрузить» and the player in the browser call the bucket from the page origin, so the bucket must allow that origin: `PUT` (uploads and multipart parts), `GET` and `HEAD` (playback), any request header (the browser sends `Content-Type`), and `ExposeHeaders: ETag` (multipart parts report their ETag; without it the server lists the parts itself, which is slower). Without the rule the browser upload fails before reaching the bucket and the web app says so.
+- **The desktop and Android app need no CORS**: they are not browsers and send the presigned requests directly.
+- **Lifecycle (recommended).** `AbortIncompleteMultipartUpload` after 7 days, for uploads abandoned by apps (see `upload_expired` in [product.md](product.md)).
+
+Example `PutBucketCors` configuration (AWS CLI: `aws s3api put-bucket-cors --bucket <bucket> --cors-configuration file://cors.json`; Yandex Object Storage, MinIO and other S3-compatible storages accept the same rules). List every origin that serves the web app — the production `PUBLIC_URL` and, for development, the Nuxt origin:
+
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://rec.example.com"],
+      "AllowedMethods": ["PUT", "GET", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
+```
+
 ## Compose
 
 | File | Use |

@@ -18,7 +18,7 @@ const props = withDefaults(
     emptyText?: string
     scrollHeight?: string
   }>(),
-  { variant: 'default', clickable: false, emptyText: 'Данные отсутствуют' },
+  { variant: 'default', clickable: false, emptyText: 'Здесь пока пусто' },
 )
 const emit = defineEmits<{ rowClick: [event: { data: T; index: number; originalEvent: Event }] }>()
 const slots = useSlots()

@@ -138,7 +138,22 @@ async def test_public_preview(api_client, user_factory, auth_headers):
         'inviter_name': 'Test User',
         'state': 'valid',
         'expires_at': response.json()['expires_at'],
+        'already_member': False,
     }
+
+
+@pytest.mark.asyncio
+async def test_preview_tells_a_signed_in_member_before_accepting(api_client, user_factory, auth_headers):
+    organization, admin = await _org_admin(user_factory)
+    invite = await _create_invite(api_client, auth_headers, admin, organization, role='member')
+    url = f'/api/v1/invites/{invite["token"]}'
+
+    response = await api_client.get(url, headers=await auth_headers(admin))
+    assert response.json()['already_member'] is True
+
+    outsider = await user_factory(email='outsider@example.test')
+    response = await api_client.get(url, headers=await auth_headers(outsider))
+    assert response.json()['already_member'] is False
 
 
 @pytest.mark.asyncio
@@ -153,6 +168,24 @@ async def test_unknown_token_is_404_and_rate_limited(api_client, monkeypatch):
     assert int(response.headers['retry-after']) > 0
     response = await api_client.post('/api/v1/invites/unknown-token/accept', json=NEW_ACCOUNT)
     assert response.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_local_domain_email_needs_the_setting(api_client, user_factory, auth_headers, monkeypatch):
+    organization, admin = await _org_admin(user_factory)
+    invite = await _create_invite(api_client, auth_headers, admin, organization, role='member')
+    account = {**NEW_ACCOUNT, 'email': 'anna@team.local'}
+    url = f'/api/v1/invites/{invite["token"]}/accept'
+
+    async with _anonymous_client() as anonymous:
+        response = await anonymous.post(url, json=account)
+    assert response.status_code == 422
+
+    monkeypatch.setattr(settings, 'allow_local_email_domains', True)
+    async with _anonymous_client() as anonymous:
+        response = await anonymous.post(url, json=account)
+    assert response.status_code == 200, response.text
+    assert await User.exists(email='anna@team.local')
 
 
 @pytest.mark.asyncio

@@ -88,15 +88,20 @@ class InviteService:
         return invite
 
     @staticmethod
-    def preview(invite: OrganizationInvite) -> InvitePreviewSchema:
+    async def preview(invite: OrganizationInvite, viewer: User | None = None) -> InvitePreviewSchema:
+        """`viewer`: the signed-in caller, so the page can say «вы уже в организации» before anyone clicks."""
         inviter = invite.created_by
         inviter_name = f'{inviter.first_name} {inviter.last_name}'.strip() if inviter else None
+        already_member = viewer is not None and await OrganizationUser.exists(
+            organization_id=invite.organization_id, user_id=viewer.id
+        )
         return InvitePreviewSchema(
             organization_name=invite.organization.name,
             role=invite.role,
             inviter_name=inviter_name or None,
             state=invite.state,
             expires_at=invite.expires_at,
+            already_member=already_member,
         )
 
     @staticmethod

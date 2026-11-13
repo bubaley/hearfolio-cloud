@@ -9416,6 +9416,143 @@
         ]
       }
     },
+    "/api/v1/tags/usage": {
+      "get": {
+        "tags": [
+          "tags"
+        ],
+        "summary": "Usage",
+        "description": "Recordings per tag, counting only recordings the caller can see; unused tags are left out.",
+        "operationId": "tags_usage",
+        "parameters": [
+          {
+            "name": "Organization-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Key of the active organization; required by organization-scoped endpoints.",
+              "title": "Organization-Key"
+            },
+            "description": "Key of the active organization; required by organization-scoped endpoints."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagUsageSchema"
+                  },
+                  "title": "Response Tags Usage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/tags/{item_id}": {
       "get": {
         "tags": [
@@ -14012,6 +14149,7 @@
           },
           "email": {
             "type": "string",
+            "maxLength": 320,
             "format": "email",
             "title": "Email"
           },
@@ -14077,6 +14215,11 @@
             "type": "string",
             "format": "date-time",
             "title": "Expires At"
+          },
+          "already_member": {
+            "type": "boolean",
+            "title": "Already Member",
+            "default": false
           }
         },
         "type": "object",
@@ -17249,6 +17392,26 @@
         "type": "object",
         "title": "TagUpdateSchema"
       },
+      "TagUsageSchema": {
+        "properties": {
+          "tag_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tag Id"
+          },
+          "recordings_count": {
+            "type": "integer",
+            "title": "Recordings Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tag_id",
+          "recordings_count"
+        ],
+        "title": "TagUsageSchema",
+        "description": "How many recordings visible to the caller carry the tag."
+      },
       "TitleSource": {
         "type": "string",
         "enum": [
@@ -17503,6 +17666,7 @@
         "properties": {
           "email": {
             "type": "string",
+            "maxLength": 320,
             "format": "email",
             "title": "Email"
           },
@@ -17824,6 +17988,7 @@
             "anyOf": [
               {
                 "type": "string",
+                "maxLength": 320,
                 "format": "email"
               },
               {

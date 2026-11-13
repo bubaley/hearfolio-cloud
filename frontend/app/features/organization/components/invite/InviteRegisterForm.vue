@@ -7,7 +7,7 @@
       v-model="form.name"
       label="Имя и фамилия"
       autocomplete="name"
-      placeholder="Анна Смирнова"
+      placeholder="Имя и фамилия"
       :error="fieldErrors.name"
       required
     />

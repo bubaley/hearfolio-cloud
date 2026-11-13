@@ -33,6 +33,9 @@
   --input: #d6dce6;
   --field-hover: #f3f4f7;
   --row-hover: #f3f4f7;
+  /* Switch in the off state: a light knob on a muted track (Notion-like). */
+  --switch-track: #cdd2dc;
+  --switch-thumb: #ffffff;
 
   /* Brand (neutral palette) */
   --primary: #202431;
@@ -123,6 +126,8 @@
   --input: #2b2d34;
   --field-hover: #1e1f24;
   --row-hover: #22232a;
+  --switch-track: #474a56;
+  --switch-thumb: #e4e5ea;
 
   --primary: #edeef2;
   --primary-foreground: #111215;

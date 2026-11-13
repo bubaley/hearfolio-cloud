@@ -1,5 +1,8 @@
-import type { Component } from 'vue'
+import type { Component, InjectionKey } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
+
+/** True inside the phone sheet: items drop keyboard hints such as ⌘K. */
+export const SIDEBAR_IN_SHEET: InjectionKey<boolean> = Symbol('sidebar-in-sheet')
 
 export type SidebarItem = {
   /** Route of a link item; an item without one is a button and needs `onClick` («Поиск»). */

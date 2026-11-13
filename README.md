@@ -95,6 +95,8 @@ Other useful commands: `make mm` (create migrations), `make help`.
 
 The app discovers a server at `GET /.well-known/hearfolio` (versions, OAuth URLs, upload limits) and signs in with OAuth 2.0 + PKCE (`/oauth/authorize` in the browser, then `POST /api/v1/oauth/token`). Teammates join through invite links (`/invite/{token}`). Set `PUBLIC_URL` to the public origin in production (`https://rec.example.com`): invite links and the OAuth URLs are built from it; locally it falls back to the request origin. `MIN_APP_VERSION` (default `0.10.0`) is the oldest app version allowed to connect; the other knobs are listed in `.env.example` under `HEARFOLIO`.
 
+Self-hosting the storage: the S3 bucket stays **private** (audio is reached only through presigned URLs) and needs a **CORS rule** for the web app's origin — `PUT`, `GET`, `HEAD`, any header, `ExposeHeaders: ETag` — so uploads and playback work in the browser. The desktop and Android app need no CORS. The full checklist and an example `PutBucketCors` JSON: [docs/deployment.md](docs/deployment.md#s3-bucket). Teams whose mail lives on an internal domain such as `team.local` set `ALLOW_LOCAL_EMAIL_DOMAINS=true`.
+
 ---
 
 ## Makefile

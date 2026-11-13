@@ -2,20 +2,18 @@
   <AppModal
     v-model="open"
     title="Объединить теги"
-    :description="
-      source ? `Все записи с тегом «${source.name}» получат выбранный тег, а «${source.name}» удалится` : undefined
-    "
+    :description="description"
     width="28rem"
   >
     <div class="flex flex-col gap-2">
       <AppInput
-        v-if="candidates.length > 8 || search"
         v-model="search"
         is-search
         clearable
         size="sm"
         placeholder="Найти тег"
         aria-label="Поиск тега"
+        autofocus
       />
       <div
         v-if="visible.length"
@@ -39,10 +37,15 @@
               :color="tag.color"
             />
           </span>
+          <span
+            v-if="countOf?.(tag.id) !== undefined"
+            class="shrink-0 text-xs text-muted-foreground tabular-nums"
+            >{{ recordingsCountLabel(countOf!(tag.id)!) }}</span
+          >
           <AppIcon
-            v-if="targetId === tag.id"
             :icon="Check"
             size="xs"
+            :class="targetId === tag.id ? 'opacity-100' : 'opacity-0'"
           />
         </button>
       </div>
@@ -50,12 +53,11 @@
         v-else
         class="py-4 text-sm text-muted-foreground"
       >
-        {{ search ? 'Ничего не нашли' : 'Других тегов нет' }}
+        {{ search ? `Нет тегов с «${search}»` : 'Других тегов нет' }}
       </p>
     </div>
     <template #footer>
       <AppTemplateActions
-        full-width
         :actions="[
           { label: 'Отмена', variant: 'secondary', action: () => void (open = false) },
           {
@@ -73,9 +75,16 @@
 <script setup lang="ts">
 import { Check } from '@lucide/vue'
 import type { Tag } from '../resources/tag'
+import { recordingsCountLabel } from '../composables/useTagUsage'
 import TagChip from './TagChip.vue'
 
-const props = defineProps<{ source: Tag | null; tags: Tag[]; merge: (target: Tag) => Promise<void> }>()
+const props = defineProps<{
+  source: Tag | null
+  tags: Tag[]
+  merge: (target: Tag) => Promise<void>
+  /** Recordings per tag; undefined while the counts load. */
+  countOf?: (tagId: string) => number | undefined
+}>()
 const open = defineModel<boolean>({ default: false })
 
 const search = ref('')
@@ -86,7 +95,17 @@ watch(open, (value) => {
   targetId.value = null
 })
 
-const candidates = computed(() => props.tags.filter((tag) => tag.id !== props.source?.id))
+const description = computed(() => {
+  const source = props.source
+  if (!source) return undefined
+  const count = props.countOf?.(source.id)
+  const total = count ? ` (${recordingsCountLabel(count)})` : ''
+  return `Все записи с тегом «${source.name}»${total} получат выбранный тег, а «${source.name}» удалится`
+})
+
+const candidates = computed(() =>
+  props.tags.filter((tag) => tag.id !== props.source?.id).sort((a, b) => a.name.localeCompare(b.name, 'ru')),
+)
 const visible = computed(() => {
   const query = search.value.trim().toLowerCase()
   return query ? candidates.value.filter((tag) => tag.name.toLowerCase().includes(query)) : candidates.value

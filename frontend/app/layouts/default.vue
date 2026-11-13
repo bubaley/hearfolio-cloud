@@ -30,6 +30,7 @@
     <ProjectCreateModal v-model="createOpen" />
     <QuickSearchDialog />
     <UploadTray />
+    <WelcomeModal />
   </AppLayout>
 </template>
 
@@ -41,6 +42,7 @@ import AppSidebarNav from '~/shared/components/layout/sidebar/AppSidebarNav.vue'
 import AppSidebarUser from '~/shared/components/layout/sidebar/AppSidebarUser.vue'
 import type { SidebarItem, SidebarSection } from '~/shared/components/layout/sidebar/types'
 import OrganizationSwitcher from '~/features/organization/components/OrganizationSwitcher.vue'
+import WelcomeModal from '~/features/organization/components/WelcomeModal.vue'
 import ProjectCreateModal from '~/features/project/components/ProjectCreateModal.vue'
 import { useProjectsSidebar } from '~/features/project/composables/useProjectsSidebar'
 import QuickSearchDialog from '~/features/recording/components/search/QuickSearchDialog.vue'

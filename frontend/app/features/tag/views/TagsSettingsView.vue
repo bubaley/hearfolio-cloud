@@ -8,7 +8,7 @@
     "
     content-class="px-4 pb-10"
   >
-    <div class="flex max-w-3xl flex-col gap-4 pt-2">
+    <div class="flex flex-col gap-4 pt-2">
       <form
         class="flex items-end gap-2"
         @submit.prevent="createState.execute"
@@ -71,6 +71,7 @@
           :can-manage="isAdmin"
           :can-merge="items.length > 1"
           :busy="busyId === tag.id"
+          :count="countOf(tag.id)"
           @update="(changes) => updateTag(tag, changes)"
           @merge="openMerge(tag)"
           @delete="pendingDelete = tag"
@@ -93,6 +94,7 @@
       :source="mergeSource"
       :tags="items"
       :merge="mergeTag"
+      :count-of="countOf"
     />
     <AppConfirmModal
       :model-value="Boolean(pendingDelete)"
@@ -117,8 +119,10 @@ import { tagErrorMessage } from '../composables/tagColors'
 import TagColorPicker from '../components/TagColorPicker.vue'
 import TagMergeModal from '../components/TagMergeModal.vue'
 import TagRow from '../components/TagRow.vue'
+import { useTagUsage } from '../composables/useTagUsage'
 
 const { isAdmin } = useOrganizationRole()
+const { countOf } = useTagUsage()
 const toast = useToast()
 const client = useApiClient()
 const queryCache = useQueryCache()

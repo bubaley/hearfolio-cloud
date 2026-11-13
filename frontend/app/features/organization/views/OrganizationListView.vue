@@ -1,30 +1,40 @@
 <template>
   <AppListTemplate
     title="Организации"
+    description="Команды, в которых вы состоите. В каждой свои записи, проекты и настройки AI"
     detail-route-name="settings-organizations-id"
     :resource="organizationResource"
     search-param="name"
-    :filter-spec="filterSpec"
-    :fixed-fields="[{ field: 'key', mode: 'single' }]"
-    :available-filters="['key']"
-    description="Управление организациями"
+    create-label="Новая организация"
+    empty-text="Организаций не нашлось"
   >
-    <AppColumn
-      field="name"
-      header="Наименование"
-    />
-    <AppColumn
-      field="key"
-      header="Ключ"
-    />
+    <AppColumn header="Организация">
+      <template #body="{ data }">
+        <div class="flex min-w-0 items-center gap-3">
+          <AppAvatar
+            :name="data.name"
+            variant="soft"
+          />
+          <span class="truncate text-sm font-medium">{{ data.name }}</span>
+        </div>
+      </template>
+    </AppColumn>
+    <AppColumn header="Ваша роль">
+      <template #body="{ data }">
+        <span class="text-sm text-muted-foreground">{{ roleOf(data.id) }}</span>
+      </template>
+    </AppColumn>
   </AppListTemplate>
 </template>
 
 <script setup lang="ts">
-import type { ViewFilterSpec } from '~/shared/ui/app/filters/types'
 import { organizationResource } from '../resources/organization'
+import { getRoleLabel } from '../composables/useOrganizationRole'
 
-const filterSpec: ViewFilterSpec = {
-  fields: [{ field: 'key', label: 'Ключ', kind: 'text', lookups: ['icontains', 'exact'] }],
-}
+const { organizations, user } = useSession()
+
+// Superusers also see organizations they are not members of.
+const roleOf = (id: string) =>
+  getRoleLabel(organizations.value.find((item) => item.id === id)?.role)?.label ??
+  (user.value?.is_superuser ? 'Не участник' : '—')
 </script>

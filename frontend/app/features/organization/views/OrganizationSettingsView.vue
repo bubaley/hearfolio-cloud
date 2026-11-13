@@ -1,17 +1,23 @@
 <template>
   <AppPageView
     title="Общие"
-    description="Название организации и её удаление"
+    :description="isOwner ? 'Название организации и её удаление' : 'Сведения об организации'"
     content-class="px-4 pb-10"
   >
-    <div class="flex max-w-3xl flex-col gap-8 pt-2">
+    <div class="flex flex-col gap-8 pt-2">
       <section>
         <AppSettingRow
+          v-if="!isAdmin"
+          label="Название"
+          description="Изменить название могут владельцы и администраторы"
+        >
+          <span class="text-sm font-medium break-words">{{ organization?.name }}</span>
+        </AppSettingRow>
+        <AppSettingRow
+          v-else
           label="Название"
           for-id="organization-name"
-          :description="
-            isAdmin ? 'Видно всем участникам и в приложении' : 'Изменить название могут владельцы и администраторы'
-          "
+          description="Видно всем участникам и в приложении"
           stacked
         >
           <form
@@ -22,12 +28,11 @@
               id="organization-name"
               v-model="name"
               class="min-w-0 flex-1"
-              :readonly="!isAdmin"
               maxlength="255"
               autocomplete="off"
             />
             <AppButton
-              v-if="isAdmin && dirty"
+              v-if="dirty"
               type="submit"
               label="Сохранить"
               :loading="renameState.loading.value"
@@ -68,7 +73,7 @@
         </h2>
         <AppSettingRow
           label="Удалить организацию"
-          description="Участники, приглашения, настройки AI и шаблоны будут удалены без возможности восстановления"
+          description="Все записи с аудио, расшифровками и саммари, проекты, теги, участники и настройки удаляются навсегда"
           tone="destructive"
         >
           <AppButton
@@ -84,12 +89,38 @@
 
     <AppConfirmModal
       v-model="confirmDelete"
+      width="28rem"
       title="Удалить организацию?"
-      :subtitle="`«${organization?.name}» и все её данные будут удалены. Это действие нельзя отменить.`"
+      hide-subtitle
       confirm-text="Удалить навсегда"
-      :confirm-props="{ variant: 'destructive' }"
+      :confirm-props="{ variant: 'destructive', disabled: !nameConfirmed }"
       :confirm="removeOrganization"
-    />
+    >
+      <div class="flex flex-col gap-4 text-sm">
+        <p class="text-muted-foreground">
+          Вместе с «<span class="font-medium text-foreground">{{ organization?.name }}</span
+          >» будут удалены:
+        </p>
+        <ul class="flex list-disc flex-col gap-1 pl-5 text-muted-foreground">
+          <li>
+            <span class="text-foreground">все записи организации и их аудиофайлы</span> — у всех участников, включая
+            личные записи и записи приватных проектов;
+          </li>
+          <li>расшифровки, саммари и публичные ссылки на записи;</li>
+          <li>проекты, теги, шаблоны, приглашения, участники и настройки AI.</li>
+        </ul>
+        <p class="font-medium text-destructive">Восстановить их будет нельзя.</p>
+        <AppInput
+          id="organization-delete-confirm"
+          v-model="confirmName"
+          :label="`Чтобы подтвердить, введите название: ${organization?.name ?? ''}`"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          @keydown.enter.prevent="nameConfirmed && confirmButtonClick()"
+        />
+      </div>
+    </AppConfirmModal>
   </AppPageView>
 </template>
 
@@ -138,9 +169,25 @@ const renameState = useActionState(
 )
 
 const confirmDelete = ref(false)
+const confirmName = ref('')
+watch(confirmDelete, (open) => {
+  if (open) confirmName.value = ''
+})
+// Typing the name is the guard against deleting the wrong organization; case and outer spaces do not matter.
+const nameConfirmed = computed(
+  () =>
+    Boolean(organization.value?.name) &&
+    confirmName.value.trim().toLocaleLowerCase('ru') === organization.value!.name.trim().toLocaleLowerCase('ru'),
+)
+const confirmButtonClick = () => {
+  void removeOrganization().then(() => {
+    confirmDelete.value = false
+  })
+}
+
 const removeOrganization = async () => {
   const current = organization.value
-  if (!current) return
+  if (!current || !nameConfirmed.value) return
   try {
     await remove.mutateAsync(current.id)
   } catch (error) {
