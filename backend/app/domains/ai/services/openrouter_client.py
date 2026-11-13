@@ -274,7 +274,7 @@ class OpenRouterClient:
         if retry_after is not None:
             return min(max(retry_after, 0.0), self.max_backoff_seconds)
         base = self.backoff_seconds * (2 ** (attempt - 1))
-        return min(base + random.uniform(0, base / 2), self.max_backoff_seconds)
+        return min(base + random.uniform(0, base / 2), self.max_backoff_seconds)  # nosec B311 - retry jitter, not crypto
 
     async def _send(
         self, method: str, path: str, *, params: dict[str, str] | None, json_body: dict[str, Any] | None, timeout: float

@@ -177,7 +177,7 @@ Breaking changes only in a new `/api/v2`. The desktop/Android app depends on the
 
 ## Processing pipeline (Taskiq)
 
-`recording.process(recording_id)` after upload: 
+`recording.process(recording_id)` after upload:
 
 1. **Transcribe** (if `auto_transcribe` and no transcript provided): download audio from S3 to a temp dir, split with `ffmpeg` into `segment_seconds` chunks (mono 16 kHz mp3 at 32 kbit/s; plain cuts, a tail under 15 s joins the previous chunk; silent chunks are not sent), send each chunk to the transcription model via `chat/completions` with `input_audio`, a strict "verbatim transcript only" prompt and a `max_tokens` large enough for the chunk. Treat `finish_reason=length` / empty text as a retryable segment failure (retry that segment only, exponential backoff, up to 3 times; on a final failure retry once with half-length sub-chunks). Save each finished segment immediately (progress + websocket event) so a worker crash resumes from the last finished segment. Idempotent: a second run continues, it never duplicates.
 2. **Title** (`auto_title`, `title_source=auto`): short Russian/English title in the transcript language, ≤ 80 chars.

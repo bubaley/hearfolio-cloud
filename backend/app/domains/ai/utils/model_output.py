@@ -96,7 +96,7 @@ def parse_classification(
     data = extract_json_object(text) or {}
     raw_tags = data.get('tags')
     if isinstance(raw_tags, str):
-        raw_tags = [part for part in re.split(r'[,;\n]', raw_tags)]
+        raw_tags = [*re.split(r'[,;\n]', raw_tags)]
     known = {tag.casefold(): tag for tag in existing_tags}
     tags: list[str] = []
     seen: set[str] = set()
