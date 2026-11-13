@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="suggestion || processing || failed"
+    v-if="suggestion || processing || failed || stalled"
     class="flex flex-col gap-2"
   >
     <AppCard
@@ -63,6 +63,29 @@
     </AppCard>
 
     <AppAlert
+      v-if="stalled"
+      tone="warning"
+      title="Загрузка прервана"
+    >
+      <p>
+        Аудио не дошло до сервера: загрузка стоит больше {{ STALLED_UPLOAD_HOURS }} часов. Если приложение ещё
+        отправляет файл, запись продолжится сама
+      </p>
+      <div
+        v-if="canDelete"
+        class="mt-2 flex flex-wrap gap-2"
+      >
+        <AppButton
+          size="sm"
+          variant="outline"
+          :icon="Trash2"
+          label="Удалить запись"
+          @click="emit('delete')"
+        />
+      </div>
+    </AppAlert>
+
+    <AppAlert
       v-if="failed"
       tone="destructive"
       :title="recording.upload_state === 'failed' ? 'Аудио не загрузилось' : 'Не удалось расшифровать запись'"
@@ -86,12 +109,14 @@
 </template>
 
 <script setup lang="ts">
-import { FolderInput, RotateCcw, Sparkles } from '@lucide/vue'
+import { FolderInput, RotateCcw, Sparkles, Trash2 } from '@lucide/vue'
 import type { RecordingDetail } from '../../resources/recording'
-import { processingErrorText } from '../../composables/useRecordingLabels'
+import { isStalledUpload, processingErrorText, STALLED_UPLOAD_HOURS } from '../../composables/useRecordingLabels'
 
-const props = defineProps<{ recording: RecordingDetail; retry: () => Promise<unknown> }>()
-const emit = defineEmits<{ suggestion: [accept: boolean] }>()
+const props = defineProps<{ recording: RecordingDetail; retry: () => Promise<unknown>; canDelete?: boolean }>()
+const emit = defineEmits<{ suggestion: [accept: boolean]; delete: [] }>()
+
+const stalled = computed(() => isStalledUpload(props.recording))
 
 const suggestion = computed(() =>
   props.recording.project_suggestion_state === 'pending' && !props.recording.project_id
@@ -103,9 +128,12 @@ const processing = computed(() => {
   const recording = props.recording
   switch (recording.status) {
     case 'awaiting_upload':
-      return recording.upload_state === 'failed'
+      return recording.upload_state === 'failed' || stalled.value
         ? null
-        : { title: 'Аудио загружается', hint: 'Расшифровка начнётся сама, как только файл дойдёт до сервера' }
+        : {
+            title: 'Аудио загружается',
+            hint: 'Когда файл дойдёт до сервера, запись встанет в очередь на расшифровку, если она включена в организации',
+          }
     case 'queued':
       return { title: 'В очереди на расшифровку', hint: 'Обычно это занимает меньше минуты' }
     case 'transcribing':

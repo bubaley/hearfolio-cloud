@@ -2,27 +2,33 @@
   <AppPopover
     v-model:open="open"
     label="Выбор тегов"
+    :align="align"
     content-class="w-72 p-0"
   >
     <template #trigger>
-      <button
-        type="button"
-        class="flex min-h-9 w-full min-w-0 flex-wrap items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11"
-        :aria-label="tags.length ? `Теги: ${tags.map((tag) => tag.name).join(', ')}. Изменить` : 'Добавить теги'"
+      <slot
+        name="trigger"
+        :open="open"
       >
-        <TagChip
-          v-for="tag in tags"
-          :key="tag.id"
-          :name="tag.name"
-          :color="tag.color"
-          class="max-w-40"
-        />
-        <span
-          v-if="!tags.length"
-          class="text-muted-foreground"
-          >Добавить теги</span
+        <button
+          type="button"
+          class="flex min-h-9 w-full min-w-0 flex-wrap items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11"
+          :aria-label="tags.length ? `Теги: ${tags.map((tag) => tag.name).join(', ')}. Изменить` : 'Добавить теги'"
         >
-      </button>
+          <TagChip
+            v-for="tag in tags"
+            :key="tag.id"
+            :name="tag.name"
+            :color="tag.color"
+            class="max-w-40"
+          />
+          <span
+            v-if="!tags.length"
+            class="text-muted-foreground"
+            >Добавить теги</span
+          >
+        </button>
+      </slot>
     </template>
     <div
       class="flex flex-col"
@@ -104,7 +110,10 @@ import type { TagBrief } from '../../resources/recording'
 import TagChip from '~/features/tag/components/TagChip.vue'
 import { tagResource, type Tag } from '~/features/tag/resources/tag'
 
-const props = defineProps<{ tags: TagBrief[] }>()
+/** Tag multi-select; `#trigger` replaces the property button (bulk actions pass the tags common to the selection). */
+const props = withDefaults(defineProps<{ tags: TagBrief[]; align?: 'start' | 'center' | 'end' }>(), {
+  align: 'start',
+})
 const emit = defineEmits<{ change: [tags: TagBrief[]] }>()
 
 const client = useApiClient()

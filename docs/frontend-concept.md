@@ -565,7 +565,7 @@ never render model output with `v-html`.
 
 Patterns worth reusing, all in `features/recording/`:
 
-- **One list, fixed scope.** `components/list/RecordingList.vue` serves «Все записи», «Личные» and the project page;
+- **One list, fixed scope.** `components/list/RecordingList.vue` serves «Все записи», «Личные», «Корзина» (`{ deleted: true }`) and the project page;
   the screen passes `fixed` filters (`{ personal: true }`, `{ project_id }`) that are neither shown nor editable.
   Editable filters live in the URL through `composables/useRecordingFilters.ts` (`?q=&project=&tag=&author=&status=`);
   the toolbar and the list each call it, so there is no shared mutable prop. Rows are grouped by day
@@ -579,6 +579,15 @@ Patterns worth reusing, all in `features/recording/`:
 - **Uploads outside the page.** `stores/useUploadStore.ts` (Pinia, lives for the tab) runs browser uploads with
   `utils/audioUpload.ts` (XHR for progress, multipart with three workers and retries); `UploadTray` is mounted by the
   default layout. `utils/` holds plain helpers of a feature (`lib/` is ignored by git in this repo).
+- **Bulk and drag.** `composables/useRecordingBulk.ts` moves, retags and deletes one or many recordings (one request
+  each, four at a time, one toast with «Отменить»); the detail page, the list's `RecordingBulkBar` and drops onto
+  sidebar projects (`SidebarItem.drop`, wired in `layouts/default.vue`) all use it. `RECORDING_DRAG_TYPE` marks the drag.
+- **⌘K palette.** `components/search/QuickSearchDialog.vue` + `composables/useQuickSearch.ts`: a screen adds its own
+  commands with `usePageCommands(() => ({ title, commands }))`; «Недавние» come from `useRecentRecordings`
+  (localStorage per organization). The dialog content has no closing animation so `<body>` gets pointer events back
+  at once.
+- **Pickers.** `ProjectPicker`/`TagPicker` take a `#trigger` slot (bulk bar); `ProjectPicker` is a combobox over the
+  locally loaded projects.
 - **Shared formatting.** `formatClock` / `formatDuration` (`shared/utils/duration.ts`) and `userDisplayName`
   (`shared/utils/userDisplayName.ts`) are auto-imported; do not add per-feature copies. Error texts by stable
   `error_code` live in `processingErrorText` (`useRecordingLabels.ts`).

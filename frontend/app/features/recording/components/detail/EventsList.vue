@@ -1,5 +1,18 @@
 <template>
-  <div>
+  <div class="flex flex-col gap-4">
+    <dl
+      v-if="model"
+      class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+    >
+      <dt class="flex items-center gap-1.5 text-muted-foreground">
+        <AppIcon
+          :icon="Cpu"
+          size="sm"
+        />
+        Модель расшифровки
+      </dt>
+      <dd class="min-w-0 break-all">{{ model }}</dd>
+    </dl>
     <AppAlert
       v-if="error && !events.length"
       tone="destructive"
@@ -70,10 +83,11 @@
 </template>
 
 <script setup lang="ts">
+import { Cpu } from '@lucide/vue'
 import type { RecordingEvent, useRecordingEvents } from '../../composables/useRecordingDetail'
 import { getEventLabel } from '../../composables/useRecordingLabels'
 
-const props = defineProps<{ state: ReturnType<typeof useRecordingEvents> }>()
+const props = defineProps<{ state: ReturnType<typeof useRecordingEvents>; model?: string | null }>()
 const { data, isLoading, error, refetch } = props.state
 const events = computed<RecordingEvent[]>(() => data.value ?? [])
 const { formatDate } = useDate()

@@ -4,12 +4,16 @@
     v-bind="item.to ? { to: item.to } : { type: 'button' }"
     :aria-current="active ? 'page' : undefined"
     class="flex h-11 w-full min-w-0 items-center gap-2.5 rounded-md px-2 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-8"
-    :class="
+    :class="[
       active
         ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-        : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
-    "
+        : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground',
+      dropping && 'ring-2 ring-ring',
+    ]"
     @click="item.onClick?.()"
+    @dragover="onDragOver"
+    @dragleave="dropping = false"
+    @drop="onDrop"
   >
     <span
       v-if="item.emoji"
@@ -47,6 +51,23 @@ import { NuxtLink } from '#components'
 import { inject } from 'vue'
 import { SIDEBAR_IN_SHEET, type SidebarItem } from './types'
 
-defineProps<{ item: SidebarItem; active?: boolean }>()
+const props = defineProps<{ item: SidebarItem; active?: boolean }>()
 const inSheet = inject(SIDEBAR_IN_SHEET, false)
+
+// Optional drop target (`item.drop`): highlighted while a matching drag hovers it.
+const dropping = ref(false)
+const accepts = (event: DragEvent) =>
+  Boolean(props.item.drop && event.dataTransfer?.types.includes(props.item.drop.accepts))
+const onDragOver = (event: DragEvent) => {
+  if (!accepts(event)) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+  dropping.value = true
+}
+const onDrop = (event: DragEvent) => {
+  if (!accepts(event)) return
+  event.preventDefault()
+  dropping.value = false
+  props.item.drop!.onDrop()
+}
 </script>

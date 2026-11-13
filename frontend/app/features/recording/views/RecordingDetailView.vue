@@ -27,6 +27,7 @@
       </nav>
       <template v-if="recording">
         <SharePopover
+          v-model:open="shareOpen"
           :recording-id="recording.id"
           :results="resultsState.results.value"
         />
@@ -130,6 +131,8 @@
         <RecordingNotices
           :recording="recording"
           :retry="() => mutations.retry(recording!.id)"
+          :can-delete="canDelete"
+          @delete="deleteOpen = true"
           @suggestion="(accept) => mutations.answerSuggestion(recording!.id, accept)"
         />
 
@@ -148,6 +151,8 @@
               :text="recording.transcript_text"
               :player="player"
               :scroller="scroller ?? null"
+              :highlight="highlight"
+              :focus-ms="focusMs"
             />
             <AppResultState
               v-else
@@ -172,7 +177,10 @@
             />
           </AppTabPanel>
           <AppTabPanel tab-value="history">
-            <EventsList :state="eventsState" />
+            <EventsList
+              :state="eventsState"
+              :model="recording.transcription_model"
+            />
           </AppTabPanel>
         </AppTabs>
       </article>
@@ -191,7 +199,7 @@
     <AppConfirmModal
       v-model="deleteOpen"
       title="Удалить запись?"
-      :subtitle="`«${title}» пропадёт у всех участников. Восстановить её можно в течение 30 дней`"
+      :subtitle="`«${title}» пропадёт у всех и переместится в корзину. Автор или администратор сможет восстановить её в течение ${TRASH_DAYS} дней, потом запись удалится навсегда вместе с аудио`"
       confirm-text="Удалить"
       :confirm-props="{ variant: 'destructive' }"
       :confirm="confirmDelete"
@@ -214,6 +222,7 @@ import {
   Lock,
   RotateCcw,
   SearchX,
+  Share2,
   Sparkles,
   Trash2,
   Users,
@@ -228,7 +237,9 @@ import type { ProjectBrief } from '~/features/project/resources/project'
 import { useAudioPlayer } from '../composables/useAudioPlayer'
 import { useRecordingAudio, useRecordingEvents, useRecordingResults } from '../composables/useRecordingDetail'
 import { isProcessing, recordingTitle } from '../composables/useRecordingLabels'
-import { recordingErrorMessage, useRecordingMutations } from '../composables/useRecordingMutations'
+import { recordingErrorMessage, TRASH_DAYS, useRecordingMutations } from '../composables/useRecordingMutations'
+import { useRecordingBulk } from '../composables/useRecordingBulk'
+import { usePageCommands, useRecentRecordings } from '../composables/useQuickSearch'
 import { downloadText, recordingToMarkdown, recordingToText, safeFilename } from '../utils/recordingExport'
 import AudioPlayer from '../components/detail/AudioPlayer.vue'
 import EventsList from '../components/detail/EventsList.vue'
@@ -296,11 +307,75 @@ const goBack = () => {
 const save = (body: RecordingPatch, optimistic: Partial<RecordingDetail> = {}) =>
   mutations.patch(recordingId.value, body, optimistic).catch(() => undefined)
 
-const moveTo = (project: ProjectBrief | null) => save({ project_id: project?.id ?? null }, { project })
+const bulk = useRecordingBulk()
+const moveTo = (project: ProjectBrief | null) => {
+  if (recording.value) void bulk.moveToProject([recording.value], project)
+}
+
+// A search hit opens with `?q=` (highlight and cue the first matching segment); a link may carry `?t=` (ms).
+const highlight = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''))
+const focusMs = computed(() => {
+  const value = Number(route.query.t)
+  return typeof route.query.t === 'string' && Number.isFinite(value) ? value : null
+})
+
+// «Недавние» in ⌘K: what was actually opened; a recording that is gone leaves the list.
+const recents = useRecentRecordings()
+watch(
+  () => recording.value && ([recording.value.id, title.value] as const),
+  (value) => {
+    if (value) recents.remember({ id: value[0], title: value[1] })
+  },
+  { immediate: true },
+)
+watch(error, (value) => {
+  if (isApiError(value, 404)) recents.forget(recordingId.value)
+})
+
+const shareOpen = ref(false)
+usePageCommands(() => {
+  const current = recording.value
+  if (!current) return null
+  return {
+    title: 'Эта запись',
+    commands: [
+      {
+        id: 'share',
+        label: 'Поделиться',
+        icon: Share2,
+        keywords: 'ссылка публичная',
+        run: () => {
+          // Let the palette close and return focus first, or the popover closes on that focus change.
+          setTimeout(() => (shareOpen.value = true), 50)
+        },
+      },
+      ...(hasText.value
+        ? [{ id: 'copy', label: 'Копировать текст', icon: Copy, keywords: 'расшифровка', run: () => void copyText() }]
+        : []),
+      ...(canDelete.value
+        ? [
+            {
+              id: 'delete',
+              label: 'Удалить запись',
+              icon: Trash2,
+              destructive: true,
+              run: () => {
+                deleteOpen.value = true
+              },
+            },
+          ]
+        : []),
+    ],
+  }
+})
 const setTags = (tags: TagBrief[]) => save({ tag_ids: tags.map((tag) => tag.id) }, { tags })
 
 const { copy } = useClipboard({ legacy: true })
 const hasText = computed(() => Boolean(recording.value?.transcript_text.trim()))
+const copyText = async () => {
+  await copy(recording.value?.transcript_text ?? '')
+  toast.default('Текст скопирован')
+}
 
 const exportText = (kind: 'txt' | 'md') => {
   const current = recording.value
@@ -345,10 +420,7 @@ const menuActions = computed<AppMenuAction[]>(() => {
       label: 'Копировать текст',
       icon: Copy,
       disabled: !hasText.value,
-      action: async () => {
-        await copy(current?.transcript_text ?? '')
-        toast.default('Текст скопирован')
-      },
+      action: copyText,
     },
     { label: 'Скачать аудио', icon: Download, disabled: !uploaded, action: downloadAudio },
     { label: 'Скачать .txt', icon: FileText, disabled: !hasText.value, action: () => exportText('txt') },

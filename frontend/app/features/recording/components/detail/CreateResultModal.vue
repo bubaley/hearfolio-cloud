@@ -7,7 +7,7 @@
   >
     <div class="flex flex-col gap-5">
       <AppAlert
-        v-if="options && !options.configured"
+        v-if="notConfigured"
         tone="warning"
         title="AI ещё не настроен"
         :description="
@@ -54,7 +54,7 @@
           />
           <span class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm">{{ template.name }}</span>
-            <span class="line-clamp-1 text-xs text-muted-foreground">{{ template.prompt }}</span>
+            <span class="line-clamp-2 text-xs text-muted-foreground">{{ templateDescription(template.prompt) }}</span>
           </span>
         </label>
       </fieldset>
@@ -95,7 +95,7 @@
           {
             label: count > 1 ? `Создать ${count}` : 'Создать',
             icon: Sparkles,
-            disabled: !count,
+            disabled: !count || notConfigured,
             action: submit,
           },
         ]"
@@ -112,6 +112,7 @@ import { summaryTemplateResource, type SummaryTemplate } from '~/features/ai/res
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { useAiOptions, type useRecordingResults } from '../../composables/useRecordingDetail'
 import { recordingErrorMessage } from '../../composables/useRecordingMutations'
+import { templateDescription } from '../../utils/resultContent'
 
 const props = defineProps<{ create: ReturnType<typeof useRecordingResults>['create'] }>()
 const open = defineModel<boolean>({ default: false })
@@ -128,6 +129,7 @@ const customPrompt = ref('')
 const model = ref<string | null>(null)
 const formError = ref('')
 
+const notConfigured = computed(() => options.value?.configured === false)
 const count = computed(() => templateIds.value.length + (customPrompt.value.trim() ? 1 : 0))
 
 watch(open, (value) => {

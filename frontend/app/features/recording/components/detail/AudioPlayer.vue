@@ -81,20 +81,48 @@
           title="Скорость воспроизведения"
           @click="player.cycleRate()"
         />
+        <AppTooltip side="top">
+          <template #trigger>
+            <span
+              class="hidden size-control-sm shrink-0 items-center justify-center text-muted-foreground md:order-5 md:inline-flex"
+              tabindex="0"
+              aria-label="Клавиши: пробел — пауза, стрелки влево и вправо — на 5 секунд"
+            >
+              <AppIcon
+                :icon="Keyboard"
+                size="sm"
+              />
+            </span>
+          </template>
+          <span class="flex flex-col gap-0.5 text-xs">
+            <span>Пробел — пауза и воспроизведение</span>
+            <span>← / → — на 5 секунд назад и вперёд</span>
+          </span>
+        </AppTooltip>
       </div>
     </div>
-    <p
+    <div
       v-if="player.failed.value"
       role="alert"
-      class="pb-2 text-center text-xs text-destructive"
+      class="flex items-center justify-center gap-2 pb-2 text-xs text-destructive"
     >
-      Не удалось воспроизвести аудио. Попробуйте ещё раз
-    </p>
+      <AppIcon
+        :icon="CircleAlert"
+        size="xs"
+      />
+      <span>Аудио недоступно</span>
+      <AppTextButton
+        label="Повторить"
+        weight="medium"
+        class="text-xs"
+        @click="player.reload()"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Pause, Play, RotateCcw, RotateCw } from '@lucide/vue'
+import { CircleAlert, Keyboard, Pause, Play, RotateCcw, RotateCw } from '@lucide/vue'
 import type { AudioPlayer } from '../../composables/useAudioPlayer'
 
 const props = defineProps<{ player: AudioPlayer; disabled?: boolean }>()

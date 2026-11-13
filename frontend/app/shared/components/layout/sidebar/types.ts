@@ -17,6 +17,8 @@ export type SidebarItem = {
   /** Small muted icon on the right (lock of a private project); `trailingLabel` names it for screen readers. */
   trailingIcon?: Component
   trailingLabel?: string
+  /** Drop target for a drag of this data type (list rows dropped onto a project). */
+  drop?: { accepts: string; onDrop: () => void }
 }
 
 export type SidebarSection = {

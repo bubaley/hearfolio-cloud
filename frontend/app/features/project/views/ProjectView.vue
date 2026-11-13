@@ -152,7 +152,56 @@
         </div>
       </header>
 
-      <ProjectRecordings :project-id="project.id" />
+      <AppAlert
+        v-if="project.archived_at"
+        tone="info"
+        :icon="Archive"
+        title="Проект в архиве"
+      >
+        <p>Его нет в боковой панели и в выборе проекта, загрузка сюда выключена. Записи остаются доступны</p>
+        <AppTextButton
+          v-if="canEdit"
+          label="Вернуть из архива"
+          weight="medium"
+          @click="setArchived(false)"
+        />
+      </AppAlert>
+
+      <!-- Org admins open private projects they are not in: the list would be empty, not because there is nothing. -->
+      <section
+        v-if="project.is_private && !isMember"
+        aria-label="Записи проекта"
+        class="flex justify-center rounded-xl border border-dashed border-border px-4 py-10"
+      >
+        <div class="w-full max-w-sm">
+          <AppResultState
+            :icon="Lock"
+            title="Записи этого проекта видны только участникам"
+            :description="
+              canEdit
+                ? 'Вы администратор: добавьте себя в участники, чтобы видеть записи проекта'
+                : 'Попросите участника проекта добавить вас'
+            "
+          >
+            <template
+              v-if="canEdit && user"
+              #actions
+            >
+              <AppButton
+                :icon="UserPlus"
+                label="Добавить себя"
+                :loading="joinState.loading.value"
+                @click="joinState.execute"
+              />
+            </template>
+          </AppResultState>
+        </div>
+      </section>
+      <ProjectRecordings
+        v-else
+        :project-id="project.id"
+        :can-upload="!project.archived_at"
+      />
     </article>
 
     <ProjectDialogs
@@ -175,6 +224,7 @@ import {
   RotateCw,
   Trash2,
   Unlock,
+  UserPlus,
   Users,
 } from '@lucide/vue'
 import { isApiError } from '~/shared/api/client'
@@ -194,8 +244,8 @@ const props = defineProps<{ id: string }>()
 const toast = useToast()
 const { data: project, isLoading, error, refetch } = useResourceItem(projectResource, () => props.id)
 const notFound = computed(() => isApiError(error.value, 404))
-const { canEdit, canManage } = useProjectPermissions(project)
-const { update } = useProjectActions()
+const { canEdit, canManage, isMember } = useProjectPermissions(project)
+const { update, addMember } = useProjectActions()
 
 useHead({ title: () => (project.value ? project.value.name : 'Проект') })
 
@@ -214,6 +264,45 @@ const patch = async (changes: ProjectUpdateSchema, failure: string, success?: st
     toast.error(projectErrorMessage(reason, failure))
   }
 }
+
+/** Archive or bring back; archiving offers «Отменить» (the project leaves the sidebar at once). */
+const setArchived = async (archived: boolean) => {
+  if (!project.value) return
+  const id = project.value.id
+  try {
+    await update.mutateAsync({ id, changes: { archived } })
+  } catch (reason) {
+    toast.error(projectErrorMessage(reason, 'Не удалось изменить архив'))
+    return
+  }
+  if (!archived) {
+    toast.default('Проект возвращён из архива')
+    return
+  }
+  toast.default('Проект в архиве', {
+    description: 'Он пропал из боковой панели; записи остались на месте',
+    duration: 8000,
+    action: {
+      label: 'Отменить',
+      onClick: () =>
+        void update
+          .mutateAsync({ id, changes: { archived: false } })
+          .catch((reason) => toast.error(projectErrorMessage(reason, 'Не удалось вернуть проект'))),
+    },
+  })
+}
+
+// An org admin may add themselves to any private project (docs/product.md → Project).
+const { user } = useSession()
+const joinState = useActionState(async () => {
+  if (!project.value || !user.value) return
+  try {
+    await addMember.mutateAsync({ id: project.value.id, userId: user.value.id })
+    toast.default('Вы добавлены в проект')
+  } catch (reason) {
+    toast.error(projectErrorMessage(reason, 'Не удалось добавить вас в проект'))
+  }
+})
 
 const menuActions = computed<AppMenuAction[]>(() => {
   const value = project.value
@@ -239,12 +328,7 @@ const menuActions = computed<AppMenuAction[]>(() => {
       label: value.archived_at ? 'Вернуть из архива' : 'Архивировать',
       icon: value.archived_at ? ArchiveRestore : Archive,
       hidden: !canEdit.value,
-      action: () =>
-        patch(
-          { archived: !value.archived_at },
-          'Не удалось изменить архив',
-          value.archived_at ? 'Проект возвращён из архива' : 'Проект в архиве',
-        ),
+      action: () => setArchived(!value.archived_at),
     },
     {
       label: 'Удалить',

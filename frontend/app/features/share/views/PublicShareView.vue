@@ -83,7 +83,7 @@
         >
           <h2 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{{ result.title }}</h2>
           <AppMarkdown
-            :source="result.content"
+            :source="stripLeadingTitle(result.content, result.title)"
             class="text-[0.95rem]"
           />
         </section>
@@ -123,6 +123,7 @@
 
 <script setup lang="ts">
 import { CircleAlert, Link as LinkIcon, RotateCw } from '@lucide/vue'
+import { stripLeadingTitle } from '~/features/recording/utils/resultContent'
 import ShareAudioPlayer from '../components/ShareAudioPlayer.vue'
 import ShareTranscript from '../components/ShareTranscript.vue'
 import { shareResults, usePublicShare } from '../composables/usePublicShare'

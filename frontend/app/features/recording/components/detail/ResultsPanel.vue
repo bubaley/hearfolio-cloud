@@ -71,6 +71,17 @@
           class="shrink-0"
         />
         <span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">{{ shortModel(result.model) }}</span>
+        <AppButton
+          v-if="result.status === 'done'"
+          variant="ghost"
+          size="icon"
+          text-variant="muted"
+          class="size-11 md:size-control-md"
+          :icon="copiedId === result.id ? Check : Copy"
+          :aria-label="`Копировать текст: ${result.title}`"
+          :title="copiedId === result.id ? 'Скопировано' : 'Копировать текст'"
+          @click="copyResult(result)"
+        />
         <AppMenu
           :actions="actionsFor(result)"
           align="end"
@@ -90,7 +101,7 @@
       <div class="px-4 py-3">
         <AppMarkdown
           v-if="result.status === 'done'"
-          :source="result.content"
+          :source="stripLeadingTitle(result.content, result.title)"
         />
         <div
           v-else-if="result.status === 'failed'"
@@ -136,12 +147,13 @@
 </template>
 
 <script setup lang="ts">
-import { Copy, Ellipsis, RotateCcw, Sparkles, Trash2 } from '@lucide/vue'
+import { Check, Copy, Ellipsis, RotateCcw, Sparkles, Trash2 } from '@lucide/vue'
 import { useClipboard } from '@vueuse/core'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
 import type { RecordingDetail } from '../../resources/recording'
 import type { RecordingResult, useRecordingResults } from '../../composables/useRecordingDetail'
 import { processingErrorText, RESULT_STATUS_LABELS } from '../../composables/useRecordingLabels'
+import { stripLeadingTitle } from '../../utils/resultContent'
 import CreateResultModal from './CreateResultModal.vue'
 
 const props = defineProps<{
@@ -168,16 +180,18 @@ const canDelete = (result: RecordingResult) =>
     (result.created_by_id === props.userId ||
       (!result.created_by_id && props.recording.created_by_id === props.userId)))
 
+const copiedId = ref<string | null>(null)
+let copiedTimer: ReturnType<typeof setTimeout> | undefined
+const copyResult = async (result: RecordingResult) => {
+  await copy(result.content)
+  copiedId.value = result.id
+  clearTimeout(copiedTimer)
+  copiedTimer = setTimeout(() => (copiedId.value = null), 2000)
+  toast.default('Саммари скопировано')
+}
+onBeforeUnmount(() => clearTimeout(copiedTimer))
+
 const actionsFor = (result: RecordingResult): AppMenuAction[] => [
-  {
-    label: 'Копировать текст',
-    icon: Copy,
-    hidden: result.status !== 'done',
-    action: async () => {
-      await copy(result.content)
-      toast.default('Саммари скопировано')
-    },
-  },
   {
     label: 'Создать заново',
     icon: RotateCcw,

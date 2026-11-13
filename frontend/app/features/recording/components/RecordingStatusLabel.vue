@@ -26,7 +26,8 @@ import type { Recording } from '../resources/recording'
 import { getRecordingStatusView } from '../composables/useRecordingLabels'
 
 const props = defineProps<{
-  recording: Pick<Recording, 'status' | 'upload_state' | 'segments_done' | 'segments_total' | 'progress'>
+  recording: Pick<Recording, 'status' | 'upload_state' | 'segments_done' | 'segments_total' | 'progress'> &
+    Partial<Pick<Recording, 'updated_at'>>
 }>()
 
 const view = computed(() => getRecordingStatusView(props.recording))

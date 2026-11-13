@@ -20,7 +20,8 @@ const isTyping = (target: EventTarget | null) =>
     Boolean(target.closest('[role="dialog"],[role="menu"],[role="listbox"],[role="slider"]')))
 
 /**
- * One `<audio>` for the recording page: play/pause, seek, ±15 s, speed, space to toggle and lock-screen controls.
+ * One `<audio>` for the recording page: play/pause, seek, ±15 s, speed, space to toggle, ←/→ for ±5 s and lock-screen
+ * controls.
  * The presigned URL is fetched again when it expired or the browser reports a load error, keeping the position.
  */
 export const useAudioPlayer = (source: AudioSource) => {
@@ -71,13 +72,30 @@ export const useAudioPlayer = (source: AudioSource) => {
       started.value = true
       await audio.play()
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === 'AbortError')) failed.value = true
+      if (!(error instanceof DOMException && ['AbortError', 'NotAllowedError'].includes(error.name))) {
+        failed.value = true
+        playing.value = false
+      }
     } finally {
       loading.value = false
     }
   }
   const pause = () => audio?.pause()
   const toggle = () => (playing.value ? pause() : void play())
+  /** «Повторить» after a failure: a fresh URL, then play from the same position. */
+  const reload = async () => {
+    if (!audio) return
+    failed.value = false
+    currentUrl = null
+    if (currentMs.value) pendingSeek = currentMs.value / 1000
+    try {
+      if (!(await ensureSource(true))) throw new Error('no audio')
+    } catch {
+      failed.value = true
+      return
+    }
+    await play()
+  }
 
   const seek = async (ms: number, autoplay = false) => {
     if (!audio) return
@@ -131,26 +149,37 @@ export const useAudioPlayer = (source: AudioSource) => {
     useEventListener(audio, 'error', async () => {
       if (!currentUrl) return
       const wasPlaying = playing.value
+      // The element stops on a media error without a `pause` event: never leave the pause icon on a dead player.
+      playing.value = false
       if (retried) {
         failed.value = true
         loading.value = false
         return
       }
       retried = true
-      if (await ensureSource(true)) {
+      try {
+        if (!(await ensureSource(true))) throw new Error('no audio')
         if (wasPlaying) await play()
+      } catch {
+        failed.value = true
+        loading.value = false
       }
     })
     useEventListener(audio, 'canplay', () => {
       retried = false
     })
 
-    // Space toggles playback unless the user is typing or on a control that uses space itself.
+    // Space toggles playback, ←/→ jump 5 s, unless the user is typing or on a control that uses the key itself.
     useEventListener(window, 'keydown', (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || event.repeat || event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
       if (isTyping(event.target)) return
-      event.preventDefault()
-      toggle()
+      if (event.code === 'Space') {
+        event.preventDefault()
+        if (!event.repeat) toggle()
+      } else if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && started.value) {
+        event.preventDefault()
+        void skip(event.key === 'ArrowLeft' ? -5_000 : 5_000)
+      }
     })
 
     if ('mediaSession' in navigator) {
@@ -186,6 +215,7 @@ export const useAudioPlayer = (source: AudioSource) => {
     play,
     pause,
     toggle,
+    reload,
     seek,
     skip,
     setRate,
