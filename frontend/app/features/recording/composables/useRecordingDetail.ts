@@ -25,13 +25,17 @@ export type RecordingEvent = RecordingEventReadSchema
 export type RecordingResult = RecordingResultReadSchema
 export type ShareLink = ShareLinkReadSchema
 
-/** Allowed models and defaults for members (`GET /ai-settings/options`); the AI settings screen invalidates it. */
-export const useAiOptions = () => {
+/**
+ * Allowed models, defaults and automation switches for members (`GET /ai-settings/options`); the AI settings screen
+ * invalidates it.
+ */
+export const useAiOptions = (enabled: MaybeRefOrGetter<boolean> = true) => {
   const client = useApiClient()
   return useQuery({
     key: ['ai-options'],
     query: async ({ signal }) => (await aiSettingsOptions({ client, throwOnError: true, signal })).data,
     staleTime: 5 * 60_000,
+    enabled: () => toValue(enabled),
   })
 }
 

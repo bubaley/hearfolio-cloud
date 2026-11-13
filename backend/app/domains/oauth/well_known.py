@@ -34,11 +34,13 @@ class HearfolioDiscoverySchema(BaseSchema):
     min_app_version: str
     oauth: OAuthEndpointsSchema
     upload: UploadLimitsSchema
+    # Deleted recordings stay restorable («Корзина») this many days, then they and their audio are purged
+    recording_purge_after_days: int
 
 
 @well_known_router.get('/hearfolio')
 async def hearfolio(request: Request) -> HearfolioDiscoverySchema:
-    """Server identity, versions, OAuth endpoints and upload limits. Public."""
+    """Server identity, versions, OAuth endpoints, upload limits and trash retention. Public."""
     base_url = public_base_url(request)
     return HearfolioDiscoverySchema(
         name=settings.instance_name,
@@ -55,4 +57,5 @@ async def hearfolio(request: Request) -> HearfolioDiscoverySchema:
             multipart_threshold_bytes=settings.upload_multipart_threshold_bytes,
             part_size_bytes=settings.upload_part_size_bytes,
         ),
+        recording_purge_after_days=settings.recording_purge_after_days,
     )

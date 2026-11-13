@@ -17,6 +17,20 @@
         maxlength="100"
         autofocus
       />
+      <AppInput
+        v-if="!readonly"
+        v-model="form.description"
+        label="Описание"
+        placeholder="Одна строка: что получится, например «Задачи со сроками по ответственным»"
+        :maxlength="TEMPLATE_DESCRIPTION_MAX"
+        hint="Показывается при выборе шаблона. Пусто — возьмём первую фразу инструкции"
+      />
+      <p
+        v-else-if="form.description"
+        class="text-sm text-muted-foreground"
+      >
+        {{ form.description }}
+      </p>
       <AppTextarea
         v-model="form.prompt"
         label="Что должно быть в саммари"
@@ -63,7 +77,11 @@
 
 <script setup lang="ts">
 import { useResourceMutations } from '~/shared/api/useResource'
-import { summaryTemplateResource, type SummaryTemplate } from '../../resources/summaryTemplate'
+import {
+  summaryTemplateResource,
+  TEMPLATE_DESCRIPTION_MAX,
+  type SummaryTemplate,
+} from '../../resources/summaryTemplate'
 
 const props = defineProps<{ template: SummaryTemplate | null; readonly?: boolean }>()
 const open = defineModel<boolean>({ default: false })

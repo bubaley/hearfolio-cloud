@@ -165,6 +165,9 @@ import type {
   RecordingsAudioData,
   RecordingsAudioErrors,
   RecordingsAudioResponses,
+  RecordingsBulkData,
+  RecordingsBulkErrors,
+  RecordingsBulkResponses,
   RecordingsCreateData,
   RecordingsCreateErrors,
   RecordingsCreateResponses,
@@ -1939,7 +1942,8 @@ export const tagsMerge = <ThrowOnError extends boolean = false>(
 /**
  * List
  *
- * Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`.
+ * Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`, the
+ * `snippet_start_ms` of its first matching segment, and `meta.total` counts every match.
  */
 export const recordingsList = <ThrowOnError extends boolean = false>(
   options?: Options<RecordingsListData, ThrowOnError>,
@@ -2004,6 +2008,33 @@ export const recordingsSync = <ThrowOnError extends boolean = false>(
     ],
     url: '/api/v1/recordings/sync',
     ...options,
+  })
+
+/**
+ * Bulk
+ *
+ * `move` / `tags` / `delete` / `restore` over up to 200 recordings with the per-recording rules of the single
+ * endpoints; ids the caller cannot see or change come back in `skipped` with a reason.
+ */
+export const recordingsBulk = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingsBulkData, ThrowOnError>,
+): RequestResult<RecordingsBulkResponses, RecordingsBulkErrors, ThrowOnError> =>
+  (options.client ?? client).post<RecordingsBulkResponses, RecordingsBulkErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/bulk',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   })
 
 /**
@@ -2432,7 +2463,7 @@ export const oauthToken = <ThrowOnError extends boolean = false>(
 /**
  * Hearfolio
  *
- * Server identity, versions, OAuth endpoints and upload limits. Public.
+ * Server identity, versions, OAuth endpoints, upload limits and trash retention. Public.
  */
 export const wellKnownHearfolio = <ThrowOnError extends boolean = false>(
   options?: Options<WellKnownHearfolioData, ThrowOnError>,

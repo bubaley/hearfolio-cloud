@@ -107,6 +107,9 @@ class RecordingService:
         cls, recording: Recording, data: RecordingUpdateSchema, actor: User
     ) -> RecordingUpdateData:
         fields_set = set(data.model_fields_set)
+        if 'project_id' in fields_set and data.project_id is not None and data.project_id == recording.project_id:
+            # Already there: not a move (and not "remove from project")
+            fields_set.discard('project_id')
         result = RecordingUpdateData(fields_set=fields_set)
         if 'title' in fields_set:
             title = ' '.join((data.title or '').split())
@@ -132,24 +135,9 @@ class RecordingService:
             recording.title = data.title
             recording.title_source = TitleSource.USER
             changed += ['title', 'title_source']
-        if 'project_id' in data.fields_set:
-            new_project_id = data.project.id if data.project else None
-            if new_project_id != recording.project_id:
-                events.append(
-                    (
-                        RecordingEventKind.MOVED,
-                        {'from_project_id': recording.project_id, 'to_project_id': new_project_id},
-                    )
-                )
-                recording.project_id = new_project_id
-                changed.append('project_id')
-                if recording.project_suggestion_state == ProjectSuggestionState.PENDING:
-                    recording.project_suggestion_state = (
-                        ProjectSuggestionState.ACCEPTED
-                        if new_project_id and new_project_id == recording.suggested_project_id
-                        else ProjectSuggestionState.DISMISSED
-                    )
-                    changed.append('project_suggestion_state')
+        if 'project_id' in data.fields_set and (move := cls.apply_move(recording, data.project)):
+            changed += move[0]
+            events.append((RecordingEventKind.MOVED, move[1]))
         if data.visibility is not None and data.visibility != recording.visibility:
             recording.visibility = data.visibility
             changed.append('visibility')
@@ -166,6 +154,27 @@ class RecordingService:
         if changed or events:
             await LibraryRealtime.recording_updated(recording)
         return recording
+
+    @staticmethod
+    def apply_move(recording: Recording, project: Project | None) -> tuple[list[str], dict[str, Any]] | None:
+        """
+        Set the project on the instance (unsaved). Moving answers a pending suggestion: accepted when it is the
+        suggested project, dismissed otherwise. Returns the changed fields and the journal data, None when unchanged.
+        """
+        new_project_id = project.id if project else None
+        if new_project_id == recording.project_id:
+            return None
+        event = {'from_project_id': recording.project_id, 'to_project_id': new_project_id}
+        recording.project_id = new_project_id
+        changed = ['project_id']
+        if recording.project_suggestion_state == ProjectSuggestionState.PENDING:
+            recording.project_suggestion_state = (
+                ProjectSuggestionState.ACCEPTED
+                if new_project_id and new_project_id == recording.suggested_project_id
+                else ProjectSuggestionState.DISMISSED
+            )
+            changed.append('project_suggestion_state')
+        return changed, event
 
     @staticmethod
     async def _set_tags(recording: Recording, tags: list[Tag]) -> dict[str, Any] | None:

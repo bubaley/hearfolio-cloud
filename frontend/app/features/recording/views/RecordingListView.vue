@@ -35,12 +35,13 @@
 import { Sparkles, UserPlus } from '@lucide/vue'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import type { RecordingFilters } from '../resources/recording'
-import { TRASH_DAYS } from '../composables/useRecordingMutations'
+import { daysLabel, useTrashDays } from '../composables/useRecordingMutations'
 import RecordingList from '../components/list/RecordingList.vue'
 
 const route = useRoute()
 const setupStore = useSetupStore()
 const { isAdmin } = useOrganizationRole()
+const trashDays = useTrashDays()
 const organizationName = computed(() => setupStore.state.organization?.name ?? '')
 
 // One route, three screens: «Все записи», «Личные» (?personal=1) and «Корзина» (?deleted=1).
@@ -51,7 +52,7 @@ const screen = computed<{ title: string; description: string; fixed: RecordingFi
   if (scope.value === 'trash')
     return {
       title: 'Корзина',
-      description: `Удалённые записи можно восстановить в течение ${TRASH_DAYS} дней, потом они удаляются навсегда вместе с аудио`,
+      description: `Удалённые записи можно восстановить в течение ${daysLabel(trashDays.value)}, потом они удаляются навсегда вместе с аудио`,
       fixed: { deleted: true },
     }
   if (scope.value === 'personal')

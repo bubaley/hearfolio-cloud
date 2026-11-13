@@ -98,6 +98,7 @@ import { isAudioFile, UPLOAD_MAX_BYTES } from '../../utils/audioUpload'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { useUploadStore } from '../../stores/useUploadStore'
 import { useAiOptions } from '../../composables/useRecordingDetail'
+import { uploadHint } from '../../utils/processingCopy'
 import VisibilityChoice from '../VisibilityChoice.vue'
 
 const props = defineProps<{
@@ -109,16 +110,9 @@ const open = defineModel<boolean>({ default: false })
 
 const uploads = useUploadStore()
 const { isAdmin } = useOrganizationRole()
-// Members see whether AI is configured, not the automation switches (`/ai-settings/options` has no `auto_transcribe`),
-// so the copy promises nothing the organization may have turned off.
+// `/ai-settings/options` carries the automation switches, so the copy says exactly what will happen.
 const { data: aiOptions } = useAiOptions()
-const processingHint = computed(() => {
-  if (aiOptions.value?.configured === false)
-    return isAdmin.value
-      ? 'Файл сохранится сразу. Расшифровка начнётся, когда вы подключите AI в «AI и модели»'
-      : 'Файл сохранится сразу. Расшифровка начнётся, когда администратор подключит AI'
-  return 'Если в организации включена автоматическая расшифровка, текст и саммари появятся через пару минут после загрузки'
-})
+const processingHint = computed(() => uploadHint(aiOptions.value, isAdmin.value))
 const projectId = ref<string | null>(null)
 const visibility = ref<RecordingVisibility>('organization')
 

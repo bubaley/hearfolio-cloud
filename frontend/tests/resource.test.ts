@@ -32,7 +32,13 @@ describe('resource descriptor', () => {
     const list = vi.fn().mockResolvedValue({ data: { data: [], meta: { page: 3, has_next: true } } })
     const result = await fetchPage(createResource({ list }), {} as never, { name: 'a' }, 3, 20)
     expect(list.mock.calls[0]![0].query).toEqual({ name: 'a', page: 3, page_size: 20 })
-    expect(result).toEqual({ items: [], hasNext: false })
+    expect(result).toEqual({ items: [], hasNext: false, total: null })
+  })
+
+  it('passes the exact total through when the list counts matches', async () => {
+    const list = vi.fn().mockResolvedValue({ data: { data: [{ id: 'a' }], meta: { has_next: false, total: 7 } } })
+    const result = await fetchPage(createResource({ list }), {} as never, {}, 1, 20)
+    expect(result.total).toBe(7)
   })
 
   it('creates without an id and updates with one, mapping the form to each body', async () => {

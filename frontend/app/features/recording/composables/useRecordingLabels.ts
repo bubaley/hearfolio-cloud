@@ -35,20 +35,14 @@ export const STATUS_FILTER_OPTIONS: { label: string; value: RecordingStatus }[] 
   { label: 'Ошибка', value: 'failed' },
 ]
 
-/**
- * An upload that has not moved for this long is shown as interrupted (the app or the tab that sent it is gone). The
- * app may still resume it later; then it simply continues.
- */
-export const STALLED_UPLOAD_HOURS = 12
-
 type StatusFields = Pick<Recording, 'status' | 'upload_state' | 'segments_done' | 'segments_total' | 'progress'> &
-  Partial<Pick<Recording, 'updated_at'>>
+  Partial<Pick<Recording, 'stalled'>>
 
-export const isStalledUpload = (recording: StatusFields) =>
-  recording.status === 'awaiting_upload' &&
-  recording.upload_state !== 'failed' &&
-  Boolean(recording.updated_at) &&
-  Date.now() - Date.parse(recording.updated_at!) > STALLED_UPLOAD_HOURS * 3_600_000
+/**
+ * An upload that has not moved for `UPLOAD_STALLED_AFTER_HOURS` (the server decides: `stalled`) is shown as
+ * interrupted. The app may still resume it later; then it simply continues.
+ */
+export const isStalledUpload = (recording: StatusFields) => Boolean(recording.stalled)
 
 export const isProcessing = (status: RecordingStatus) =>
   status === 'awaiting_upload' || status === 'queued' || status === 'transcribing'

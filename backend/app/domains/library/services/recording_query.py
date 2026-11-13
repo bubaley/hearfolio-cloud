@@ -12,7 +12,7 @@ from tortoise.queryset import QuerySet
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
 from app.core.utils.date_utils import as_utc, utcnow
-from app.domains.library.models import Recording, RecordingVisibility
+from app.domains.library.models import Recording, RecordingVisibility, stalled_upload_q
 from app.domains.library.schemas import (
     RecordingDetailSchema,
     RecordingListQuery,
@@ -62,6 +62,9 @@ class RecordingQueryService:
         if query.recorded_to is not None:
             end = datetime.combine(query.recorded_to, time.min, tzinfo=UTC) + timedelta(days=1)
             queryset = queryset.filter(recorded_at__lt=end)
+        if not query.include_stalled:
+            # Other users' abandoned uploads are noise; the author still sees theirs (and can delete them).
+            queryset = queryset.exclude(stalled_upload_q() & ~Q(created_by_id=user.id))
         return queryset
 
     @staticmethod
@@ -73,7 +76,14 @@ class RecordingQueryService:
     def search(queryset: QuerySet[Recording], text: str) -> QuerySet[Recording]:
         """PostgreSQL: `simple` full-text match on the generated, GIN-indexed `search_vector`. SQLite: ILIKE."""
         if _is_postgres(queryset):
-            return queryset.filter(search_vector__search=SearchQuery(text, config=SEARCH_CONFIG)).annotate(
+            return queryset.filter(search_vector__search=SearchQuery(text, config=SEARCH_CONFIG))
+        return queryset.filter(Q(title__icontains=text) | Q(transcript_text__icontains=text))
+
+    @staticmethod
+    def with_snippets(queryset: QuerySet[Recording], text: str) -> QuerySet[Recording]:
+        """Annotate search hits with a highlighted transcript fragment (PostgreSQL; SQLite builds it in Python)."""
+        if _is_postgres(queryset):
+            return queryset.annotate(
                 search_headline=SearchHeadline(
                     'transcript_text',
                     SearchQuery(text, config=SEARCH_CONFIG),
@@ -85,7 +95,7 @@ class RecordingQueryService:
                     max_fragments=1,
                 )
             )
-        return queryset.filter(Q(title__icontains=text) | Q(transcript_text__icontains=text))
+        return queryset
 
     @classmethod
     def snippet(cls, recording: Recording, text: str) -> list[SnippetPartSchema] | None:
@@ -120,6 +130,30 @@ class RecordingQueryService:
         ]
         return [part for part in parts if part.text]
 
+    @staticmethod
+    def snippet_start_ms(recording: Recording, snippet: list[SnippetPartSchema] | None) -> int | None:
+        """
+        Start of the first transcript segment containing a highlighted part of the snippet. Full-text hits are whole
+        words (so «кот» does not stop at «который»); the SQLite fallback matches substrings like its ILIKE.
+        """
+        terms = {part.text.casefold() for part in snippet or [] if part.highlight and part.text.strip()}
+        if not terms:
+            return None
+        whole_words = getattr(recording, 'search_headline', None) is not None
+        patterns = [
+            re.compile(rf'(?<!\w){re.escape(term)}(?!\w)' if whole_words else re.escape(term)) for term in terms
+        ]
+        for segment in recording.transcript_segments or []:
+            if not isinstance(segment, dict):
+                continue
+            text = str(segment.get('text', '')).casefold()
+            if any(pattern.search(text) for pattern in patterns):
+                try:
+                    return max(0, int(segment.get('start_ms', 0)))
+                except TypeError, ValueError:
+                    return None
+        return None
+
     @classmethod
     async def serialize(
         cls, recordings: list[Recording], viewer: User, search_text: str | None = None
@@ -128,6 +162,7 @@ class RecordingQueryService:
         if search_text:
             for item, recording in zip(items, recordings, strict=True):
                 item.snippet = cls.snippet(recording, search_text)
+                item.snippet_start_ms = cls.snippet_start_ms(recording, item.snippet)
         return items
 
     # SYNC

@@ -18,6 +18,9 @@ from app.domains.library.schemas import (
     ProjectReadSchema,
     ProjectUpdateSchema,
     PublicShareSchema,
+    RecordingBulkAction,
+    RecordingBulkResultSchema,
+    RecordingBulkSchema,
     RecordingCreatedSchema,
     RecordingCreateSchema,
     RecordingDetailSchema,
@@ -37,6 +40,7 @@ from app.domains.library.schemas import (
     UploadPartsRequestSchema,
     UploadPlanSchema,
 )
+from app.domains.library.services.bulk_service import RecordingBulkService
 from app.domains.library.services.project_service import ProjectService
 from app.domains.library.services.recording_presenter import RecordingPresenter
 from app.domains.library.services.recording_query import SYNC_PAGE_SIZE, RecordingQueryService
@@ -149,7 +153,14 @@ class TagViewSet(BaseModelViewSet[Tag]):
         return await TagReadSchema.from_tortoise_orm(await TagService.merge(source, target, self.user))
 
 
-RecordingPage = PageResponse[RecordingReadSchema, LightPageNumberPagination]
+class RecordingPagination(LightPageNumberPagination[Recording]):
+    """`meta.total`: the exact number of matches, counted only for a search (null otherwise; fastapi-ronin's
+    PageNumberPagination calls it `total` too)."""
+
+    total: int | None = None
+
+
+RecordingPage = PageResponse[RecordingReadSchema, RecordingPagination]
 
 
 @viewset(recordings_router)
@@ -178,13 +189,18 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
     async def list_recordings(
         self,
         query: Annotated[RecordingListQuery, Query()],
-        pagination: Annotated[LightPageNumberPagination, Depends(LightPageNumberPagination.build)],
+        pagination: Annotated[RecordingPagination, Depends(RecordingPagination.build)],
     ) -> RecordingPage:
-        """Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`."""
+        """
+        Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`, the
+        `snippet_start_ms` of its first matching segment, and `meta.total` counts every match.
+        """
         queryset = RecordingQueryService.filter(self.visible(deleted=query.deleted), query, self.user)
         search_text = RecordingQueryService.search_text(query)
         if search_text:
             queryset = RecordingQueryService.search(queryset, search_text)
+            pagination.total = await queryset.count()
+            queryset = RecordingQueryService.with_snippets(queryset, search_text)
         page = await pagination.paginate(with_stable_ordering(queryset))
         items = await RecordingQueryService.serialize(page, self.user, search_text)
         await pagination.fill_meta(queryset=queryset, data=items)
@@ -206,6 +222,16 @@ class RecordingViewSet(BaseModelViewSet[Recording]):
             recording=await RecordingPresenter.detail(recording, self.user),
             upload=await UploadService.plan(recording),
         )
+
+    @action(methods=['POST'], detail=False)
+    async def bulk(self, data: RecordingBulkSchema) -> RecordingBulkResultSchema:
+        """
+        `move` / `tags` / `delete` / `restore` over up to 200 recordings with the per-recording rules of the single
+        endpoints; ids the caller cannot see or change come back in `skipped` with a reason.
+        """
+        visible = self.visible(deleted=data.action == RecordingBulkAction.RESTORE)
+        payload = await RecordingBulkService.validate(data, self.user, _organization_id(), visible)
+        return await RecordingBulkService.apply(payload)
 
     @action(methods=['GET'], detail=True, name='retrieve')
     async def retrieve(self, item_id: UUID) -> RecordingDetailSchema:

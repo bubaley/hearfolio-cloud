@@ -144,6 +144,7 @@
             :selected="selectedIds.has(row.recording.id)"
             :selecting="selected.length > 0"
             :trash="trash"
+            :trash-days="trashDays"
             :can-manage="canManage(row.recording)"
             @select="(range) => toggleSelect(row.recording, range)"
             @restore="bulk.restoreMany([row.recording.id])"
@@ -202,8 +203,7 @@ import { pluralize } from '~/features/project/composables/projectLabels'
 import { recordingResource, type Recording, type RecordingFilters } from '../../resources/recording'
 import { useRecordingFilters } from '../../composables/useRecordingFilters'
 import { useRecordingGroups } from '../../composables/useRecordingGroups'
-import { isStalledUpload } from '../../composables/useRecordingLabels'
-import { TRASH_DAYS } from '../../composables/useRecordingMutations'
+import { useTrashDays } from '../../composables/useRecordingMutations'
 import { useRecordingBulk } from '../../composables/useRecordingBulk'
 import { AUDIO_ACCEPT } from '../../utils/audioUpload'
 import UploadModal from '../upload/UploadModal.vue'
@@ -231,21 +231,20 @@ const { user } = useSession()
 const { isAdmin } = useOrganizationRole()
 const bulk = useRecordingBulk()
 
-const list = useResourceList<Recording>(recordingResource, { params, pageSize: 40 })
-const { hasNextPage, loadNextPage, isLoading, error, refetch } = list
-// An upload that stopped long ago is noise for everyone but its author (who can delete it). Filtered here: the API
-// has no such filter yet.
-const items = computed(() =>
-  list.items.value.filter((item) => !isStalledUpload(item) || item.created_by_id === user.value?.id),
+// The API leaves other users' stalled uploads out of the list; the author still gets theirs (flagged `stalled`).
+const { items, total, hasNextPage, loadNextPage, isLoading, error, refetch } = useResourceList<Recording>(
+  recordingResource,
+  { params, pageSize: 40 },
 )
+const trashDays = useTrashDays()
 const groups = useRecordingGroups(items)
 
 const showToolbar = computed(() =>
   Boolean(items.value.length || filters.active.value || isLoading.value || error.value),
 )
+// A search answers with the exact number of matches (`meta.total`).
 const foundLabel = computed(
-  () =>
-    `Найдено: ${pluralize(items.value.length, ['запись', 'записи', 'записей'])}${hasNextPage.value ? ' и больше' : ''}`,
+  () => `Найдено: ${pluralize(total.value ?? items.value.length, ['запись', 'записи', 'записей'])}`,
 )
 
 // Restore in the trash, delete of a stalled upload: the author or an org admin.
@@ -256,7 +255,7 @@ const empty = computed(() =>
     ? {
         icon: Trash2,
         title: 'Корзина пуста',
-        description: `Удалённые записи хранятся здесь ${TRASH_DAYS} дней — их можно восстановить, потом они удаляются навсегда`,
+        description: `Удалённые записи хранятся здесь ${pluralize(trashDays.value, ['день', 'дня', 'дней'])} — их можно восстановить, потом они удаляются навсегда`,
       }
     : props.fixed.personal
       ? {

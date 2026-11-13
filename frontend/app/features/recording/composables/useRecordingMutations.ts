@@ -1,4 +1,4 @@
-import { useQueryCache } from '@pinia/colada'
+import { useQuery, useQueryCache } from '@pinia/colada'
 import {
   recordingAiRetranscribe,
   recordingAiRetry,
@@ -7,14 +7,29 @@ import {
   recordingsDismissProjectSuggestion,
   recordingsPartialUpdate,
   recordingsRestore,
+  wellKnownHearfolio,
 } from '~/shared/api/generated'
 import { isApiError } from '~/shared/api/client'
 import { resourceKeys } from '~/shared/api/resource'
 import { useApiClient } from '~/shared/api/useResource'
 import { recordingResource, type RecordingDetail, type RecordingPatch } from '../resources/recording'
 
-/** `RECORDING_PURGE_AFTER_DAYS` on the server: deleted recordings stay restorable this long. */
-export const TRASH_DAYS = 30
+/** «30 дней», «1 дня» after «в течение». */
+export const daysLabel = (days: number) => `${days} ${days % 10 === 1 && days % 100 !== 11 ? 'дня' : 'дней'}`
+
+/**
+ * How many days deleted recordings stay in «Корзина» (`recording_purge_after_days` of `/.well-known/hearfolio`, the
+ * server's `RECORDING_PURGE_AFTER_DAYS`); the server default until it answers.
+ */
+export const useTrashDays = () => {
+  const client = useApiClient()
+  const { data } = useQuery({
+    key: ['server-discovery'],
+    query: async ({ signal }) => (await wellKnownHearfolio({ client, throwOnError: true, signal })).data,
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+  return computed(() => data.value?.recording_purge_after_days ?? 30)
+}
 
 export const recordingKeys = {
   ...resourceKeys(recordingResource),
@@ -41,6 +56,7 @@ export const useRecordingMutations = () => {
   const client = useApiClient()
   const queryCache = useQueryCache()
   const toast = useToast()
+  const trashDays = useTrashDays()
 
   const detail = (id: string) => queryCache.getQueryData(recordingKeys.detail(id)) as RecordingDetail | undefined
   const store = (item: RecordingDetail) => queryCache.setQueryData(recordingKeys.detail(item.id), item)
@@ -91,7 +107,7 @@ export const useRecordingMutations = () => {
     run(id, () => recordingsRestore({ client, throwOnError: true, path: { item_id: id } }), 'Не удалось восстановить')
 
   /**
-   * Soft delete with «Отменить» in the toast; the recording then waits in «Корзина» for 30 days. Undo opens the
+   * Soft delete with «Отменить» in the toast; the recording then waits in «Корзина» (`useTrashDays`). Undo opens the
    * recording again (the caller has usually left its page).
    */
   const remove = async (id: string, title: string) => {
@@ -103,7 +119,7 @@ export const useRecordingMutations = () => {
     }
     void queryCache.invalidateQueries({ key: recordingKeys.lists })
     toast.default(`Запись «${title}» в корзине`, {
-      description: `Её можно восстановить в корзине в течение ${TRASH_DAYS} дней`,
+      description: `Её можно восстановить в корзине в течение ${daysLabel(trashDays.value)}`,
       duration: 8000,
       action: {
         label: 'Отменить',

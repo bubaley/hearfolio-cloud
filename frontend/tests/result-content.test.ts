@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { stripLeadingTitle, templateDescription } from '../app/features/recording/utils/resultContent'
+import { templateDescription } from '../app/features/ai/resources/summaryTemplate'
+import { stripLeadingTitle } from '../app/features/recording/utils/resultContent'
 
 describe('stripLeadingTitle', () => {
   it('drops a leading heading that repeats the title', () => {
@@ -14,10 +15,20 @@ describe('stripLeadingTitle', () => {
 })
 
 describe('templateDescription', () => {
-  it('takes the first sentence without technical asides', () => {
-    expect(templateDescription('Кратко перескажи запись. Сначала одна-две фразы')).toBe('Кратко перескажи запись')
+  it('prefers the template description', () => {
+    expect(templateDescription({ description: '  Главное в пунктах ', prompt: 'Кратко перескажи запись.' })).toBe(
+      'Главное в пунктах',
+    )
+  })
+
+  it('falls back to the first sentence of the prompt without technical asides', () => {
+    expect(templateDescription({ description: '', prompt: 'Кратко перескажи запись. Сначала одна-две фразы' })).toBe(
+      'Кратко перескажи запись',
+    )
     expect(
-      templateDescription('составь список задач из записи в виде чек-листа Markdown («- [ ] задача»). Для каждой'),
+      templateDescription({
+        prompt: 'составь список задач из записи в виде чек-листа Markdown («- [ ] задача»). Для каждой',
+      }),
     ).toBe('Составь список задач из записи в виде чек-листа')
   })
 })

@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="suggestion || processing || failed || stalled"
+    v-if="suggestion || processing || waiting || failed || stalled"
     class="flex flex-col gap-2"
   >
     <AppCard
@@ -62,14 +62,41 @@
       />
     </AppCard>
 
+    <AppCard
+      v-if="waiting"
+      variant="muted"
+      padding="sm"
+      class="flex flex-col gap-2 sm:flex-row sm:items-center"
+    >
+      <div class="flex min-w-0 flex-1 items-start gap-2.5">
+        <AppIcon
+          :icon="FileAudio"
+          size="sm"
+          class="mt-0.5 shrink-0 text-muted-foreground"
+        />
+        <div class="flex min-w-0 flex-col gap-0.5">
+          <span class="text-sm font-medium">Запись ещё не расшифрована</span>
+          <span class="text-xs text-muted-foreground">Автоматическая расшифровка в организации выключена</span>
+        </div>
+      </div>
+      <AppButton
+        size="sm"
+        variant="secondary"
+        :icon="Sparkles"
+        label="Расшифровать"
+        :loading="retryState.loading.value"
+        @click="retryState.execute"
+      />
+    </AppCard>
+
     <AppAlert
       v-if="stalled"
       tone="warning"
       title="Загрузка прервана"
     >
       <p>
-        Аудио не дошло до сервера: загрузка стоит больше {{ STALLED_UPLOAD_HOURS }} часов. Если приложение ещё
-        отправляет файл, запись продолжится сама
+        Аудио не дошло до сервера: загрузка давно не двигается. Если приложение ещё отправляет файл, запись продолжится
+        сама
       </p>
       <div
         v-if="canDelete"
@@ -109,14 +136,20 @@
 </template>
 
 <script setup lang="ts">
-import { FolderInput, RotateCcw, Sparkles, Trash2 } from '@lucide/vue'
+import { FileAudio, FolderInput, RotateCcw, Sparkles, Trash2 } from '@lucide/vue'
 import type { RecordingDetail } from '../../resources/recording'
-import { isStalledUpload, processingErrorText, STALLED_UPLOAD_HOURS } from '../../composables/useRecordingLabels'
+import { isStalledUpload, processingErrorText } from '../../composables/useRecordingLabels'
+import { useAiOptions } from '../../composables/useRecordingDetail'
+import { awaitingUploadHint, processingMode } from '../../utils/processingCopy'
 
 const props = defineProps<{ recording: RecordingDetail; retry: () => Promise<unknown>; canDelete?: boolean }>()
 const emit = defineEmits<{ suggestion: [accept: boolean]; delete: [] }>()
 
 const stalled = computed(() => isStalledUpload(props.recording))
+const { data: aiOptions } = useAiOptions()
+// Automatic transcription is off: a queued recording waits for someone to start it.
+const manual = computed(() => processingMode(aiOptions.value) === 'manual')
+const waiting = computed(() => manual.value && props.recording.status === 'queued')
 
 const suggestion = computed(() =>
   props.recording.project_suggestion_state === 'pending' && !props.recording.project_id
@@ -132,10 +165,10 @@ const processing = computed(() => {
         ? null
         : {
             title: 'Аудио загружается',
-            hint: 'Когда файл дойдёт до сервера, запись встанет в очередь на расшифровку, если она включена в организации',
+            hint: awaitingUploadHint(aiOptions.value),
           }
     case 'queued':
-      return { title: 'В очереди на расшифровку', hint: 'Обычно это занимает меньше минуты' }
+      return manual.value ? null : { title: 'В очереди на расшифровку', hint: 'Обычно это занимает меньше минуты' }
     case 'transcribing':
       return {
         title: recording.segments_total

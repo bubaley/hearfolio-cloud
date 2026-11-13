@@ -129,6 +129,9 @@ class Settings(BaseSettings):
     share_audio_presign_expire_seconds: int = 10 * 60
     # Soft-deleted recordings are purged (with their audio) after this many days
     recording_purge_after_days: int = 30
+    # An upload (`awaiting_upload`, pending or multipart in progress) without changes for this long is "stalled":
+    # flagged in lists and hidden from everyone but its author
+    upload_stalled_after_hours: int = 12
 
     @property
     def database_url(self) -> str:

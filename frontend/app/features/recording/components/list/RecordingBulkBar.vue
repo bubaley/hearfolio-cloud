@@ -73,7 +73,7 @@ import { FolderInput, Tags, Trash2, X } from '@lucide/vue'
 import { pluralize } from '~/features/project/composables/projectLabels'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import type { Recording, TagBrief } from '../../resources/recording'
-import { TRASH_DAYS } from '../../composables/useRecordingMutations'
+import { daysLabel, useTrashDays } from '../../composables/useRecordingMutations'
 import { useRecordingBulk } from '../../composables/useRecordingBulk'
 import ProjectPicker from '../detail/ProjectPicker.vue'
 import TagPicker from '../detail/TagPicker.vue'
@@ -87,6 +87,7 @@ const { user } = useSession()
 const { isAdmin } = useOrganizationRole()
 const wide = useMediaQuery('(min-width: 768px)')
 const deleteOpen = ref(false)
+const trashDays = useTrashDays()
 
 const recordingsLabel = (count: number) => pluralize(count, ['запись', 'записи', 'записей'])
 
@@ -115,7 +116,7 @@ const deletable = computed(() =>
 )
 const deleteText = computed(() => {
   const skipped = props.selected.length - deletable.value.length
-  const base = `Записи попадут в корзину: их можно восстановить в течение ${TRASH_DAYS} дней, потом они удалятся навсегда вместе с аудио`
+  const base = `Записи попадут в корзину: их можно восстановить в течение ${daysLabel(trashDays.value)}, потом они удалятся навсегда вместе с аудио`
   if (!deletable.value.length) return 'Удалить запись может только её автор или администратор'
   return skipped
     ? `${base}. Пропустим ${recordingsLabel(skipped)}: их может удалить только автор или администратор`
