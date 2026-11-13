@@ -2,7 +2,9 @@ import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 export type SidebarItem = {
-  to: RouteLocationRaw
+  /** Route of a link item; an item without one is a button and needs `onClick` («Поиск»). */
+  to?: RouteLocationRaw
+  onClick?: () => void
   label: string
   icon?: Component
   /** Shown instead of `icon` (project emoji). */

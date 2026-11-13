@@ -20,6 +20,13 @@ describe('parseMarkdown', () => {
     expect(list.items[1]!.map((block) => block.type)).toEqual(['paragraph', 'list'])
   })
 
+  it('parses task items', () => {
+    const [list] = parseMarkdown('- [x] готово\n- [ ] нет\n- просто пункт')
+    if (list?.type !== 'list') throw new Error('not a list')
+    expect(list.checked).toEqual([true, false, null])
+    expect(list.items[0]).toEqual([{ type: 'paragraph', children: [{ type: 'text', text: 'готово' }] }])
+  })
+
   it('parses quotes and tables', () => {
     const blocks = parseMarkdown('> цитата\n\n| Кто | Что |\n|---|:-:|\n| Аня | тексты |')
     expect(blocks[0]).toMatchObject({ type: 'quote', children: [{ type: 'paragraph' }] })

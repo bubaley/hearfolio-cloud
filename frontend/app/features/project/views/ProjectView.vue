@@ -36,7 +36,7 @@
               variant="ghost"
               text-variant="muted"
               label="Все записи"
-              :to="{ name: 'home' }"
+              :to="{ name: 'recordings' }"
             />
           </template>
         </AppResultState>
@@ -158,7 +158,7 @@
     <ProjectDialogs
       v-model="dialog"
       :project="project ?? null"
-      @deleted="navigateTo({ name: 'home' }, { replace: true })"
+      @deleted="navigateTo({ name: 'recordings' }, { replace: true })"
     />
   </AppPageView>
 </template>
@@ -181,7 +181,7 @@ import { isApiError } from '~/shared/api/client'
 import type { ProjectUpdateSchema } from '~/shared/api/generated'
 import { useResourceItem } from '~/shared/api/useResource'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
-import { projectResource, userDisplayName } from '../resources/project'
+import { projectResource } from '../resources/project'
 import { projectErrorMessage, useProjectActions, useProjectPermissions } from '../composables/useProjects'
 import { pluralize } from '../composables/projectLabels'
 import ProjectIcon from '../components/ProjectIcon.vue'

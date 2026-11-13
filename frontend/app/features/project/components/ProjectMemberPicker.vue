@@ -75,7 +75,6 @@
 <script setup lang="ts">
 import { useResourceList } from '~/shared/api/useResource'
 import { organizationUserResource } from '~/features/organization/resources/organizationUser'
-import { userDisplayName } from '../resources/project'
 
 /** Checklist of organization members (user ids in `v-model`), minus `excludeIds` (the caller, current members). */
 const props = withDefaults(defineProps<{ excludeIds?: string[]; emptyText?: string }>(), {

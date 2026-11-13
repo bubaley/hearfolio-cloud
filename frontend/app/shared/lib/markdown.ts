@@ -16,7 +16,8 @@ export type MdAlign = 'left' | 'center' | 'right' | null
 export type MdBlock =
   | { type: 'heading'; level: 1 | 2 | 3 | 4 | 5 | 6; children: MdInline[] }
   | { type: 'paragraph'; children: MdInline[] }
-  | { type: 'list'; ordered: boolean; start: number; items: MdBlock[][] }
+  /** `checked[i]` is true/false for a task item (`- [x]` / `- [ ]`), null for a plain one. */
+  | { type: 'list'; ordered: boolean; start: number; items: MdBlock[][]; checked: (boolean | null)[] }
   | { type: 'quote'; children: MdBlock[] }
   | { type: 'code'; text: string }
   | { type: 'hr' }
@@ -193,6 +194,8 @@ const splitRow = (line: string) => {
   return cells
 }
 
+const TASK_MARK = /^\[([ xX])\]\s+/
+
 const parseList = (lines: string[], start: number): { block: MdBlock; next: number } => {
   const first = lines[start]!.match(LIST_ITEM)!
   const baseIndent = indentOf(first[1]!)
@@ -236,12 +239,19 @@ const parseList = (lines: string[], start: number): { block: MdBlock; next: numb
     }
     break
   }
+  const checked = items.map((item) => {
+    const task = item[0]!.match(TASK_MARK)
+    if (!task) return null
+    item[0] = item[0]!.slice(task[0].length)
+    return task[1] !== ' '
+  })
   return {
     block: {
       type: 'list',
       ordered,
       start: ordered ? Number.parseInt(first[2]!, 10) : 1,
       items: items.map((item) => parseBlocks(item)),
+      checked,
     },
     next: i,
   }

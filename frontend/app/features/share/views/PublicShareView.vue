@@ -125,7 +125,7 @@
 import { CircleAlert, Link as LinkIcon, RotateCw } from '@lucide/vue'
 import ShareAudioPlayer from '../components/ShareAudioPlayer.vue'
 import ShareTranscript from '../components/ShareTranscript.vue'
-import { formatDuration, shareResults, usePublicShare } from '../composables/usePublicShare'
+import { shareResults, usePublicShare } from '../composables/usePublicShare'
 
 const props = defineProps<{ token: string }>()
 

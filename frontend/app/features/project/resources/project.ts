@@ -5,12 +5,15 @@ import {
   projectsPartialUpdate,
   projectsRetrieve,
   type LibraryUserSchema,
+  type ProjectBriefSchema,
   type ProjectMemberReadSchema,
   type ProjectReadSchema,
 } from '~/shared/api/generated'
 import { defineResource } from '~/shared/api/resource'
 
 export type Project = ProjectReadSchema
+/** The project as recordings carry it (`recording.project`). */
+export type ProjectBrief = ProjectBriefSchema
 export type ProjectMember = ProjectMemberReadSchema
 export type ProjectUser = LibraryUserSchema
 export type ProjectForm = {
@@ -47,6 +50,3 @@ export const projectResource = defineResource({
   // Recordings carry the project name and access.
   invalidates: ['recordings'],
 })
-
-export const userDisplayName = (user: Pick<ProjectUser, 'first_name' | 'last_name' | 'email'>) =>
-  `${user.first_name} ${user.last_name}`.trim() || user.email

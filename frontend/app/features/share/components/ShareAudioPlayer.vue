@@ -77,7 +77,6 @@
 
 <script setup lang="ts">
 import { Pause, Play, RotateCcw, RotateCw } from '@lucide/vue'
-import { formatClock } from '../composables/usePublicShare'
 
 /**
  * Player for a presigned audio URL. The URL expires (`expiresAt`): before playing a stale one, or when loading fails,
