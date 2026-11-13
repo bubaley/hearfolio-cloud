@@ -51,7 +51,7 @@ class SummaryTemplate(BaseModel):
     name = fields.CharField(max_length=128)
     prompt = fields.TextField()
     # One line shown in pickers; empty: clients use the prompt's first sentence
-    description = fields.CharField(max_length=200, default='')
+    description = fields.CharField(max_length=200, default='', db_default='')
     auto = fields.BooleanField(default=False)
     position = fields.IntField(default=0)
     created_by = fields.ForeignKeyField(

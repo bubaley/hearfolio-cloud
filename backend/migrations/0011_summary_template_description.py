@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         ops.AddField(
             model_name='SummaryTemplate',
             name='description',
-            field=fields.CharField(default='', max_length=200),
+            field=fields.CharField(default='', db_default='', max_length=200),
         ),
         ops.RunSQL(
             [
