@@ -219,3 +219,18 @@ Without `YC_REGISTRY_ID`/`IMAGE_NAME` the pipeline still releases (tag, changelo
 3. Create `DEPLOY_PATH` with a `.env` built from `.env.example`: real `SECRET_KEY`, `ENCRYPTION_KEY`, `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD` and `COMPOSE_PROJECT_NAME`. The first deploy adds `APP_IMAGE` and `compose.yaml`.
 4. Terminate TLS in front of `APP_ENTRY_PORT` (host Caddy/nginx or a cloud load balancer) and set HSTS there.
 5. Create the first user: `docker compose exec -w /app/backend app python -m manage create_superuser`.
+
+---
+
+## Dokploy
+
+The simplest self-hosted path: Dokploy builds the image straight from this GitHub repository and runs [`compose.dokploy.yaml`](../compose.dokploy.yaml) (app + PostgreSQL + Redis, no host ports; Traefik from Dokploy terminates TLS).
+
+1. **Create the service.** Dokploy → Project → *Create Service* → **Compose**. Provider: GitHub, this repository, branch `main`, compose path `./compose.dokploy.yaml`. Enable *Autodeploy* to redeploy on every push to `main`.
+2. **Environment.** Paste the variables into the service's *Environment* tab (Dokploy writes them to `.env` next to the compose file). Required: `PUBLIC_URL` (e.g. `https://hearfolio.example.com`), `SECRET_KEY` (≥ 64 chars), `ENCRYPTION_KEY` (exactly 32 chars), `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD`, `AWS_*` for the bucket (see [S3 bucket](#s3-bucket)). Optional: `INSTANCE_NAME`, `APP_VERSION` (shown by `/.well-known/hearfolio`), `BACKEND_WORKERS`, `TASKIQ_WORKERS`, `MIN_APP_VERSION`. Generate secrets once and never change `SECRET_KEY`, `ENCRYPTION_KEY` or `PASSWORD_PEPPER` afterwards: they protect sessions, stored AI keys and passwords.
+3. **Domain.** *Domains* → add the host, service `app`, container port **8080**, HTTPS with Let's Encrypt. The compose file attaches `app` to the external `dokploy-network` that Traefik uses.
+4. **Deploy.** The first build takes several minutes (Python + Nuxt + ffmpeg). Migrations run automatically when the container starts; `app` becomes healthy when `/healthz` answers.
+5. **First user.** Dokploy → service → *Terminal* (container `app`), then run `cd /app/backend && python manage.py create_superuser` and answer the prompts. Sign in at `PUBLIC_URL`, create the organization, then open *Настройки → AI и модели* and set the OpenRouter key.
+6. **Bucket CORS.** Allow `PUT`, `GET`, `HEAD` from `PUBLIC_URL` with `ExposeHeaders: ETag` (example above), otherwise uploads from the browser fail. The desktop/Android app does not need CORS.
+
+Backups: the `postgres_data` volume holds everything except audio (audio lives in S3). Use Dokploy's volume backups or a scheduled `pg_dump`.
