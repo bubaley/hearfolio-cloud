@@ -1,4 +1,4 @@
-import { Building, Building2, FileText, Mail, Sparkles, User, Users, UsersRound } from '@lucide/vue'
+import { Building, Building2, FileText, Folder, Mail, Sparkles, Tags, User, Users, UsersRound } from '@lucide/vue'
 import type { Component } from 'vue'
 
 export type SettingsNavigationSection = 'organization' | 'account' | 'instance'
@@ -26,6 +26,8 @@ export const settingsNavigation: SettingsNavigationItem[] = [
   { to: { name: 'settings-members' }, label: 'Участники', icon: UsersRound },
   { to: { name: 'settings-invites' }, label: 'Приглашения', icon: Mail, adminOnly: true },
   { to: { name: 'settings-ai' }, label: 'AI и модели', icon: Sparkles, adminOnly: true },
+  { to: { name: 'settings-projects' }, label: 'Проекты', icon: Folder },
+  { to: { name: 'settings-tags' }, label: 'Теги', icon: Tags },
   { to: { name: 'settings-summary-templates' }, label: 'Шаблоны саммари', icon: FileText },
   { to: { name: 'settings-profile' }, label: 'Профиль', icon: User, section: 'account' },
   { to: { name: 'settings-organizations' }, label: 'Организации', icon: Building, section: 'account' },

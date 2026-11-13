@@ -17,6 +17,8 @@ const unsaved = ref(false)
 const modalName = ref('Working project')
 const color = ref<string | null>('#7779ed')
 const icon = ref<string | null>('folder')
+const emoji = ref<string | null>('🚀')
+const markdownSample = `### Summary\n\n**Decisions** and *notes* with \`code\` and a [link](https://example.com).\n\n1. First item\n2. Second item\n   - nested\n\n> <b>Raw HTML</b> stays text.`
 const actions: AppMenuAction[] = [
   {
     label: 'Open modal',
@@ -125,6 +127,29 @@ const actions: AppMenuAction[] = [
           />
           <span class="text-sm text-muted-foreground">Project icon and color</span>
         </div>
+      </AppCard>
+    </AppSection>
+    <AppSection
+      title="Popover, emoji and Markdown"
+      description="AppPopover anchors a small panel, AppEmojiPicker is a curated grid, AppMarkdown renders model output without v-html."
+    >
+      <AppCard class="space-y-5">
+        <div class="flex flex-wrap items-center gap-4">
+          <AppEmojiPicker
+            v-model="emoji"
+            label="Pick emoji"
+          />
+          <AppPopover label="Popover">
+            <template #trigger>
+              <AppButton
+                variant="outline"
+                label="Open popover"
+              />
+            </template>
+            <p class="p-2 text-sm">Any small form or picker.</p>
+          </AppPopover>
+        </div>
+        <AppMarkdown :source="markdownSample" />
       </AppCard>
     </AppSection>
     <AppModal

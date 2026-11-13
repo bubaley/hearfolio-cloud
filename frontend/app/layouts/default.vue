@@ -14,6 +14,7 @@
       <AppSidebarUser />
     </template>
     <slot />
+    <ProjectCreateModal v-model="createOpen" />
   </AppLayout>
 </template>
 
@@ -25,11 +26,10 @@ import AppSidebarNav from '~/shared/components/layout/sidebar/AppSidebarNav.vue'
 import AppSidebarUser from '~/shared/components/layout/sidebar/AppSidebarUser.vue'
 import type { SidebarSection } from '~/shared/components/layout/sidebar/types'
 import OrganizationSwitcher from '~/features/organization/components/OrganizationSwitcher.vue'
+import ProjectCreateModal from '~/features/project/components/ProjectCreateModal.vue'
+import { useProjectsSidebar } from '~/features/project/composables/useProjectsSidebar'
 import { workspaceNavigation } from '~/navigation/workspace'
 
-// «Проекты» stays empty until the projects screens exist; they fill `items` and the «+» action.
-const sections: SidebarSection[] = [
-  { items: workspaceNavigation },
-  { title: 'Проекты', items: [], empty: 'Проектов пока нет' },
-]
+const { section: projectsSection, createOpen } = useProjectsSidebar()
+const sections = computed<SidebarSection[]>(() => [{ items: workspaceNavigation }, projectsSection.value])
 </script>
