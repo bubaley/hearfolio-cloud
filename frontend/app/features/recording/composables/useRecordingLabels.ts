@@ -2,6 +2,7 @@ import {
   CircleAlert,
   CircleCheck,
   CirclePlus,
+  CloudOff,
   CloudUpload,
   FileAudio,
   FolderInput,
@@ -34,18 +35,33 @@ export const STATUS_FILTER_OPTIONS: { label: string; value: RecordingStatus }[] 
   { label: 'Ошибка', value: 'failed' },
 ]
 
+/**
+ * An upload that has not moved for this long is shown as interrupted (the app or the tab that sent it is gone). The
+ * app may still resume it later; then it simply continues.
+ */
+export const STALLED_UPLOAD_HOURS = 12
+
+type StatusFields = Pick<Recording, 'status' | 'upload_state' | 'segments_done' | 'segments_total' | 'progress'> &
+  Partial<Pick<Recording, 'updated_at'>>
+
+export const isStalledUpload = (recording: StatusFields) =>
+  recording.status === 'awaiting_upload' &&
+  recording.upload_state !== 'failed' &&
+  Boolean(recording.updated_at) &&
+  Date.now() - Date.parse(recording.updated_at!) > STALLED_UPLOAD_HOURS * 3_600_000
+
 export const isProcessing = (status: RecordingStatus) =>
   status === 'awaiting_upload' || status === 'queued' || status === 'transcribing'
 
 /** Null for a finished recording: the list shows nothing for the normal state. */
-export const getRecordingStatusView = (
-  recording: Pick<Recording, 'status' | 'upload_state' | 'segments_done' | 'segments_total' | 'progress'>,
-): RecordingStatusView | null => {
+export const getRecordingStatusView = (recording: StatusFields): RecordingStatusView | null => {
   switch (recording.status) {
     case 'awaiting_upload':
-      return recording.upload_state === 'failed'
-        ? { label: 'Ошибка загрузки', icon: CircleAlert, tone: 'destructive', active: false, progress: null }
-        : { label: 'Загружается', icon: CloudUpload, tone: 'muted', active: true, progress: null }
+      if (recording.upload_state === 'failed')
+        return { label: 'Ошибка загрузки', icon: CircleAlert, tone: 'destructive', active: false, progress: null }
+      if (isStalledUpload(recording))
+        return { label: 'Загрузка прервана', icon: CloudOff, tone: 'warning', active: false, progress: null }
+      return { label: 'Загружается', icon: CloudUpload, tone: 'muted', active: true, progress: null }
     case 'queued':
       return { label: 'В очереди', icon: CloudUpload, tone: 'muted', active: true, progress: null }
     case 'transcribing': {

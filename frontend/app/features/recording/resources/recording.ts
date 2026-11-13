@@ -29,6 +29,8 @@ export type RecordingFilters = {
   status?: RecordingStatus
   personal?: boolean
   search?: string
+  /** «Корзина»: the caller's visible deleted recordings. */
+  deleted?: boolean
 }
 
 // The detail (`[recordings, id]`) carries the transcript; list rows (`[recordings, list, params]`) do not.

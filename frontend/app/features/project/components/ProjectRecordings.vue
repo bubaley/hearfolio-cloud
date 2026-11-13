@@ -7,6 +7,7 @@
     <!-- The list brings its own gutters (sticky toolbar, row hover); pull it to the article edges. -->
     <RecordingList
       :fixed="{ project_id: projectId }"
+      :can-upload="canUpload"
       class="-mx-3 md:-mx-4"
     />
   </section>
@@ -15,5 +16,6 @@
 <script setup lang="ts">
 import RecordingList from '~/features/recording/components/list/RecordingList.vue'
 
-defineProps<{ projectId: string }>()
+/** `canUpload: false` for an archived project: no uploads into it until it comes back. */
+withDefaults(defineProps<{ projectId: string; canUpload?: boolean }>(), { canUpload: true })
 </script>

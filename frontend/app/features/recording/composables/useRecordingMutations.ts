@@ -13,6 +13,9 @@ import { resourceKeys } from '~/shared/api/resource'
 import { useApiClient } from '~/shared/api/useResource'
 import { recordingResource, type RecordingDetail, type RecordingPatch } from '../resources/recording'
 
+/** `RECORDING_PURGE_AFTER_DAYS` on the server: deleted recordings stay restorable this long. */
+export const TRASH_DAYS = 30
+
 export const recordingKeys = {
   ...resourceKeys(recordingResource),
   events: (id: string) => ['recordings', id, 'events'] as const,
@@ -48,8 +51,16 @@ export const useRecordingMutations = () => {
     ])
   }
 
-  /** PATCH with `optimistic` fields shown right away (e.g. the chosen project object next to `project_id`). */
-  const patch = async (id: string, body: RecordingPatch, optimistic: Partial<RecordingDetail> = {}) => {
+  /**
+   * PATCH with `optimistic` fields shown right away (e.g. the chosen project object next to `project_id`). `quiet`
+   * leaves the failure toast to the caller (bulk actions report once).
+   */
+  const patch = async (
+    id: string,
+    body: RecordingPatch,
+    optimistic: Partial<RecordingDetail> = {},
+    { quiet = false }: { quiet?: boolean } = {},
+  ) => {
     const previous = detail(id)
     if (previous) store({ ...previous, ...(body as Partial<RecordingDetail>), ...optimistic })
     try {
@@ -59,7 +70,7 @@ export const useRecordingMutations = () => {
       return data
     } catch (error) {
       if (previous) store(previous)
-      toast.error(recordingErrorMessage(error, 'Не удалось сохранить изменения'))
+      if (!quiet) toast.error(recordingErrorMessage(error, 'Не удалось сохранить изменения'))
       throw error
     }
   }
@@ -79,7 +90,10 @@ export const useRecordingMutations = () => {
   const restore = (id: string) =>
     run(id, () => recordingsRestore({ client, throwOnError: true, path: { item_id: id } }), 'Не удалось восстановить')
 
-  /** Soft delete with «Отменить» in the toast (restore works for 30 days; the toast is the quick path). */
+  /**
+   * Soft delete with «Отменить» in the toast; the recording then waits in «Корзина» for 30 days. Undo opens the
+   * recording again (the caller has usually left its page).
+   */
   const remove = async (id: string, title: string) => {
     try {
       await recordingsDestroy({ client, throwOnError: true, path: { item_id: id } })
@@ -88,10 +102,17 @@ export const useRecordingMutations = () => {
       throw error
     }
     void queryCache.invalidateQueries({ key: recordingKeys.lists })
-    toast.default(`Запись «${title}» удалена`, {
-      description: 'Её можно восстановить в течение 30 дней',
+    toast.default(`Запись «${title}» в корзине`, {
+      description: `Её можно восстановить в корзине в течение ${TRASH_DAYS} дней`,
       duration: 8000,
-      action: { label: 'Отменить', onClick: () => void restore(id).then(() => toast.default('Запись восстановлена')) },
+      action: {
+        label: 'Отменить',
+        onClick: () =>
+          void restore(id).then(() => {
+            toast.default('Запись восстановлена')
+            void navigateTo({ name: 'recordings-id', params: { id } })
+          }),
+      },
     })
   }
 

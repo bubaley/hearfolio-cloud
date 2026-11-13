@@ -2,7 +2,7 @@
   <AppModal
     v-model="open"
     :title="audio.length === 1 ? 'Загрузить запись' : `Загрузить записи: ${audio.length}`"
-    description="Расшифровка и саммари появятся автоматически, когда файл загрузится"
+    :description="processingHint"
     width="30rem"
   >
     <div class="flex flex-col gap-5">
@@ -95,7 +95,9 @@ import type { RecordingVisibility } from '~/shared/api/generated'
 import ProjectIcon from '~/features/project/components/ProjectIcon.vue'
 import { projectResource, type Project } from '~/features/project/resources/project'
 import { isAudioFile, UPLOAD_MAX_BYTES } from '../../utils/audioUpload'
+import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { useUploadStore } from '../../stores/useUploadStore'
+import { useAiOptions } from '../../composables/useRecordingDetail'
 import VisibilityChoice from '../VisibilityChoice.vue'
 
 const props = defineProps<{
@@ -106,6 +108,17 @@ const props = defineProps<{
 const open = defineModel<boolean>({ default: false })
 
 const uploads = useUploadStore()
+const { isAdmin } = useOrganizationRole()
+// Members see whether AI is configured, not the automation switches (`/ai-settings/options` has no `auto_transcribe`),
+// so the copy promises nothing the organization may have turned off.
+const { data: aiOptions } = useAiOptions()
+const processingHint = computed(() => {
+  if (aiOptions.value?.configured === false)
+    return isAdmin.value
+      ? 'Файл сохранится сразу. Расшифровка начнётся, когда вы подключите AI в «AI и модели»'
+      : 'Файл сохранится сразу. Расшифровка начнётся, когда администратор подключит AI'
+  return 'Если в организации включена автоматическая расшифровка, текст и саммари появятся через пару минут после загрузки'
+})
 const projectId = ref<string | null>(null)
 const visibility = ref<RecordingVisibility>('organization')
 

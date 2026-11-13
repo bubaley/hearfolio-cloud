@@ -49,7 +49,8 @@ import QuickSearchDialog from '~/features/recording/components/search/QuickSearc
 import UploadTray from '~/features/recording/components/upload/UploadTray.vue'
 import { useQuickSearch } from '~/features/recording/composables/useQuickSearch'
 import { useRecordingRealtime } from '~/features/recording/composables/useRecordingRealtime'
-import { workspaceNavigation } from '~/navigation/workspace'
+import { RECORDING_DRAG_TYPE, useRecordingBulk } from '~/features/recording/composables/useRecordingBulk'
+import { workspaceFooterNavigation, workspaceNavigation } from '~/navigation/workspace'
 
 const quickSearch = useQuickSearch()
 // Processing progress, renames and deletions from other members and the AI pipeline arrive here.
@@ -63,9 +64,15 @@ const searchItem: SidebarItem = {
   onClick: quickSearch.show,
 }
 
-const { section: projectsSection, createOpen } = useProjectsSidebar()
+// Recordings dragged from a list onto a sidebar project move there.
+const bulk = useRecordingBulk()
+const { section: projectsSection, createOpen } = useProjectsSidebar({
+  accepts: RECORDING_DRAG_TYPE,
+  onDrop: (project) => void bulk.dropOnProject(project),
+})
 const sections = computed<SidebarSection[]>(() => [
   { items: [searchItem, ...workspaceNavigation] },
   projectsSection.value,
+  { items: workspaceFooterNavigation },
 ])
 </script>

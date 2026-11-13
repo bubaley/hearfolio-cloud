@@ -133,7 +133,7 @@ import { useRecordingShare, type RecordingResult, type ShareLink } from '../../c
 
 const props = defineProps<{ recordingId: string; results: RecordingResult[] }>()
 
-const open = ref(false)
+const open = defineModel<boolean>('open', { default: false })
 const wide = useMediaQuery('(min-width: 768px)')
 // Loaded with the page: the button shows whether the recording is published.
 const { link, isLoading, save, revoke } = useRecordingShare(() => props.recordingId, true)

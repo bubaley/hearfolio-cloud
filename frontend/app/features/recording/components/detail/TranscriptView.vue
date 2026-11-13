@@ -10,7 +10,9 @@
         :key="index"
         :ref="(el) => setRow(index, el)"
         class="group -mx-2 flex cursor-pointer gap-3 rounded-md px-2 py-1.5 transition-colors md:gap-4"
-        :class="index === activeIndex ? 'bg-accent/70' : 'hover:bg-row-hover'"
+        :class="
+          index === activeIndex ? 'bg-accent/70' : index === targetIndex ? 'bg-tag-yellow/60' : 'hover:bg-row-hover'
+        "
         :aria-current="index === activeIndex ? 'true' : undefined"
         @click="onSegmentClick(segment, $event)"
       >
@@ -27,7 +29,20 @@
           class="min-w-0 flex-1 text-[0.9375rem] leading-6 break-words"
           :class="!segment.text.trim() && 'text-muted-foreground italic'"
         >
-          {{ segment.text.trim() || 'Тишина' }}
+          <template v-if="terms.length && segment.text.trim()">
+            <template
+              v-for="(part, partIndex) in markTerms(segment.text.trim())"
+              :key="partIndex"
+            >
+              <mark
+                v-if="part.match"
+                class="rounded-sm bg-tag-yellow px-0.5 text-tag-yellow-foreground"
+                >{{ part.text }}</mark
+              >
+              <template v-else>{{ part.text }}</template>
+            </template>
+          </template>
+          <template v-else>{{ segment.text.trim() || 'Тишина' }}</template>
         </p>
       </li>
     </ol>
@@ -79,7 +94,54 @@ const props = defineProps<{
   player: AudioPlayer
   /** The scrolling element the transcript lives in (auto-scroll target). */
   scroller: HTMLElement | null
+  /** Search words from the list (`?q=`): highlighted; the first segment with them is shown and cued. */
+  highlight?: string
+  /** A moment to open at (`?t=` in ms): its segment is shown and cued. */
+  focusMs?: number | null
 }>()
+
+const terms = computed(() =>
+  (props.highlight ?? '')
+    .toLocaleLowerCase('ru')
+    .split(/\s+/)
+    .map((term) => term.replace(/[^\p{L}\p{N}-]/gu, ''))
+    .filter((term) => term.length > 1),
+)
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const markTerms = (text: string) => {
+  const pattern = new RegExp(`(${terms.value.map(escapeRegExp).join('|')})`, 'giu')
+  return text
+    .split(pattern)
+    .filter(Boolean)
+    .map((part) => ({ text: part, match: terms.value.includes(part.toLocaleLowerCase('ru')) }))
+}
+
+// The segment a search hit or a `?t=` link points at: scrolled into view and cued in the player (no autoplay).
+const targetIndex = ref(-1)
+const findTarget = () => {
+  const list = props.segments
+  const at = props.focusMs
+  if (at != null && Number.isFinite(at)) return list.findLastIndex((segment) => segment.start_ms <= at)
+  if (!terms.value.length) return -1
+  const lower = list.map((segment) => segment.text.toLocaleLowerCase('ru'))
+  const all = lower.findIndex((text) => terms.value.every((term) => text.includes(term)))
+  return all >= 0 ? all : lower.findIndex((text) => terms.value.some((term) => text.includes(term)))
+}
+let targeted = false
+watch(
+  () => props.segments.length,
+  async (count) => {
+    if (targeted || !count) return
+    const index = findTarget()
+    if (index < 0) return
+    targeted = true
+    targetIndex.value = index
+    await nextTick()
+    rows.get(index)?.scrollIntoView({ block: 'center' })
+    void props.player.seek(props.segments[index]!.start_ms)
+  },
+  { immediate: true },
+)
 
 const rows = new Map<number, HTMLElement>()
 const setRow = (index: number, el: Element | ComponentPublicInstance | null) => {

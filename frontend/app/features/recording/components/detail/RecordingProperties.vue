@@ -4,7 +4,7 @@
       v-for="row in rows"
       :key="row.key"
       class="min-h-9 grid-cols-[6.5rem_1fr] items-start gap-2 max-md:min-h-11 md:grid-cols-[9rem_1fr]"
-      :class="row.secondary && !expanded ? 'hidden md:grid' : 'grid'"
+      :class="expanded || row.level === 'primary' ? 'grid' : row.level === 'wide' ? 'hidden md:grid' : 'hidden'"
     >
       <dt class="flex min-h-9 items-center gap-2 px-1 text-muted-foreground max-md:min-h-11">
         <AppIcon
@@ -67,6 +67,21 @@
             />
             {{ recording.visibility === 'personal' ? 'Личная' : 'Общая' }}
           </span>
+          <!-- A shared recording in a private project is not for the whole organization: say who sees it. -->
+          <span
+            v-if="privateProject"
+            class="ml-2 inline-flex min-w-0 items-center gap-1 text-muted-foreground"
+            :title="`Видят только участники проекта «${privateProject.name}»`"
+          >
+            <span v-if="!isAuthor">·</span>
+            <AppIcon
+              :icon="Lock"
+              size="xs"
+              class="shrink-0"
+              label="Приватный проект"
+            />
+            <span class="truncate">в проекте {{ privateProject.name }}</span>
+          </span>
         </div>
         <div
           v-else-if="row.key === 'author'"
@@ -90,7 +105,7 @@
     </div>
     <button
       type="button"
-      class="flex min-h-11 items-center gap-2 px-1 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:underline md:hidden"
+      class="flex min-h-11 w-fit items-center gap-2 rounded-md px-1 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
       :aria-expanded="expanded"
       @click="expanded = !expanded"
     >
@@ -98,7 +113,8 @@
         :icon="expanded ? ChevronUp : ChevronDown"
         size="sm"
       />
-      {{ expanded ? 'Свернуть свойства' : 'Все свойства' }}
+      <span class="md:hidden">{{ expanded ? 'Свернуть свойства' : 'Все свойства' }}</span>
+      <span class="max-md:hidden">{{ expanded ? 'Свернуть' : 'Ещё' }}</span>
     </button>
   </dl>
 </template>
@@ -108,7 +124,6 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
-  Cpu,
   Folder,
   Lock,
   ShieldCheck,
@@ -131,7 +146,7 @@ const emit = defineEmits<{
   visibility: [value: RecordingVisibility]
 }>()
 
-// Phones show the editable properties; the rest folds under «Все свойства».
+// Phones show the editable properties, wider screens add the author; the rest folds under «Ещё» / «Все свойства».
 const expanded = ref(false)
 const { formatDate } = useDate()
 
@@ -148,30 +163,33 @@ const VISIBILITY_OPTIONS = [
 
 const author = computed(() => userDisplayName(props.recording.created_by) || 'Удалённый пользователь')
 
-type Row = { key: string; label: string; icon: Component; value?: string; secondary?: boolean }
+const privateProject = computed(() =>
+  props.recording.visibility === 'organization' && props.recording.project?.is_private ? props.recording.project : null,
+)
+
+type Row = { key: string; label: string; icon: Component; value?: string; level: 'primary' | 'wide' | 'more' }
 const rows = computed<Row[]>(() => {
   const recording = props.recording
   const created = formatDate(recording.recorded_at, { format: 'D MMMM YYYY, HH:mm' })
   return [
-    { key: 'project', label: 'Проект', icon: Folder },
-    { key: 'tags', label: 'Теги', icon: Tags },
-    { key: 'visibility', label: 'Доступ', icon: ShieldCheck },
-    { key: 'author', label: 'Автор', icon: UserRound, secondary: true },
+    { key: 'project', label: 'Проект', icon: Folder, level: 'primary' },
+    { key: 'tags', label: 'Теги', icon: Tags, level: 'primary' },
+    { key: 'visibility', label: 'Доступ', icon: ShieldCheck, level: 'primary' },
+    { key: 'author', label: 'Автор', icon: UserRound, level: 'wide' },
     {
       key: 'created',
       label: 'Создано',
       icon: CalendarDays,
       value: created ? `${created} · ${SOURCES[recording.source] ?? recording.source}` : '',
-      secondary: true,
+      level: 'more',
     },
     {
       key: 'duration',
       label: 'Длительность',
       icon: Timer,
       value: recording.duration_ms ? formatDuration(recording.duration_ms) : '',
-      secondary: true,
+      level: 'more',
     },
-    { key: 'model', label: 'Модель', icon: Cpu, value: recording.transcription_model ?? '', secondary: true },
   ]
 })
 </script>

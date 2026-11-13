@@ -1,14 +1,14 @@
 <template>
-  <h1 class="m-0">
-    <label
-      for="recording-title"
-      class="sr-only"
-      >Название записи</label
-    >
+  <!-- The heading is named by the title itself; the field inside keeps its own label for editing. -->
+  <h1
+    class="m-0"
+    :aria-label="title.trim() || placeholder"
+  >
     <textarea
       id="recording-title"
       ref="field"
       v-model="draft"
+      aria-label="Название записи"
       rows="1"
       maxlength="255"
       spellcheck="false"
