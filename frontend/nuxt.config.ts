@@ -29,6 +29,7 @@ export default defineNuxtConfig({
     '/projects': clientOnly,
     '/projects/**': clientOnly,
     '/auth': clientOnly,
+    '/login': clientOnly,
     '/ui': clientOnly,
     '/invite/**': clientOnly,
     '/oauth/**': clientOnly,

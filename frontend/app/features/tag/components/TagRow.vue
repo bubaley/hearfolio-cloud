@@ -16,28 +16,22 @@
         @blur="submitRename"
       />
     </form>
-    <button
-      v-else-if="canManage"
-      type="button"
-      class="-mx-1 flex min-h-11 min-w-0 flex-1 items-center rounded-md px-1 text-left outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
-      :aria-label="`Переименовать тег «${tag.name}»`"
-      title="Переименовать"
-      @click="startRename"
-    >
-      <TagChip
-        :name="tag.name"
-        :color="tag.color"
-      />
-    </button>
-    <div
+    <NuxtLink
       v-else
-      class="flex min-w-0 flex-1"
+      :to="{ name: 'recordings', query: { tag: tag.id } }"
+      class="group/tag -mx-1 flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md px-1 outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
+      :aria-label="`Записи с тегом «${tag.name}»${count === undefined ? '' : `: ${recordingsCountLabel(count)}`}`"
     >
       <TagChip
         :name="tag.name"
         :color="tag.color"
       />
-    </div>
+      <span
+        v-if="count !== undefined"
+        class="shrink-0 text-sm text-muted-foreground tabular-nums group-hover/tag:text-foreground"
+        >{{ count ? recordingsCountLabel(count) : 'нет записей' }}</span
+      >
+    </NuxtLink>
 
     <template v-if="canManage">
       <TagColorPicker
@@ -84,10 +78,18 @@ import { Ellipsis, Merge, Pencil, Trash2 } from '@lucide/vue'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
 import type { Tag, TagColor } from '../resources/tag'
 import { tagChipClass } from '../composables/tagColors'
+import { recordingsCountLabel } from '../composables/useTagUsage'
 import TagChip from './TagChip.vue'
 import TagColorPicker from './TagColorPicker.vue'
 
-const props = defineProps<{ tag: Tag; canManage: boolean; busy?: boolean; canMerge?: boolean }>()
+const props = defineProps<{
+  tag: Tag
+  canManage: boolean
+  busy?: boolean
+  canMerge?: boolean
+  /** Recordings with the tag the caller can see; undefined while loading. */
+  count?: number
+}>()
 const emit = defineEmits<{ update: [changes: { name?: string; color?: TagColor }]; merge: []; delete: [] }>()
 
 const renaming = ref(false)

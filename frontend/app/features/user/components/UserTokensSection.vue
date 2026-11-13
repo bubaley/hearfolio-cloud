@@ -9,6 +9,7 @@
       description="Для скриптов и интеграций. Полный токен показывается один раз, при создании"
       detail-mode="modal"
       template-variant="section"
+      title-size="md"
       :detail-modal-props="{
         width: '32rem',
         closeOnSave: false,
@@ -24,7 +25,7 @@
     >
       <AppColumn
         field="name"
-        header="Наименование"
+        header="Название"
       />
       <AppColumn
         field="value_preview"
@@ -54,7 +55,7 @@
       <template #detail-modal="{ detailItem }">
         <AppInput
           v-model="detailItem.name"
-          label="Наименование"
+          label="Название"
         />
         <div v-if="detailItem.id">
           <AppCard

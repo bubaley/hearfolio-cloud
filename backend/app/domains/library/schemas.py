@@ -124,6 +124,13 @@ class TagReadSchema(BaseReadSchema):
     color: TagColor
 
 
+class TagUsageSchema(BaseSchema):
+    """How many recordings visible to the caller carry the tag."""
+
+    tag_id: UUID
+    recordings_count: int
+
+
 class TagMergeSchema(BaseSchema):
     """Move every recording of this tag to `target_id`, then delete this tag."""
 

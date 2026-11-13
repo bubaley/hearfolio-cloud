@@ -28,7 +28,7 @@ describe('page composition', () => {
     })
     expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(wrapper.text().match(/Описание/g)).toHaveLength(1)
-    expect(wrapper.get('main').text()).toBe('Содержимое')
+    expect(wrapper.get('[data-slot="page-body"]').text()).toBe('Содержимое')
     expect(wrapper.get('footer').text()).toBe('Итоги')
     expect(wrapper.get('header').text()).toContain('Действие')
     const regions = wrapper.get('section').element.children

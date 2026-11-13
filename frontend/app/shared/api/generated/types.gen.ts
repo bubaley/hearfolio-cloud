@@ -243,6 +243,10 @@ export type InvitePreviewSchema = {
    * Expires At
    */
   expires_at: string
+  /**
+   * Already Member
+   */
+  already_member?: boolean
 }
 
 /**
@@ -1883,6 +1887,22 @@ export type TagUpdateSchema = {
    */
   name?: string | null
   color?: TagColor | null
+}
+
+/**
+ * TagUsageSchema
+ *
+ * How many recordings visible to the caller carry the tag.
+ */
+export type TagUsageSchema = {
+  /**
+   * Tag Id
+   */
+  tag_id: string
+  /**
+   * Recordings Count
+   */
+  recordings_count: number
 }
 
 /**
@@ -6618,6 +6638,69 @@ export type TagsCreateResponses = {
 }
 
 export type TagsCreateResponse = TagsCreateResponses[keyof TagsCreateResponses]
+
+export type TagsUsageData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/tags/usage'
+}
+
+export type TagsUsageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type TagsUsageError = TagsUsageErrors[keyof TagsUsageErrors]
+
+export type TagsUsageResponses = {
+  /**
+   * Response Tags Usage
+   *
+   * Successful Response
+   */
+  200: Array<TagUsageSchema>
+}
+
+export type TagsUsageResponse = TagsUsageResponses[keyof TagsUsageResponses]
 
 export type TagsDestroyData = {
   body?: never

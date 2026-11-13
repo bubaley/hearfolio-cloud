@@ -1,4 +1,9 @@
 <template>
+  <NuxtLoadingIndicator
+    color="var(--primary)"
+    :height="2"
+    :throttle="150"
+  />
   <NuxtLayout><NuxtPage /></NuxtLayout>
   <AppToaster />
   <AppImageLightbox />

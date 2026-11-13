@@ -46,7 +46,7 @@ describe('AppTable declarative columns', () => {
     const wrapper = createTable({ items: [] })
     expect(wrapper.findAll('th')).toHaveLength(3)
     expect(wrapper.get('td').attributes('colspan')).toBe('3')
-    expect(wrapper.text()).toContain('Данные отсутствуют')
+    expect(wrapper.text()).toContain('Здесь пока пусто')
     await wrapper.setProps({ loading: true })
     expect(wrapper.get('[role="status"]').text()).toBe('Загрузка')
     expect(wrapper.findAll('th')).toHaveLength(3)

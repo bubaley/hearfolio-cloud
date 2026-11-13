@@ -32,6 +32,7 @@
       >
         <AppSwitch
           v-model="form.auto"
+          aria-label="Создавать автоматически"
           class="mt-0.5"
         />
         <span>

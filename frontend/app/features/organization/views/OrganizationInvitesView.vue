@@ -4,7 +4,7 @@
     description="Ссылка открывает регистрацию или вход и добавляет человека в организацию с выбранной ролью"
     content-class="px-4 pb-10"
   >
-    <div class="flex max-w-3xl flex-col gap-8 pt-2">
+    <div class="flex flex-col gap-8 pt-2">
       <InviteCreateForm />
 
       <section aria-labelledby="invite-list-title">

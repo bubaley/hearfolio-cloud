@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed, type HTMLAttributes } from 'vue'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/shared/ui/shadcn/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/shared/ui/shadcn/dialog'
+import AppModalFooter from './AppModalFooter.vue'
 import { useOverlayStack } from './useOverlayStack'
 
 export type AppModalProps = {
@@ -111,9 +105,9 @@ const handleInteractOutside = (event: InteractOutsideEvent) => {
         <slot />
       </div>
 
-      <DialogFooter v-if="$slots.footer">
+      <AppModalFooter v-if="$slots.footer">
         <slot name="footer" />
-      </DialogFooter>
+      </AppModalFooter>
     </DialogContent>
   </Dialog>
 </template>

@@ -37,17 +37,25 @@
     </AppResultState>
 
     <AppResultState
-      v-else-if="alreadyMember"
+      v-else-if="alreadyMember || (isSignedIn && invite?.already_member)"
       :icon="UsersRound"
       tone="success"
       title="Вы уже в этой организации"
-      :description="`«${invite?.organization_name}» уже есть в вашем списке. Ссылка осталась неиспользованной`"
+      :description="`Вы уже участник «${invite?.organization_name}» как ${user?.email}. Ссылка осталась неиспользованной — её можно передать коллеге`"
     >
       <template #actions>
         <AppButton
           fluid
           label="Открыть Hearfolio"
           @click="openApp()"
+        />
+        <AppButton
+          fluid
+          variant="ghost"
+          text-variant="muted"
+          label="Войти под другой учётной записью"
+          :loading="logout.isLoading.value"
+          @click="switchAccount"
         />
       </template>
     </AppResultState>
@@ -154,6 +162,7 @@ import AppAuthShell from '~/shared/components/layout/AppAuthShell.vue'
 import InviteRegisterForm from '../components/invite/InviteRegisterForm.vue'
 import { getRoleLabel } from '../composables/useOrganizationRole'
 import { apiErrorReason, organizationErrorMessage } from '../composables/organizationErrors'
+import { markWelcomePending } from '../composables/useWelcome'
 
 const route = useRoute()
 const client = useApiClient()
@@ -167,7 +176,9 @@ const { formatDate } = useDate()
 
 const token = computed(() => String(route.params.token ?? ''))
 const preview = useQuery({
-  key: () => ['invite-preview', token.value],
+  // Per viewer: `already_member` depends on who is signed in.
+  key: () => ['invite-preview', token.value, user.value?.id ?? null],
+  enabled: () => !sessionPending.value,
   query: async ({ signal }) =>
     (await invitesPreview({ client, throwOnError: true, signal, path: { token: token.value } })).data,
   // Every lookup counts against the per-IP limit; refresh only on demand.
@@ -177,9 +188,7 @@ const preview = useQuery({
 const invite = computed(() => preview.data.value ?? null)
 const roleLabel = computed(() => getRoleLabel(invite.value?.role))
 const expiresAt = computed(() => formatDate(invite.value?.expires_at ?? null, { disableRelative: true }))
-const accountName = computed(
-  () => `${user.value?.first_name ?? ''} ${user.value?.last_name ?? ''}`.trim() || user.value?.email || '',
-)
+const accountName = computed(() => userDisplayName(user.value))
 const loginRoute = computed(() => ({ name: 'auth', query: { redirect: route.fullPath } }))
 
 const loadError = computed(() => {
@@ -229,7 +238,8 @@ const enterOrganization = async (organization: { id: string; name: string; key: 
 }
 
 const onAccepted = async (result: InviteAcceptedSchema) => {
-  toast.default(`Добро пожаловать в «${result.organization.name}»`)
+  // The workspace shell shows a one-time welcome (install the app, connect it, where recordings appear).
+  markWelcomePending(result.user.id)
   await enterOrganization(result.organization)
 }
 

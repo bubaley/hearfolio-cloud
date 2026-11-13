@@ -4,13 +4,37 @@
     :description="description"
     content-class="px-4 pb-10"
   >
-    <template #actions>
-      <AppTemplateActions
+    <template
+      v-if="menuActions.some((action) => !action.hidden) || isAdmin"
+      #actions
+    >
+      <AppMenu
+        v-if="menuActions.some((action) => !action.hidden)"
+        :actions="menuActions"
+        align="end"
+        content-class="w-64"
+      >
+        <template #trigger>
+          <AppButton
+            variant="ghost"
+            size="icon-sm"
+            text-variant="muted"
+            class="size-11 md:size-control-sm"
+            :icon="Ellipsis"
+            aria-label="Ещё действия"
+          />
+        </template>
+      </AppMenu>
+      <AppButton
+        v-if="isAdmin"
         size="sm"
-        :actions="headerActions"
+        class="h-11 md:h-control-sm"
+        :icon="Link2"
+        label="Пригласить по ссылке"
+        :to="{ name: 'settings-invites' }"
       />
     </template>
-    <div class="flex max-w-3xl flex-col gap-3 pt-2">
+    <div class="flex flex-col gap-3 pt-2">
       <AppInput
         v-if="items.length > 6 || search"
         v-model="search"
@@ -65,7 +89,7 @@
         v-else
         class="py-8 text-center text-sm text-muted-foreground"
       >
-        {{ search ? 'Никого не нашли' : 'Пока никого нет' }}
+        {{ search ? `Никого не нашли по запросу «${search}»` : 'Пока здесь только вы. Пригласите коллег по ссылке' }}
       </p>
       <AppButton
         v-if="hasNextPage"
@@ -103,9 +127,9 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, Mail, UserPlus } from '@lucide/vue'
+import { Ellipsis, Link2, LogOut, UserPlus } from '@lucide/vue'
 import { useResourceList, useResourceMutations } from '~/shared/api/useResource'
-import type { AppTemplateAction } from '~/shared/ui/template/types/template-types'
+import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
 import MemberRow from '../components/member-list/MemberRow.vue'
 import OrganizationMemberAddModal from '../components/member-list/OrganizationMemberAddModal.vue'
 import { organizationUserResource, type OrganizationUser } from '../resources/organizationUser'
@@ -144,32 +168,26 @@ const membership = computed(() => items.value.find((member) => member.user_id ==
 const confirmLeave = ref(false)
 const addOpen = ref(false)
 
-const headerActions = computed<AppTemplateAction[]>(() => [
+// Invite links are the main way in; adding an existing account needs the server's user list (superusers only).
+const menuActions = computed<AppMenuAction[]>(() => [
   {
-    label: 'Покинуть',
-    icon: LogOut,
-    variant: 'ghost',
-    textVariant: 'muted',
-    hidden: !membership.value || !myRole.value,
-    action: () => {
-      confirmLeave.value = true
-    },
-  },
-  {
-    label: 'Добавить',
+    key: 'add',
+    label: 'Добавить пользователя сервера',
     icon: UserPlus,
-    variant: 'outline',
     hidden: !isSuperuser.value,
     action: () => {
       addOpen.value = true
     },
   },
   {
-    label: 'Пригласить',
-    icon: Mail,
-    hidden: !isAdmin.value,
-    action: async () => {
-      await navigateTo({ name: 'settings-invites' })
+    key: 'leave',
+    label: 'Покинуть организацию',
+    icon: LogOut,
+    destructive: true,
+    separatorBefore: isSuperuser.value,
+    hidden: !membership.value || !myRole.value,
+    action: () => {
+      confirmLeave.value = true
     },
   },
 ])

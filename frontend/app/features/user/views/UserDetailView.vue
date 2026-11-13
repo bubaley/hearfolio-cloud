@@ -6,7 +6,7 @@
     <template #default="{ item, isCreating }">
       <AppInput
         v-model="item.email"
-        label="Email"
+        label="Электронная почта"
       />
       <AppInput
         v-model="item.first_name"
@@ -28,7 +28,7 @@
           binary
           input-id="user-su"
         />
-        <label for="user-su">Суперпользователь</label>
+        <label for="user-su">Администратор сервера: создаёт пользователей и видит все организации</label>
       </div>
       <div class="-mt-1.5">
         <UserChangePasswordButton

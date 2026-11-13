@@ -68,16 +68,44 @@
         </div>
       </header>
 
-      <div class="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
-        <AppAvatar
-          :name="accountName"
-          variant="soft"
-        />
-        <div class="min-w-0 flex-1">
-          <div class="truncate text-sm font-medium">{{ accountName }}</div>
-          <div class="truncate text-xs text-muted-foreground">{{ user?.email }}</div>
+      <dl class="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <dt class="sr-only">Учётная запись</dt>
+          <AppAvatar
+            :name="accountName"
+            variant="soft"
+          />
+          <dd class="min-w-0 flex-1">
+            <div class="truncate font-medium">{{ accountName }}</div>
+            <div
+              v-if="accountName !== user?.email"
+              class="truncate text-xs text-muted-foreground"
+            >
+              {{ user?.email }}
+            </div>
+          </dd>
+          <AppTextButton
+            label="Это не вы? Выйти"
+            tone="muted"
+            class="shrink-0 text-xs"
+            :disabled="switching"
+            @click="switchAccount"
+          />
         </div>
-      </div>
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <dt class="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <AppIcon
+              :icon="Server"
+              size="sm"
+            />
+            <span class="sr-only">Сервер</span>
+          </dt>
+          <dd class="min-w-0 flex-1">
+            <div class="truncate font-medium">{{ serverAddress }}</div>
+            <div class="truncate text-xs text-muted-foreground">Записи будут загружаться на этот сервер</div>
+          </dd>
+        </div>
+      </dl>
 
       <div class="flex flex-col gap-2">
         <AppButton
@@ -105,7 +133,7 @@
 
 <script setup lang="ts">
 import { useQuery } from '@pinia/colada'
-import { CircleCheck, CircleSlash, MonitorSmartphone, ShieldX } from '@lucide/vue'
+import { CircleCheck, CircleSlash, MonitorSmartphone, Server, ShieldX } from '@lucide/vue'
 import { oauthAuthorize, oauthAuthorizeInfo, type OAuthAuthorizeRequest } from '~/shared/api/generated'
 import { isApiError } from '~/shared/api/client'
 import { useApiClient } from '~/shared/api/useResource'
@@ -114,7 +142,7 @@ import AppAuthShell from '~/shared/components/layout/AppAuthShell.vue'
 const route = useRoute()
 const client = useApiClient()
 const toast = useToast()
-const { user } = useSession()
+const { user, logout } = useSession()
 
 const param = (name: string) => {
   const value = route.query[name]
@@ -150,9 +178,25 @@ const invalid = computed(() => {
   return (typeof code === 'string' && ERRORS[code]) || 'Проверьте соединение и начните подключение в приложении заново'
 })
 
-const accountName = computed(
-  () => `${user.value?.first_name ?? ''} ${user.value?.last_name ?? ''}`.trim() || user.value?.email || '',
-)
+const accountName = computed(() => userDisplayName(user.value))
+// Client-only route: the origin the person typed into the app, as they would recognize it.
+const serverAddress = import.meta.client ? window.location.host : ''
+
+// Sign out and come straight back here to connect the app under another account.
+const switching = ref(false)
+const switchAccount = async () => {
+  const back = route.fullPath
+  switching.value = true
+  try {
+    await logout.mutateAsync()
+  } catch {
+    toast.error('Не удалось выйти. Попробуйте ещё раз')
+    return
+  } finally {
+    switching.value = false
+  }
+  await navigateTo({ name: 'auth', query: { redirect: back } }, { replace: true })
+}
 
 const outcome = ref<'approved' | 'denied' | null>(null)
 // `hearfolio://…` or a loopback URL the server validated: leave the page for the app. The code inside is single-use

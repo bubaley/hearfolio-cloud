@@ -27,6 +27,10 @@ export type AppButtonProps = {
   disabled?: boolean
   fluid?: boolean
   type?: 'button' | 'submit' | 'reset'
+  /** Renders a real link (`<a href>`) styled as a button: external pages, downloads, public pages. */
+  href?: string
+  /** With `href`: opens it in a new tab (`rel="noopener noreferrer"`). */
+  external?: boolean
 }
 
 const props = withDefaults(defineProps<AppButtonProps>(), {
@@ -53,6 +57,32 @@ function handleClick(event: MouseEvent) {
 
 <template>
   <Button
+    v-if="href"
+    as="a"
+    :href="href"
+    :target="external ? '_blank' : undefined"
+    :rel="external ? 'noopener noreferrer' : undefined"
+    :variant="variant"
+    :size="appButtonPrimitiveSize(controlSize)"
+    :class="appButtonExtraClasses({ variant, textVariant, fluid })"
+    @click="emit('click', $event)"
+  >
+    <AppIcon
+      v-if="icon && iconPosition === 'start'"
+      :size="appControlIconSize[controlSize]"
+      :icon="icon"
+      :class="iconClass"
+    />
+    <slot>{{ label }}</slot>
+    <AppIcon
+      v-if="icon && iconPosition === 'end'"
+      :size="appControlIconSize[controlSize]"
+      :icon="icon"
+      :class="iconClass"
+    />
+  </Button>
+  <Button
+    v-else
     :type="type"
     :variant="variant"
     :size="appButtonPrimitiveSize(controlSize)"

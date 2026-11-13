@@ -35,7 +35,7 @@
       role="img"
     />
     <span
-      v-if="item.hint"
+      v-if="item.hint && !inSheet"
       class="shrink-0 text-xs text-muted-foreground"
       >{{ item.hint }}</span
     >
@@ -44,7 +44,9 @@
 
 <script setup lang="ts">
 import { NuxtLink } from '#components'
-import type { SidebarItem } from './types'
+import { inject } from 'vue'
+import { SIDEBAR_IN_SHEET, type SidebarItem } from './types'
 
 defineProps<{ item: SidebarItem; active?: boolean }>()
+const inSheet = inject(SIDEBAR_IN_SHEET, false)
 </script>

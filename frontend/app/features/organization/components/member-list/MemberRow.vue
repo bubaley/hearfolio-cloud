@@ -66,10 +66,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{ role: [role: OrganizationRole]; remove: []; leave: [] }>()
 
-const hasName = computed(() => Boolean(`${props.member.user.first_name} ${props.member.user.last_name}`.trim()))
-const displayName = computed(() =>
-  hasName.value ? `${props.member.user.first_name} ${props.member.user.last_name}`.trim() : props.member.user.email,
-)
+const displayName = computed(() => userDisplayName(props.member.user))
+const hasName = computed(() => displayName.value !== props.member.user.email)
 const role = computed<OrganizationRole>(() => props.member.role ?? 'member')
 const roleLabel = computed(() => getRoleLabel(role.value))
 

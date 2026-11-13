@@ -30,6 +30,8 @@
   --color-ring: var(--ring);
   --color-field-hover: var(--field-hover);
   --color-row-hover: var(--row-hover);
+  --color-switch-track: var(--switch-track);
+  --color-switch-thumb: var(--switch-thumb);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);

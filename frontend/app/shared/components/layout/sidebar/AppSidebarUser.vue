@@ -30,8 +30,5 @@ import { ChevronsUpDown } from '@lucide/vue'
 import AppHeaderProfileButton from '../header/AppHeaderProfileButton.vue'
 
 const { user } = useSession()
-const displayName = computed(() => {
-  const name = [user.value?.first_name, user.value?.last_name].filter(Boolean).join(' ').trim()
-  return name || user.value?.email || 'Профиль'
-})
+const displayName = computed(() => userDisplayName(user.value) || 'Профиль')
 </script>

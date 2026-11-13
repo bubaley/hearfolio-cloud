@@ -8,6 +8,7 @@ from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
 from app.domains.library.models import Recording, Tag, TagColor
 from app.domains.library.services.realtime import LibraryRealtime
+from app.domains.library.services.visibility import LibraryVisibility
 from app.domains.organization.services.organization_service import OrganizationService
 from app.domains.user.models import User
 
@@ -16,6 +17,19 @@ TAG_NAME_MAX_LENGTH = 64
 
 class TagService:
     """Tags are shared by the organization: any member creates them, org admins rename, recolor, merge and delete."""
+
+    @staticmethod
+    async def usage(user: User, organization_id: UUID) -> dict[UUID, int]:
+        """Recordings per tag among the ones the user can see (tags without any are absent)."""
+        rows = await (
+            LibraryVisibility.recordings(user, organization_id)
+            .filter(tags__id__isnull=False)
+            .values_list('id', 'tags__id')
+        )
+        counts: dict[UUID, set[UUID]] = {}
+        for recording_id, tag_id in rows:
+            counts.setdefault(tag_id, set()).add(recording_id)
+        return {tag_id: len(recordings) for tag_id, recordings in counts.items()}
 
     @staticmethod
     def normalize_name(name: str) -> str:

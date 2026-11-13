@@ -327,7 +327,10 @@ import ProjectListView from '~/features/project/views/ProjectListView.vue'
 
 **App shell** — `shared/components/layout/AppLayout.vue` is a Notion-style sidebar shell: a fixed sidebar on `md+`
 (hidden with its own button; `useSidebar().collapsed` is kept in the `sidebar-collapsed` cookie), a sheet (`AppDrawer
-overlay`) on phones opened from a slim top bar, and the page in `<main>`. Layouts fill its slots and may import
+overlay`) on phones opened from a slim top bar, and the page in `<main id="main-content">` (the only `<main>`:
+`AppPage` bodies are plain regions), reached by the «Перейти к содержимому» skip link. In the sheet `AppSidebar`
+gets `sheet`: a ✕ instead of «Скрыть боковую панель» and no keyboard hints on items. `app.vue` mounts a
+`NuxtLoadingIndicator` in `--primary`; `app/error.vue` is the Russian 404/500 page. Layouts fill its slots and may import
 features (the architecture guard forbids it only for `shared/**`): `sidebar-header` (organization switcher or «Назад»),
 `sidebar` (`AppSidebarNav` with `SidebarSection[]`: optional title, items `{ to, label, icon, hint }`, a heading
 `action` such as «+», an `empty` text), `sidebar-footer` (settings link, `AppSidebarUser`) and `topbar` (what the top
@@ -488,10 +491,27 @@ Automated checks do not replace a browser pass. For a UI change, open `/ui` and 
 | `icon` / `icon-position` | A Lucide component; `start` or `end` |
 | `text-variant` | `base` or `muted` (muted until hover/focus) |
 | `loading`, `disabled`, `fluid`, `to` | State, full width, router navigation |
+| `href`, `external` | A real link (`<a href>`) styled as a button: public pages, downloads, external sites; `external` opens a new tab with `rel="noopener noreferrer"` |
 
 Icon-only buttons need `aria-label` (or `title`); dev builds warn when it is missing. Geometry comes from the
 size tokens through cva classes (`appButtonPrimitiveSize` maps `md` to the shadcn `default`); never set it with
 inline styles. PrimeVue-era props (`severity`, `text`, `outlined`, `iconPos`, `small`/`large`) are gone.
+
+### Dialogs, settings column, switches
+
+- **Dialog buttons** have one layout, enforced by `AppModal`'s footer (`AppModalFooter` provides `IN_MODAL_FOOTER`):
+  on phones the buttons stack full-width with the primary on top, from `sm` they sit right-aligned at their natural
+  width, cancel first. `AppTemplateActions` inside the footer follows it and ignores `full-width`/`fluid`; plain
+  `AppButton`s in the footer get it from the flex layout. List cancel first, the primary last; do not add your own
+  wrappers or width classes.
+- **Settings column**: `layouts/settings.vue` provides `PAGE_CONTAINER_CLASS` (`max-w-3xl`); `AppPage` centers its
+  header, controls, body and footer in it, so header actions stay at the content's edge on wide screens. Settings
+  views do not set their own max width. Page header buttons are 44 px tall on phones (`PageHeader`).
+- **Switch**: off is a light knob on a muted track (`--switch-track`, `--switch-thumb` in both themes), on is the
+  brand color. A switch without a visible `<label>` gets `aria-label`.
+- **Empty states** speak human: pass `empty-text` to lists (`AppTable`/`AppList` default «Здесь пока пусто»).
+- **Avatars and names**: always `userDisplayName(user)` («Имя Фамилия», else the email) for both the text and
+  `AppAvatar :name`, so initials match everywhere.
 
 `AppTable` defaults to `variant="default"`: transparent header, no outer border or
 rounded corners; row separators remain. `variant="outline"` adds the border,
