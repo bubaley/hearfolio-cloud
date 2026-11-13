@@ -22,7 +22,7 @@
   </AppMenu>
 </template>
 <script setup lang="ts">
-import { LogOut, User } from '@lucide/vue'
+import { LogOut, Settings, User } from '@lucide/vue'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
 
 withDefaults(defineProps<{ align?: 'start' | 'center' | 'end'; side?: 'top' | 'right' | 'bottom' | 'left' }>(), {
@@ -40,7 +40,15 @@ const actions: AppMenuAction[] = [
     },
   },
   {
+    label: 'Настройки',
+    icon: Settings,
+    action: async () => {
+      await navigateTo({ name: 'settings' })
+    },
+  },
+  {
     label: 'Выйти',
+    separatorBefore: true,
     icon: LogOut,
     action: async () => {
       try {

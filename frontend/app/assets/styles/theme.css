@@ -10,9 +10,9 @@
 :root {
   color-scheme: light;
 
-  /* Rem base: 87.5% = 14px with the default browser setting and still follows the user's font-size preference.
-     All Tailwind spacing and type utilities are rem-based, so this one value scales the whole UI. */
-  --font-size-root: 87.5%;
+  /* Rem base: 93.75% = 15px with the default browser setting (text-sm ≈ 13px) and still follows the user's
+     font-size preference. All Tailwind spacing and type utilities are rem-based, so this one value scales the whole UI. */
+  --font-size-root: 93.75%;
   --app-font-sans: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 
   /* Surfaces and text. Hearfolio: white page, a slightly tinted sidebar (Notion-like). */
@@ -90,7 +90,7 @@
   --tag-red-foreground: #7a2420;
 
   /* Elevation and stacking. Overlays above 1000 are ordered at runtime by useOverlayStack. */
-  --overlay-shadow: 0 16px 40px rgb(0 0 0 / 40%), 0 2px 8px rgb(0 0 0 / 28%);
+  --overlay-shadow: 0 6px 16px -4px rgb(16 24 40 / 12%), 0 2px 4px -2px rgb(16 24 40 / 8%);
   --z-overlay: 1000;
 
   /* Radius scale, derived from one value */
@@ -128,6 +128,9 @@
   --row-hover: #22232a;
   --switch-track: #474a56;
   --switch-thumb: #e4e5ea;
+
+  /* Dark surfaces need a denser shadow to read as raised, still far from a floating slab. */
+  --overlay-shadow: 0 8px 20px -6px rgb(0 0 0 / 50%), 0 2px 6px -2px rgb(0 0 0 / 35%);
 
   --primary: #edeef2;
   --primary-foreground: #111215;

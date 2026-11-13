@@ -72,11 +72,10 @@ watch(model, () => void nextTick(resize))
         :rows="rows || (autoGrow ? 1 : 3)"
         :class="[
           // Height is controlled by `rows` / autoGrow, not by CSS field sizing.
-          '[field-sizing:fixed] min-h-24 resize-y bg-background text-sm text-foreground shadow-sm focus-visible:ring-2 focus-visible:ring-ring/30 md:text-sm dark:bg-background',
+          '[field-sizing:fixed] min-h-24 resize-y bg-background text-sm text-foreground shadow-xs md:text-sm dark:bg-background',
           autoGrow && 'min-h-0 resize-none overflow-hidden',
-          variant === 'ghost' &&
-            'border-transparent bg-transparent shadow-none hover:border-border focus-visible:border-ring',
-          error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30',
+          variant === 'ghost' && 'border-transparent bg-transparent shadow-none hover:border-border focus:border-ring',
+          error && 'border-destructive focus:border-destructive',
         ]"
         @input="resize"
       />

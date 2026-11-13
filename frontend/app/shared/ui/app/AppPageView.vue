@@ -3,7 +3,7 @@ import PageHeader from '../template/PageHeader.vue'
 import type { AppSectionProps } from './AppSection.vue'
 
 export type AppPageViewProps = AppSectionProps & { contentClass?: string }
-withDefaults(defineProps<AppPageViewProps>(), { contentClass: 'p-3 md:p-4' })
+withDefaults(defineProps<AppPageViewProps>(), { contentClass: 'p-4' })
 </script>
 <template>
   <AppPage :content-class="contentClass">

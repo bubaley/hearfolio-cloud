@@ -8,28 +8,15 @@
     "
     content-class="px-4 pb-10"
   >
+    <template #actions>
+      <AppButton
+        size="sm"
+        label="Новый тег"
+        :icon="Plus"
+        @click="createOpen = true"
+      />
+    </template>
     <div class="flex flex-col gap-4 pt-2">
-      <form
-        class="flex items-end gap-2"
-        @submit.prevent="createState.execute"
-      >
-        <TagColorPicker v-model="newColor" />
-        <AppInput
-          v-model="newName"
-          label="Новый тег"
-          placeholder="Название"
-          maxlength="64"
-          class="min-w-0 flex-1 sm:max-w-xs"
-        />
-        <AppButton
-          type="submit"
-          label="Создать"
-          :icon="Plus"
-          :loading="createState.loading.value"
-          :disabled="!newName.trim()"
-        />
-      </form>
-
       <AppInput
         v-if="items.length > 10 || search"
         v-model="search"
@@ -89,6 +76,7 @@
       </div>
     </div>
 
+    <TagCreateModal v-model="createOpen" />
     <TagMergeModal
       v-model="mergeOpen"
       :source="mergeSource"
@@ -116,7 +104,7 @@ import { invalidateResource, useApiClient, useResourceList, useResourceMutations
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { tagResource, type Tag, type TagColor } from '../resources/tag'
 import { tagErrorMessage } from '../composables/tagColors'
-import TagColorPicker from '../components/TagColorPicker.vue'
+import TagCreateModal from '../components/TagCreateModal.vue'
 import TagMergeModal from '../components/TagMergeModal.vue'
 import TagRow from '../components/TagRow.vue'
 import { useTagUsage } from '../composables/useTagUsage'
@@ -149,20 +137,7 @@ const visible = computed(() => {
   return query ? sorted.filter((tag) => tag.name.toLowerCase().includes(query)) : sorted
 })
 
-const newName = ref('')
-const newColor = ref<TagColor | null>(null)
-const createState = useActionState(async () => {
-  if (!newName.value.trim()) return
-  try {
-    await save.mutateAsync({ id: null, name: newName.value, color: newColor.value })
-  } catch (reason) {
-    toast.error(tagErrorMessage(reason, 'Не удалось создать тег'))
-    return
-  }
-  toast.default('Тег создан')
-  newName.value = ''
-  newColor.value = null
-})
+const createOpen = ref(false)
 
 const busyId = ref<string | null>(null)
 const updateTag = async (tag: Tag, changes: { name?: string; color?: TagColor }) => {

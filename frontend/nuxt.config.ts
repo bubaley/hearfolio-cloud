@@ -37,6 +37,11 @@ export default defineNuxtConfig({
   app: {
     head: {
       script: [{ innerHTML: paletteHeadScript, tagPosition: 'head' }],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ],
     },
   },
   components: [

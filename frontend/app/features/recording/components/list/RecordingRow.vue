@@ -140,13 +140,15 @@
       <!-- Wide lists: properties in fixed columns to the right, like a Notion database list. The breakpoints are
            container queries on the list (`@container` in RecordingList), so the sidebar and the project page width count. -->
       <div class="hidden shrink-0 items-center gap-3 text-xs text-muted-foreground @3xl:flex">
-        <div class="flex w-28 items-center justify-end gap-1 overflow-hidden @5xl:w-44">
+        <!-- Chips shrink and truncate from the right; with `justify-end` an overflow would cut their start. -->
+        <div class="flex w-28 min-w-0 items-center justify-end gap-1 @5xl:w-44">
           <TagChip
             v-for="tag in recording.tags.slice(0, 2)"
             :key="tag.id"
             :name="tag.name"
             :color="tag.color"
-            class="max-w-28 shrink-0"
+            :title="tag.name"
+            class="max-w-28 min-w-0 shrink"
           />
           <span
             v-if="recording.tags.length > 2"
@@ -175,7 +177,7 @@
           </template>
         </span>
         <span
-          class="w-16 text-right tabular-nums"
+          class="w-20 text-right whitespace-nowrap tabular-nums"
           :title="recording.duration_ms ? `Длительность ${formatDuration(recording.duration_ms)}` : undefined"
           >{{ recording.duration_ms ? formatDuration(recording.duration_ms) : '' }}</span
         >

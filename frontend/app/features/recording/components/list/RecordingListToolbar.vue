@@ -24,7 +24,7 @@
     <!-- Phones scroll the filters sideways instead of wrapping them into a wall of controls. -->
     <div
       v-if="!trash"
-      class="-mx-3 flex min-w-0 [scrollbar-width:none] items-center gap-1.5 overflow-x-auto px-3 pb-0.5 @3xl:mx-0 @3xl:flex-1 @3xl:px-0 @3xl:pb-0"
+      class="-mx-3 -my-1 flex min-w-0 [scrollbar-width:none] items-center gap-1.5 overflow-x-auto px-3 py-1 @3xl:mx-0 @3xl:flex-1 @3xl:px-0"
     >
       <AppSelect
         v-if="!hidden.includes('project_id')"

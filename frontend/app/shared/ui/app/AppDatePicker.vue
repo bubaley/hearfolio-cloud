@@ -183,7 +183,7 @@ const width = computed(
           :aria-label="label || (locale === 'en' ? 'Choose date' : 'Выбор даты')"
           :side-offset="6"
           :collision-padding="12"
-          class="max-h-[min(90dvh,var(--reka-popover-content-available-height))] w-auto max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border-0 bg-transparent p-0 shadow-xl"
+          class="max-h-[min(90dvh,var(--reka-popover-content-available-height))] w-auto max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border-0 bg-transparent p-0 shadow-overlay"
           :style="{ width: `${width}px`, ...overlayStyle }"
         >
           <PickerPanel

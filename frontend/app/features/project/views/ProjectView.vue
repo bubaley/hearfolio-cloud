@@ -1,157 +1,174 @@
 <template>
-  <AppPageView content-class="px-4 pb-16 md:px-10">
-    <div
-      v-if="isLoading && !project"
-      class="mx-auto flex w-full max-w-4xl flex-col gap-4 pt-10"
-      aria-label="Загрузка"
+  <AppDocumentPage>
+    <template
+      v-if="!project"
+      #state
     >
-      <AppSkeleton class="size-14 rounded-lg" />
-      <AppSkeleton class="h-9 max-w-md" />
-      <AppSkeleton class="h-4 max-w-sm" />
-    </div>
-
-    <div
-      v-else-if="!project"
-      class="flex min-h-[60vh] items-center justify-center"
-    >
-      <div class="max-w-sm">
-        <AppResultState
-          :icon="notFound ? FolderX : CircleAlert"
-          :tone="notFound ? 'muted' : 'destructive'"
-          :title="notFound ? 'Проект не найден' : 'Не удалось загрузить проект'"
-          :description="
-            notFound
-              ? 'Его удалили, или это приватный проект, в котором вас нет'
-              : 'Проверьте соединение и попробуйте ещё раз'
-          "
-        >
-          <template #actions>
-            <AppButton
-              v-if="!notFound"
-              label="Повторить"
-              :icon="RotateCw"
-              @click="refetch()"
-            />
-            <AppButton
-              variant="ghost"
-              text-variant="muted"
-              label="Все записи"
-              :to="{ name: 'recordings' }"
-            />
-          </template>
-        </AppResultState>
+      <div
+        v-if="isLoading"
+        class="mx-auto flex w-full max-w-5xl flex-col gap-4 pt-10"
+        aria-label="Загрузка"
+      >
+        <AppSkeleton class="size-14 rounded-lg" />
+        <AppSkeleton class="h-9 max-w-md" />
+        <AppSkeleton class="h-4 max-w-sm" />
       </div>
-    </div>
 
-    <article
-      v-else
-      class="mx-auto flex w-full max-w-4xl flex-col gap-8 pt-8 md:pt-14"
-    >
-      <header class="flex flex-col gap-3">
-        <div class="flex items-start justify-between gap-2">
-          <AppEmojiPicker
-            v-if="canEdit"
-            :model-value="project.emoji"
-            label="Иконка проекта"
-            @update:model-value="(emoji) => patch({ emoji }, 'Не удалось сменить иконку')"
+      <div
+        v-else
+        class="flex min-h-[60vh] items-center justify-center"
+      >
+        <div class="max-w-sm">
+          <AppResultState
+            :icon="notFound ? FolderX : CircleAlert"
+            :tone="notFound ? 'muted' : 'destructive'"
+            :title="notFound ? 'Проект не найден' : 'Не удалось загрузить проект'"
+            :description="
+              notFound
+                ? 'Его удалили, или это приватный проект, в котором вас нет'
+                : 'Проверьте соединение и попробуйте ещё раз'
+            "
           >
-            <template #trigger>
-              <button
-                type="button"
-                class="-ml-1 rounded-lg p-1 outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Сменить иконку проекта"
-                title="Сменить иконку"
-              >
-                <ProjectIcon
-                  :emoji="project.emoji"
-                  size="lg"
-                />
-              </button>
-            </template>
-          </AppEmojiPicker>
-          <ProjectIcon
-            v-else
-            :emoji="project.emoji"
-            size="lg"
-          />
-          <AppMenu
-            v-if="menuActions.some((action) => !action.hidden)"
-            :actions="menuActions"
-            content-class="w-60"
-          >
-            <template #trigger>
+            <template #actions>
+              <AppButton
+                v-if="!notFound"
+                label="Повторить"
+                :icon="RotateCw"
+                @click="refetch()"
+              />
               <AppButton
                 variant="ghost"
-                size="icon"
                 text-variant="muted"
-                class="size-11 md:size-control-md"
-                :icon="Ellipsis"
-                aria-label="Действия с проектом"
+                label="Все записи"
+                :to="{ name: 'recordings' }"
               />
             </template>
-          </AppMenu>
+          </AppResultState>
         </div>
+      </div>
+    </template>
 
-        <h1 class="text-3xl leading-tight font-bold tracking-tight">
-          <ProjectInlineText
-            :value="project.name"
-            :editable="canEdit"
-            label="Название проекта"
-            placeholder="Без названия"
-            :maxlength="255"
-            required
-            as="span"
-            @save="(name) => patch({ name }, 'Не удалось переименовать проект')"
-          />
-        </h1>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <AppBadge
-            :label="project.is_private ? 'Приватный' : 'Общий'"
-            :icon="project.is_private ? Lock : Globe"
-            :tone="project.is_private ? 'warning' : 'muted'"
-          />
-          <AppBadge
-            v-if="project.archived_at"
-            label="В архиве"
-            :icon="Archive"
-            tone="muted"
-            variant="outline"
-          />
+    <template
+      v-if="project"
+      #icon
+    >
+      <AppEmojiPicker
+        v-if="canEdit"
+        :model-value="project.emoji"
+        label="Иконка проекта"
+        @update:model-value="(emoji) => patch({ emoji }, 'Не удалось сменить иконку')"
+      >
+        <template #trigger>
           <button
-            v-if="project.is_private"
             type="button"
-            class="flex min-h-11 items-center gap-2 rounded-md px-1.5 text-sm text-muted-foreground outline-none hover:bg-field-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
-            :aria-label="`Участники проекта: ${project.members.length}`"
-            @click="dialog = 'members'"
+            class="-ml-1 rounded-lg p-1 outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Сменить иконку проекта"
+            title="Сменить иконку"
           >
-            <span class="flex -space-x-1.5">
-              <AppAvatar
-                v-for="member in project.members.slice(0, 5)"
-                :key="member.user_id"
-                :name="userDisplayName(member.user)"
-                size="small"
-                variant="soft"
-                class="ring-2 ring-background"
-              />
-            </span>
-            <span>{{ membersLabel }}</span>
+            <ProjectIcon
+              :emoji="project.emoji"
+              size="lg"
+            />
           </button>
-        </div>
+        </template>
+      </AppEmojiPicker>
+      <ProjectIcon
+        v-else
+        :emoji="project.emoji"
+        size="lg"
+      />
+    </template>
 
-        <div class="text-base text-muted-foreground">
-          <ProjectInlineText
-            :value="project.description"
-            :editable="canEdit"
-            label="Описание проекта"
-            placeholder="Добавьте описание…"
-            multiline
-            :maxlength="2000"
-            @save="(description) => patch({ description }, 'Не удалось сохранить описание')"
+    <template
+      v-if="project && menuActions.some((action) => !action.hidden)"
+      #actions
+    >
+      <AppMenu
+        :actions="menuActions"
+        content-class="w-60"
+      >
+        <template #trigger>
+          <AppButton
+            variant="ghost"
+            size="icon"
+            text-variant="muted"
+            class="size-11 md:size-control-md"
+            :icon="Ellipsis"
+            aria-label="Действия с проектом"
           />
-        </div>
-      </header>
+        </template>
+      </AppMenu>
+    </template>
 
+    <template
+      v-if="project"
+      #title
+    >
+      <ProjectInlineText
+        :value="project.name"
+        :editable="canEdit"
+        label="Название проекта"
+        placeholder="Без названия"
+        :maxlength="255"
+        required
+        as="span"
+        @save="(name) => patch({ name }, 'Не удалось переименовать проект')"
+      />
+    </template>
+
+    <template
+      v-if="project"
+      #meta
+    >
+      <AppBadge
+        :label="project.is_private ? 'Приватный' : 'Общий'"
+        :icon="project.is_private ? Lock : Globe"
+        :tone="project.is_private ? 'warning' : 'muted'"
+      />
+      <AppBadge
+        v-if="project.archived_at"
+        label="В архиве"
+        :icon="Archive"
+        tone="muted"
+        variant="outline"
+      />
+      <button
+        v-if="project.is_private"
+        type="button"
+        class="flex min-h-11 items-center gap-2 rounded-md px-1.5 text-sm text-muted-foreground outline-none hover:bg-field-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
+        :aria-label="`Участники проекта: ${project.members.length}`"
+        @click="dialog = 'members'"
+      >
+        <span class="flex -space-x-1.5">
+          <AppAvatar
+            v-for="member in project.members.slice(0, 5)"
+            :key="member.user_id"
+            :name="userDisplayName(member.user)"
+            size="small"
+            variant="soft"
+            class="ring-2 ring-background"
+          />
+        </span>
+        <span>{{ membersLabel }}</span>
+      </button>
+    </template>
+
+    <template
+      v-if="project"
+      #description
+    >
+      <ProjectInlineText
+        :value="project.description"
+        :editable="canEdit"
+        label="Описание проекта"
+        placeholder="Добавьте описание…"
+        multiline
+        :maxlength="2000"
+        @save="(description) => patch({ description }, 'Не удалось сохранить описание')"
+      />
+    </template>
+
+    <template v-if="project">
       <AppAlert
         v-if="project.archived_at"
         tone="info"
@@ -202,14 +219,14 @@
         :project-id="project.id"
         :can-upload="!project.archived_at"
       />
-    </article>
+    </template>
 
     <ProjectDialogs
       v-model="dialog"
       :project="project ?? null"
       @deleted="navigateTo({ name: 'recordings' }, { replace: true })"
     />
-  </AppPageView>
+  </AppDocumentPage>
 </template>
 
 <script setup lang="ts">

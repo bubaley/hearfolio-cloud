@@ -1,12 +1,14 @@
 <template>
-  <AppPageView
+  <AppDocumentPage
     :title="screen.title"
     :description="screen.description"
-    content-class="p-0"
+    :icon="screen.icon"
   >
+    <!-- The list brings its own gutters (sticky toolbar, row hover); pull it to the column edges. -->
     <RecordingList
       :key="scope"
       :fixed="screen.fixed"
+      class="-mx-3 md:-mx-4"
     >
       <template
         v-if="isAdmin && scope === 'all'"
@@ -28,11 +30,12 @@
         />
       </template>
     </RecordingList>
-  </AppPageView>
+  </AppDocumentPage>
 </template>
 
 <script setup lang="ts">
-import { Sparkles, UserPlus } from '@lucide/vue'
+import type { Component } from 'vue'
+import { AudioLines, Lock, Sparkles, Trash2, UserPlus } from '@lucide/vue'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import type { RecordingFilters } from '../resources/recording'
 import { daysLabel, useTrashDays } from '../composables/useRecordingMutations'
@@ -48,16 +51,22 @@ const organizationName = computed(() => setupStore.state.organization?.name ?? '
 const scope = computed(() =>
   route.query.deleted === '1' ? 'trash' : route.query.personal === '1' ? 'personal' : 'all',
 )
-const screen = computed<{ title: string; description: string; fixed: RecordingFilters }>(() => {
+const screen = computed<{ title: string; description: string; icon: Component; fixed: RecordingFilters }>(() => {
   if (scope.value === 'trash')
     return {
       title: 'Корзина',
       description: `Удалённые записи можно восстановить в течение ${daysLabel(trashDays.value)}, потом они удаляются навсегда вместе с аудио`,
+      icon: Trash2,
       fixed: { deleted: true },
     }
   if (scope.value === 'personal')
-    return { title: 'Личные', description: 'Записи, которые видите только вы', fixed: { personal: true } }
-  return { title: 'Все записи', description: `Записи организации «${organizationName.value}»`, fixed: {} }
+    return { title: 'Личные', description: 'Записи, которые видите только вы', icon: Lock, fixed: { personal: true } }
+  return {
+    title: 'Все записи',
+    description: `Записи организации «${organizationName.value}»`,
+    icon: AudioLines,
+    fixed: {},
+  }
 })
 
 useHead({ title: () => screen.value.title })

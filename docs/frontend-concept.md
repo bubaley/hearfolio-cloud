@@ -371,7 +371,7 @@ Feature label maps: a composable like `composables/useProjectLabels.ts` (`LabelC
 
 ## Notifications and checks
 
-Use `useToast()` with `toast.default` for ordinary confirmations. `useNotify` is removed. `AppToaster` is mounted once at application level; errors can use `toast.error`.
+Use `useToast()` with `toast.default` for ordinary confirmations. `useNotify` is removed. `AppToaster` is mounted once at application level; errors can use `toast.error`. Its classes carry `!` because vue-sonner's stylesheet is unlayered and would otherwise beat Tailwind utilities (compact toast, close button inside the top-right corner, as in Tasker).
 
 ```ts
 const toast = useToast()
@@ -430,8 +430,10 @@ All design values live in `app/assets/styles/theme.css`; there is no SCSS.
   `shared/ui/app/types/control.ts`.
 - `cn()` (`shared/lib/utils.ts`) extends tailwind-merge with the custom scales; register new scales there or
   merges will drop classes.
-- Rem base: `--font-size-root: 87.5%` (14px by default, still following the user's browser font size). Every
-  Tailwind spacing and type utility is rem-based, so this keeps the dense look without a custom spacing scale.
+- Rem base: `--font-size-root: 93.75%` (15px by default, so `text-sm` ≈ 13px, still following the user's browser
+  font size). Every Tailwind spacing and type utility is rem-based, so this one value scales the whole UI.
+- Fields: inputs, textareas and select triggers share `shadow-xs`; focus only recolors the border (`border-ring`),
+  no focus ring. Overlays (menus, popovers, select lists, date picker) use `shadow-overlay`, a soft shadow.
 - Font: Inter (variable) is self-hosted via `@fontsource-variable/inter` (imported in `app.vue`); the stack in
   `--app-font-sans` prefers the system UI font on Apple platforms.
 
@@ -504,9 +506,13 @@ inline styles. PrimeVue-era props (`severity`, `text`, `outlined`, `iconPos`, `s
   width, cancel first. `AppTemplateActions` inside the footer follows it and ignores `full-width`/`fluid`; plain
   `AppButton`s in the footer get it from the flex layout. List cancel first, the primary last; do not add your own
   wrappers or width classes.
-- **Settings column**: `layouts/settings.vue` provides `PAGE_CONTAINER_CLASS` (`max-w-3xl`); `AppPage` centers its
-  header, controls, body and footer in it, so header actions stay at the content's edge on wide screens. Settings
-  views do not set their own max width. Page header buttons are 44 px tall on phones (`PageHeader`).
+- **Settings column**: `layouts/settings.vue` provides `PAGE_CONTAINER_CLASS` (`max-w-5xl`); `AppPage` centers its
+  header, controls, body and footer in it with the gutter (`px-4`) outside the container and `PageHeader` dropping its
+  own padding there, so the title and header actions share the content's edge. Settings views pass
+  `content-class="px-4 pb-10"` and do not set their own max width.
+- **Document pages**: `AppDocumentPage` (`shared/ui/template`) is the Notion-like page — large icon, actions on the
+  right, a big title, `meta` badges, a description, then content in a `max-w-5xl` column; a `state` slot replaces it
+  for loading/not-found. The project page and «Все записи» / «Личные» / «Корзина» use it. Page header buttons are 44 px tall on phones (`PageHeader`).
 - **Switch**: off is a light knob on a muted track (`--switch-track`, `--switch-thumb` in both themes), on is the
   brand color. A switch without a visible `<label>` gets `aria-label`.
 - **Empty states** speak human: pass `empty-text` to lists (`AppTable`/`AppList` default «Здесь пока пусто»).

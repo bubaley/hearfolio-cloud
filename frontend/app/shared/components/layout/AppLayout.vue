@@ -8,7 +8,7 @@
     >
     <aside
       v-show="!collapsed"
-      class="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:flex lg:w-64"
+      class="hidden w-[264px] shrink-0 border-r border-sidebar-border bg-sidebar md:flex lg:w-[280px]"
       aria-label="Боковая панель"
     >
       <AppSidebar
@@ -29,7 +29,7 @@
       v-model="mobileOpen"
       overlay
       side="left"
-      :width="296"
+      :width="320"
       :closeable="false"
       title="Навигация"
       content-class="p-0"

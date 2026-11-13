@@ -1,15 +1,25 @@
 <template>
-  <div class="flex items-center text-muted-foreground transition-colors hover:text-foreground">
-    <Flame
-      :size="24"
+  <div class="flex items-center text-foreground">
+    <!-- The Hearfolio mark, as in the desktop app: a sound wave on a rounded square that inverts with the theme. -->
+    <span
+      class="grid size-[26px] shrink-0 place-items-center rounded-[7px] bg-foreground text-background"
       aria-hidden="true"
-    />
-    <div class="ml-1.5 text-sm font-semibold sm:text-lg">{{ name }}</div>
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        class="size-[17px]"
+      >
+        <path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4" />
+      </svg>
+    </span>
+    <div class="ml-2 text-sm font-semibold sm:text-lg">{{ name }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Flame } from '@lucide/vue'
-
 const { name } = useAppConfig()
 </script>

@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { inject } from 'vue'
+import { PAGE_CONTAINER_CLASS } from '../app/pageContainer'
+
 withDefaults(
   defineProps<{ title?: string; titleSize?: TitleSizeToken; description?: string; backAction?: () => void }>(),
   { titleSize: 'xl' },
 )
+// Inside a layout container AppPage already pads around it; a second gutter would shift the title off the content.
+const inContainer = Boolean(inject(PAGE_CONTAINER_CLASS, ''))
 </script>
 <template>
-  <header class="flex min-h-12 w-full flex-wrap items-center gap-3 px-4 py-3">
+  <header
+    class="flex min-h-12 w-full flex-wrap items-center gap-3 py-3"
+    :class="inContainer ? 'px-0' : 'px-4'"
+  >
     <AppBackButton
       v-if="backAction"
       :back-action="backAction"

@@ -13,11 +13,13 @@ const container = containerClass ? ['mx-auto w-full', containerClass] : undefine
 
 <template>
   <section class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
+    <!-- With a container the gutter sits outside it (as around the body), so header and content share one edge. -->
     <div
       v-if="title || $slots.header"
       class="shrink-0"
+      :class="container && 'px-4'"
     >
-      <div :class="[container, title && 'flex min-h-[40px] items-center gap-3 px-3']">
+      <div :class="[container, title && 'flex min-h-[40px] items-center gap-3', title && !container && 'px-3']">
         <h1
           v-if="title"
           class="m-0 min-w-0 flex-1 text-lg font-semibold tracking-tight"
@@ -29,7 +31,8 @@ const container = containerClass ? ['mx-auto w-full', containerClass] : undefine
     </div>
     <div
       v-if="$slots.subheader"
-      class="shrink-0 px-3"
+      class="shrink-0"
+      :class="container ? 'px-4' : 'px-3'"
     >
       <div :class="container">
         <slot name="subheader" />
@@ -38,7 +41,8 @@ const container = containerClass ? ['mx-auto w-full', containerClass] : undefine
     <Separator v-if="title || $slots.header || $slots.subheader" />
     <div
       v-if="$slots.controls"
-      class="shrink-0 px-3"
+      class="shrink-0"
+      :class="container ? 'px-4' : 'px-3'"
     >
       <div :class="container">
         <slot name="controls" />

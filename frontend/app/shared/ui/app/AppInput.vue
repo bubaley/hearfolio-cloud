@@ -112,7 +112,7 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
             variant === 'secondary' &&
               'border-transparent bg-secondary text-secondary-foreground shadow-none enabled:hover:bg-accent',
             variant === 'ghost' && 'border-transparent bg-transparent shadow-none',
-            error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30',
+            error && 'border-destructive focus:border-destructive',
           ]"
         />
         <span

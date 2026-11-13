@@ -252,8 +252,13 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                 ? 'group border border-transparent hover:bg-field-hover'
                 : variant === 'secondary'
                   ? 'group border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-accent'
-                  : 'group border border-input bg-background shadow-sm hover:bg-field-hover',
+                  : [
+                      'group border bg-background shadow-xs hover:bg-field-hover',
+                      open ? 'border-ring' : 'border-input',
+                    ],
               variant === 'active-outline' && activeOutlineClasses,
+              // Focus only recolors the border, like AppInput.
+              'has-[[data-select-button]:focus-visible]:border-ring',
               error && 'border-destructive',
               disabled && 'opacity-50',
             ]"
@@ -269,7 +274,8 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                 :aria-describedby="[field.describedBy, `${field.id}-value`].filter(Boolean).join(' ')"
                 :aria-invalid="Boolean(error) || undefined"
                 :aria-required="required || undefined"
-                class="absolute inset-0 w-full cursor-pointer rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                data-select-button
+                class="absolute inset-0 w-full cursor-pointer rounded-[inherit] outline-none disabled:cursor-not-allowed"
                 @keydown="onTriggerKey"
               />
             </ComboboxTrigger>

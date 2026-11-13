@@ -23,7 +23,6 @@
       <AppSidebarNav :sections="sections" />
     </template>
     <template #sidebar-footer>
-      <AppSidebarLink :item="{ to: { name: 'settings' }, label: 'Настройки', icon: Settings }" />
       <AppSidebarUser />
     </template>
     <slot />
@@ -35,9 +34,8 @@
 </template>
 
 <script setup lang="ts">
-import { Search, Settings } from '@lucide/vue'
+import { Search } from '@lucide/vue'
 import AppLayout from '~/shared/components/layout/AppLayout.vue'
-import AppSidebarLink from '~/shared/components/layout/sidebar/AppSidebarLink.vue'
 import AppSidebarNav from '~/shared/components/layout/sidebar/AppSidebarNav.vue'
 import AppSidebarUser from '~/shared/components/layout/sidebar/AppSidebarUser.vue'
 import type { SidebarItem, SidebarSection } from '~/shared/components/layout/sidebar/types'
