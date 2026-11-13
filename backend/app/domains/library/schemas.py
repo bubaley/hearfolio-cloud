@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from enum import StrEnum
 from typing import Any, Literal
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from app.domains.library.models import (
     TagColor,
     TitleSource,
     UploadState,
+    is_stalled_upload,
 )
 from app.domains.user.models import User
 
@@ -192,8 +194,17 @@ class RecordingReadSchema(BaseReadSchema):
     error_message: str | None
     deleted_at: datetime | None
     snippet: list[SnippetPartSchema] | None = None
+    # Set only by a search: where the first transcript segment with a match starts (null without segments or when
+    # only the title matched), so a hit can open the recording at that moment
+    snippet_start_ms: int | None = None
 
     _tags_list = field_validator('tags', mode='before')(_as_list)
+
+    @computed_field
+    @property
+    def stalled(self) -> bool:
+        """The upload has not moved for UPLOAD_STALLED_AFTER_HOURS (12 h): the app likely gave up on it."""
+        return is_stalled_upload(self.status, self.upload_state, self.updated_at)
 
 
 @schema(model=Recording)
@@ -253,6 +264,52 @@ class RecordingListQuery(BaseSchema):
     search: str | None = Field(None, max_length=200)
     # Soft-deleted recordings the caller can see (trash)
     deleted: bool = False
+    # Stalled uploads of other users are left out unless asked for (the caller always sees their own)
+    include_stalled: bool = False
+
+
+BULK_MAX_IDS = 200
+
+
+class RecordingBulkAction(StrEnum):
+    MOVE = 'move'
+    TAGS = 'tags'
+    DELETE = 'delete'
+    RESTORE = 'restore'
+
+
+class RecordingBulkSkipReason(StrEnum):
+    # Unknown, invisible to the caller, or not in the state the action needs (deleted for `restore`, live otherwise)
+    NOT_FOUND = 'not_found'
+    # Visible, but the caller may not do this to it (delete / restore: author or org admin)
+    FORBIDDEN = 'forbidden'
+
+
+class RecordingBulkSchema(BaseSchema):
+    """
+    One action over up to 200 recordings with the per-recording permissions of the single endpoints.
+    `move`: `project_id` (null takes them out of their project). `tags`: `add_tag_ids` / `remove_tag_ids`.
+    """
+
+    action: RecordingBulkAction
+    ids: list[UUID] = Field(min_length=1, max_length=BULK_MAX_IDS)
+    project_id: UUID | None = None
+    add_tag_ids: list[UUID] = Field(default_factory=list, max_length=20)
+    remove_tag_ids: list[UUID] = Field(default_factory=list, max_length=20)
+
+    model_config = ConfigDict(extra='forbid')
+
+
+class RecordingBulkSkippedSchema(BaseSchema):
+    id: UUID
+    reason: RecordingBulkSkipReason
+
+
+class RecordingBulkResultSchema(BaseSchema):
+    """`updated`: the recordings the action applied to (also those already in the wanted state)."""
+
+    updated: list[UUID]
+    skipped: list[RecordingBulkSkippedSchema]
 
 
 class UploadPartSchema(BaseSchema):

@@ -10287,7 +10287,7 @@
           "recordings"
         ],
         "summary": "List",
-        "description": "Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`.",
+        "description": "Newest first. `search` matches title and transcript; each match carries a highlighted `snippet`, the\n`snippet_start_ms` of its first matching segment, and `meta.total` counts every match.",
         "operationId": "recordings_list",
         "parameters": [
           {
@@ -10432,6 +10432,16 @@
               "type": "boolean",
               "default": false,
               "title": "Deleted"
+            }
+          },
+          {
+            "name": "include_stalled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Stalled"
             }
           },
           {
@@ -10790,6 +10800,149 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RecordingSyncSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/recordings/bulk": {
+      "post": {
+        "tags": [
+          "recordings"
+        ],
+        "summary": "Bulk",
+        "description": "`move` / `tags` / `delete` / `restore` over up to 200 recordings with the per-recording rules of the single\nendpoints; ids the caller cannot see or change come back in `skipped` with a reason.",
+        "operationId": "recordings_bulk",
+        "parameters": [
+          {
+            "name": "Organization-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Key of the active organization; required by organization-scoped endpoints.",
+              "title": "Organization-Key"
+            },
+            "description": "Key of the active organization; required by organization-scoped endpoints."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingBulkSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingBulkResultSchema"
                 }
               }
             }
@@ -13731,7 +13884,7 @@
           "well-known"
         ],
         "summary": "Hearfolio",
-        "description": "Server identity, versions, OAuth endpoints and upload limits. Public.",
+        "description": "Server identity, versions, OAuth endpoints, upload limits and trash retention. Public.",
         "operationId": "well_known_hearfolio",
         "responses": {
           "200": {
@@ -14006,6 +14159,22 @@
               }
             ],
             "title": "Summary Default Model"
+          },
+          "auto_transcribe": {
+            "type": "boolean",
+            "title": "Auto Transcribe"
+          },
+          "auto_title": {
+            "type": "boolean",
+            "title": "Auto Title"
+          },
+          "auto_tags": {
+            "type": "boolean",
+            "title": "Auto Tags"
+          },
+          "auto_project": {
+            "type": "boolean",
+            "title": "Auto Project"
           }
         },
         "type": "object",
@@ -14014,7 +14183,11 @@
           "transcription_models",
           "transcription_default_model",
           "summary_models",
-          "summary_default_model"
+          "summary_default_model",
+          "auto_transcribe",
+          "auto_title",
+          "auto_tags",
+          "auto_project"
         ],
         "title": "AIOptionsSchema",
         "description": "What members may choose; no secrets."
@@ -14126,6 +14299,10 @@
           },
           "upload": {
             "$ref": "#/components/schemas/UploadLimitsSchema"
+          },
+          "recording_purge_after_days": {
+            "type": "integer",
+            "title": "Recording Purge After Days"
           }
         },
         "type": "object",
@@ -14135,7 +14312,8 @@
           "api_version",
           "min_app_version",
           "oauth",
-          "upload"
+          "upload",
+          "recording_purge_after_days"
         ],
         "title": "HearfolioDiscoverySchema"
       },
@@ -15270,7 +15448,7 @@
             "title": "Data"
           },
           "meta": {
-            "$ref": "#/components/schemas/LightPageNumberPagination"
+            "$ref": "#/components/schemas/RecordingPagination"
           }
         },
         "type": "object",
@@ -15761,6 +15939,123 @@
         "title": "PublicShareSchema",
         "description": "Exactly what the link exposes; `audio` is a short-lived presigned URL."
       },
+      "RecordingBulkAction": {
+        "type": "string",
+        "enum": [
+          "move",
+          "tags",
+          "delete",
+          "restore"
+        ],
+        "title": "RecordingBulkAction"
+      },
+      "RecordingBulkResultSchema": {
+        "properties": {
+          "updated": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Updated"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/RecordingBulkSkippedSchema"
+            },
+            "type": "array",
+            "title": "Skipped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "updated",
+          "skipped"
+        ],
+        "title": "RecordingBulkResultSchema",
+        "description": "`updated`: the recordings the action applied to (also those already in the wanted state)."
+      },
+      "RecordingBulkSchema": {
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/RecordingBulkAction"
+          },
+          "ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Ids"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "add_tag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Add Tag Ids"
+          },
+          "remove_tag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Remove Tag Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action",
+          "ids"
+        ],
+        "title": "RecordingBulkSchema",
+        "description": "One action over up to 200 recordings with the per-recording permissions of the single endpoints.\n`move`: `project_id` (null takes them out of their project). `tags`: `add_tag_ids` / `remove_tag_ids`."
+      },
+      "RecordingBulkSkipReason": {
+        "type": "string",
+        "enum": [
+          "not_found",
+          "forbidden"
+        ],
+        "title": "RecordingBulkSkipReason"
+      },
+      "RecordingBulkSkippedSchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/RecordingBulkSkipReason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "reason"
+        ],
+        "title": "RecordingBulkSkippedSchema"
+      },
       "RecordingCreateSchema": {
         "properties": {
           "client_id": {
@@ -16155,6 +16450,17 @@
             ],
             "title": "Snippet"
           },
+          "snippet_start_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet Start Ms"
+          },
           "transcript_text": {
             "type": "string",
             "title": "Transcript Text"
@@ -16165,6 +16471,12 @@
             },
             "type": "array",
             "title": "Transcript Segments"
+          },
+          "stalled": {
+            "type": "boolean",
+            "title": "Stalled",
+            "description": "The upload has not moved for UPLOAD_STALLED_AFTER_HOURS (12 h): the app likely gave up on it.",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -16202,7 +16514,8 @@
           "error_message",
           "deleted_at",
           "transcript_text",
-          "transcript_segments"
+          "transcript_segments",
+          "stalled"
         ],
         "title": "RecordingDetailSchema"
       },
@@ -16289,6 +16602,39 @@
           "data"
         ],
         "title": "RecordingEventReadSchema"
+      },
+      "RecordingPagination": {
+        "properties": {
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "default": 100
+          },
+          "has_next": {
+            "type": "boolean",
+            "title": "Has Next",
+            "default": false
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "title": "RecordingPagination",
+        "description": "`meta.total`: the exact number of matches, counted only for a search (null otherwise; fastapi-ronin's\nPageNumberPagination calls it `total` too)."
       },
       "RecordingReadSchema": {
         "properties": {
@@ -16514,6 +16860,23 @@
               }
             ],
             "title": "Snippet"
+          },
+          "snippet_start_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet Start Ms"
+          },
+          "stalled": {
+            "type": "boolean",
+            "title": "Stalled",
+            "description": "The upload has not moved for UPLOAD_STALLED_AFTER_HOURS (12 h): the app likely gave up on it.",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -16549,7 +16912,8 @@
           "language",
           "error_code",
           "error_message",
-          "deleted_at"
+          "deleted_at",
+          "stalled"
         ],
         "title": "RecordingReadSchema",
         "description": "What the list shows. `snippet` is set only by a search: transcript fragment split into highlighted parts."
@@ -17103,6 +17467,12 @@
             "minLength": 1,
             "title": "Prompt"
           },
+          "description": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Description",
+            "default": ""
+          },
           "auto": {
             "type": "boolean",
             "title": "Auto",
@@ -17153,6 +17523,10 @@
             "type": "string",
             "title": "Prompt"
           },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
           "auto": {
             "type": "boolean",
             "title": "Auto"
@@ -17181,6 +17555,7 @@
           "updated_at",
           "name",
           "prompt",
+          "description",
           "auto",
           "position",
           "created_by_id"
@@ -17214,6 +17589,18 @@
               }
             ],
             "title": "Prompt"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "auto": {
             "anyOf": [

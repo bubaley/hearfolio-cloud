@@ -1,8 +1,74 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.domains.library.models import Recording, RecordingStatus, RecordingVisibility, Tag
+from app.domains.library.models import Recording, RecordingStatus, RecordingVisibility, Tag, UploadState
+
+
+@pytest.mark.asyncio
+async def test_search_counts_matches_and_points_at_the_first_matching_segment(api_client, library):
+    segments = [
+        {'start_ms': 0, 'end_ms': 4000, 'text': 'Which topic comes first today'},
+        {'start_ms': 4000, 'end_ms': 9000, 'text': 'Let us review the roadmap now'},
+        {'start_ms': 9000, 'end_ms': 12000, 'text': 'And the roadmap again'},
+    ]
+    hit = await library.recording(title='Planning', transcript='\n'.join(str(s['text']) for s in segments))
+    await Recording.filter(id=hit.id).update(transcript_segments=segments)
+    await library.recording(title='Roadmap in the title only')
+    await library.recording(title='Plain transcript', transcript='the roadmap without segments')
+    await library.recording(title='Nothing', transcript='lunch')
+    headers = library.h(library.member)
+
+    response = await api_client.get('/api/v1/recordings', params={'search': 'roadmap', 'page_size': 1}, headers=headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['meta']['total'] == 3
+    assert body['meta']['has_next'] is True
+    response = await api_client.get(
+        '/api/v1/recordings', params={'search': 'roadmap', 'page_size': 10}, headers=headers
+    )
+    starts = {item['title']: item['snippet_start_ms'] for item in response.json()['data']}
+    assert starts == {'Planning': 4000, 'Roadmap in the title only': None, 'Plain transcript': None}
+
+    # Without a search there is no total.
+    response = await api_client.get('/api/v1/recordings', headers=headers)
+    assert response.json()['meta']['total'] is None
+    assert all(item['snippet_start_ms'] is None for item in response.json()['data'])
+
+
+@pytest.mark.asyncio
+async def test_stalled_uploads_are_flagged_and_hidden_from_others(api_client, library):
+    stalled = await library.recording(title='Stalled')
+    fresh = await library.recording(title='Fresh upload')
+    failed = await library.recording(title='Failed upload')
+    long_ago = datetime.now(UTC) - timedelta(hours=13)
+    await Recording.filter(id=stalled.id).update(upload_state=UploadState.UPLOADING, updated_at=long_ago)
+    await Recording.filter(id=fresh.id).update(upload_state=UploadState.PENDING)
+    await Recording.filter(id=failed.id).update(upload_state=UploadState.FAILED, updated_at=long_ago)
+    await library.recording(title='Done')
+
+    async def listing(user, **params):
+        response = await api_client.get('/api/v1/recordings', params=params, headers=library.h(user))
+        assert response.status_code == 200, response.text
+        return {item['title']: item['stalled'] for item in response.json()['data']}
+
+    # The author sees the stalled upload, flagged; everyone else does not, unless they ask for it.
+    assert await listing(library.author) == {
+        'Stalled': True,
+        'Fresh upload': False,
+        'Failed upload': False,
+        'Done': False,
+    }
+    assert 'Stalled' not in await listing(library.member)
+    assert 'Stalled' not in await listing(library.admin)
+    assert (await listing(library.member, include_stalled='true'))['Stalled'] is True
+    # The detail stays reachable (and flagged) for everyone who sees it.
+    response = await api_client.get(f'/api/v1/recordings/{stalled.id}', headers=library.h(library.member))
+    assert response.json()['stalled'] is True
+
+    # Any change revives it.
+    await Recording.filter(id=stalled.id).update(updated_at=datetime.now(UTC))
+    assert (await listing(library.member))['Stalled'] is False
 
 
 @pytest.mark.asyncio

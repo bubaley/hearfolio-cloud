@@ -94,6 +94,7 @@ def summary_prompt(instruction: str, transcript: str, title: str | None = None) 
 DEFAULT_SUMMARY_TEMPLATES: tuple[dict[str, str | bool], ...] = (
     {
         'name': 'Кратко',
+        'description': 'О чём запись и главные мысли в нескольких пунктах',
         'auto': True,
         'prompt': (
             'Кратко перескажи запись. Сначала одна-две фразы: о чём шла речь и зачем. Затем 3–7 пунктов списком: '
@@ -103,6 +104,7 @@ DEFAULT_SUMMARY_TEMPLATES: tuple[dict[str, str | bool], ...] = (
     },
     {
         'name': 'Решения и договорённости',
+        'description': 'Что решили, кто отвечает и какие вопросы остались открытыми',
         'auto': False,
         'prompt': (
             'Выпиши все решения и договорённости из записи списком. Для каждого пункта: что решили; кто отвечает '
@@ -112,6 +114,7 @@ DEFAULT_SUMMARY_TEMPLATES: tuple[dict[str, str | bool], ...] = (
     },
     {
         'name': 'Задачи и ответственные',
+        'description': 'Чек-лист задач со сроками, сгруппированный по ответственным',
         'auto': False,
         'prompt': (
             'Составь список задач из записи в виде чек-листа Markdown («- [ ] задача»). Для каждой задачи укажи '

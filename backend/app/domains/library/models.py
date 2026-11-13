@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 from uuid import UUID
@@ -10,6 +11,8 @@ from tortoise.signals import post_delete, pre_delete
 
 from app.core.models import BaseModel
 from app.core.scope import Scope
+from app.core.settings import settings
+from app.core.utils.date_utils import as_utc, utcnow
 from app.domains.organization.models import Organization, OrganizationUser
 
 
@@ -205,6 +208,31 @@ class Recording(BaseModel):
         table = 'recording'
         ordering = ('-recorded_at',)
         unique_together = (('organization', 'client_id'),)
+
+
+# A stalled upload: still waiting for its audio (single PUT or multipart, not failed) and unchanged for
+# UPLOAD_STALLED_AFTER_HOURS. Any change (a refreshed plan, `complete`) bumps `updated_at` and revives it.
+STALLABLE_UPLOAD_STATES = (UploadState.PENDING, UploadState.UPLOADING)
+
+
+def stalled_upload_cutoff() -> datetime:
+    return utcnow() - timedelta(hours=settings.upload_stalled_after_hours)
+
+
+def stalled_upload_q() -> Q:
+    return Q(
+        status=RecordingStatus.AWAITING_UPLOAD,
+        upload_state__in=list(STALLABLE_UPLOAD_STATES),
+        updated_at__lt=stalled_upload_cutoff(),
+    )
+
+
+def is_stalled_upload(status: str, upload_state: str, updated_at: datetime) -> bool:
+    return (
+        status == RecordingStatus.AWAITING_UPLOAD
+        and upload_state in STALLABLE_UPLOAD_STATES
+        and as_utc(updated_at) < stalled_upload_cutoff()
+    )
 
 
 class ShareLink(BaseModel):

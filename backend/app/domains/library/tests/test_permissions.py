@@ -66,6 +66,9 @@ async def test_member_edits_title_project_and_tags(api_client, library):
     assert body['title_source'] == 'user'
     assert body['project_id'] == str(project.id)
     assert {tag['name'] for tag in body['tags']} == {'A', 'B'}
+    # Sending the current project again is not a move (it used to take the recording out of it).
+    response = await api_client.patch(url, json={'project_id': str(project.id)}, headers=headers)
+    assert response.json()['project_id'] == str(project.id)
 
     # A project the member cannot see is rejected; null removes the project.
     assert (await api_client.patch(url, json={'project_id': str(hidden.id)}, headers=headers)).status_code == 400

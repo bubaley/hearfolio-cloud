@@ -208,8 +208,21 @@ async def test_members_read_options_without_secrets(api_client, auth_headers, te
         'transcription_default_model': 'google/gemini-2.5-flash',
         'summary_models': [],
         'summary_default_model': None,
+        'auto_transcribe': True,
+        'auto_title': True,
+        'auto_tags': True,
+        'auto_project': True,
     }
     assert SECRET not in response.text
+
+    await api_client.patch(
+        '/api/v1/ai-settings/current',
+        headers=await auth_headers(admin, organization),
+        json={'auto_transcribe': False, 'auto_project': False},
+    )
+    response = await api_client.get('/api/v1/ai-settings/options', headers=await auth_headers(member, organization))
+    flags = {key: value for key, value in response.json().items() if key.startswith('auto_')}
+    assert flags == {'auto_transcribe': False, 'auto_title': True, 'auto_tags': True, 'auto_project': False}
 
 
 @pytest.mark.asyncio
@@ -276,6 +289,8 @@ async def test_summary_templates_members_read_admins_manage(api_client, auth_hea
     response = await api_client.get('/api/v1/summary-templates', headers=member_headers)
     assert response.status_code == 200
     assert response.json()['data'][0]['name'] == 'Кратко'
+    # Seeded defaults come with a description
+    assert all(item['description'] for item in response.json()['data'])
 
     body = {'name': 'Риски', 'prompt': 'Выпиши риски'}
     assert (await api_client.post('/api/v1/summary-templates', headers=member_headers, json=body)).status_code == 403
@@ -284,6 +299,7 @@ async def test_summary_templates_members_read_admins_manage(api_client, auth_hea
     created = response.json()
     assert created['position'] == 3
     assert created['created_by_id'] == str(admin.id)
+    assert created['description'] == ''
 
     template_id = created['id']
     response = await api_client.patch(
@@ -296,6 +312,17 @@ async def test_summary_templates_members_read_admins_manage(api_client, auth_hea
     assert response.status_code == 200
     assert response.json()['auto'] is True
     assert response.json()['name'] == 'Риски'
+
+    response = await api_client.patch(
+        f'/api/v1/summary-templates/{template_id}',
+        headers=admin_headers,
+        json={'description': '  Что может пойти не так '},
+    )
+    assert response.json()['description'] == 'Что может пойти не так'
+    response = await api_client.patch(
+        f'/api/v1/summary-templates/{template_id}', headers=admin_headers, json={'description': 'x' * 201}
+    )
+    assert response.status_code == 422
 
     response = await api_client.get('/api/v1/summary-templates', headers=member_headers, params={'auto': True})
     assert {item['name'] for item in response.json()['data']} == {'Кратко', 'Риски'}

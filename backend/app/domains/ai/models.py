@@ -50,6 +50,8 @@ class SummaryTemplate(BaseModel):
     organization_id: UUID
     name = fields.CharField(max_length=128)
     prompt = fields.TextField()
+    # One line shown in pickers; empty: clients use the prompt's first sentence
+    description = fields.CharField(max_length=200, default='')
     auto = fields.BooleanField(default=False)
     position = fields.IntField(default=0)
     created_by = fields.ForeignKeyField(

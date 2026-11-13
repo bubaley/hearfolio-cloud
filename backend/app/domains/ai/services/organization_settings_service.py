@@ -62,6 +62,7 @@ class OrganizationSettingsService:
                     organization_id=organization.id,
                     name=template['name'],
                     prompt=template['prompt'],
+                    description=template['description'],
                     auto=template['auto'],
                     position=position,
                     using_db=db,
@@ -106,6 +107,10 @@ class OrganizationSettingsService:
             transcription_default_model=settings.transcription_default_model,
             summary_models=list(settings.summary_models or []),
             summary_default_model=settings.summary_default_model,
+            auto_transcribe=settings.auto_transcribe,
+            auto_title=settings.auto_title,
+            auto_tags=settings.auto_tags,
+            auto_project=settings.auto_project,
         )
 
     @staticmethod

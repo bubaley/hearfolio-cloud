@@ -199,7 +199,7 @@
     <AppConfirmModal
       v-model="deleteOpen"
       title="Удалить запись?"
-      :subtitle="`«${title}» пропадёт у всех и переместится в корзину. Автор или администратор сможет восстановить её в течение ${TRASH_DAYS} дней, потом запись удалится навсегда вместе с аудио`"
+      :subtitle="`«${title}» пропадёт у всех и переместится в корзину. Автор или администратор сможет восстановить её в течение ${daysLabel(trashDays)}, потом запись удалится навсегда вместе с аудио`"
       confirm-text="Удалить"
       :confirm-props="{ variant: 'destructive' }"
       :confirm="confirmDelete"
@@ -237,7 +237,12 @@ import type { ProjectBrief } from '~/features/project/resources/project'
 import { useAudioPlayer } from '../composables/useAudioPlayer'
 import { useRecordingAudio, useRecordingEvents, useRecordingResults } from '../composables/useRecordingDetail'
 import { isProcessing, recordingTitle } from '../composables/useRecordingLabels'
-import { recordingErrorMessage, TRASH_DAYS, useRecordingMutations } from '../composables/useRecordingMutations'
+import {
+  daysLabel,
+  recordingErrorMessage,
+  useRecordingMutations,
+  useTrashDays,
+} from '../composables/useRecordingMutations'
 import { useRecordingBulk } from '../composables/useRecordingBulk'
 import { usePageCommands, useRecentRecordings } from '../composables/useQuickSearch'
 import { downloadText, recordingToMarkdown, recordingToText, safeFilename } from '../utils/recordingExport'
@@ -259,6 +264,7 @@ const { user } = useSession()
 const { isAdmin } = useOrganizationRole()
 const { formatDate } = useDate()
 const mutations = useRecordingMutations()
+const trashDays = useTrashDays()
 
 const recordingId = computed(() => String(route.params.id))
 const { data, error, refetch } = useResourceItem(recordingResource, recordingId)

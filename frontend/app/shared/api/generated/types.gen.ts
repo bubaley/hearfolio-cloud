@@ -103,6 +103,22 @@ export type AiOptionsSchema = {
    * Summary Default Model
    */
   summary_default_model: string | null
+  /**
+   * Auto Transcribe
+   */
+  auto_transcribe: boolean
+  /**
+   * Auto Title
+   */
+  auto_title: boolean
+  /**
+   * Auto Tags
+   */
+  auto_tags: boolean
+  /**
+   * Auto Project
+   */
+  auto_project: boolean
 }
 
 /**
@@ -192,6 +208,10 @@ export type HearfolioDiscoverySchema = {
   min_app_version: string
   oauth: OAuthEndpointsSchema
   upload: UploadLimitsSchema
+  /**
+   * Recording Purge After Days
+   */
+  recording_purge_after_days: number
 }
 
 /**
@@ -826,7 +846,7 @@ export type RecordingReadSchemaPage = {
    * Data
    */
   data: Array<RecordingReadSchema>
-  meta: LightPageNumberPagination
+  meta: RecordingPagination
 }
 
 /**
@@ -1086,6 +1106,69 @@ export type PublicShareSchema = {
 }
 
 /**
+ * RecordingBulkAction
+ */
+export type RecordingBulkAction = 'move' | 'tags' | 'delete' | 'restore'
+
+/**
+ * RecordingBulkResultSchema
+ *
+ * `updated`: the recordings the action applied to (also those already in the wanted state).
+ */
+export type RecordingBulkResultSchema = {
+  /**
+   * Updated
+   */
+  updated: Array<string>
+  /**
+   * Skipped
+   */
+  skipped: Array<RecordingBulkSkippedSchema>
+}
+
+/**
+ * RecordingBulkSchema
+ *
+ * One action over up to 200 recordings with the per-recording permissions of the single endpoints.
+ * `move`: `project_id` (null takes them out of their project). `tags`: `add_tag_ids` / `remove_tag_ids`.
+ */
+export type RecordingBulkSchema = {
+  action: RecordingBulkAction
+  /**
+   * Ids
+   */
+  ids: Array<string>
+  /**
+   * Project Id
+   */
+  project_id?: string | null
+  /**
+   * Add Tag Ids
+   */
+  add_tag_ids?: Array<string>
+  /**
+   * Remove Tag Ids
+   */
+  remove_tag_ids?: Array<string>
+}
+
+/**
+ * RecordingBulkSkipReason
+ */
+export type RecordingBulkSkipReason = 'not_found' | 'forbidden'
+
+/**
+ * RecordingBulkSkippedSchema
+ */
+export type RecordingBulkSkippedSchema = {
+  /**
+   * Id
+   */
+  id: string
+  reason: RecordingBulkSkipReason
+}
+
+/**
  * RecordingCreateSchema
  *
  * Create a recording before its audio is uploaded. Re-sending the same `client_id` returns the existing recording.
@@ -1267,6 +1350,10 @@ export type RecordingDetailSchema = {
    */
   snippet?: Array<SnippetPartSchema> | null
   /**
+   * Snippet Start Ms
+   */
+  snippet_start_ms?: number | null
+  /**
    * Transcript Text
    */
   transcript_text: string
@@ -1274,6 +1361,12 @@ export type RecordingDetailSchema = {
    * Transcript Segments
    */
   transcript_segments: Array<TranscriptSegmentSchema>
+  /**
+   * Stalled
+   *
+   * The upload has not moved for UPLOAD_STALLED_AFTER_HOURS (12 h): the app likely gave up on it.
+   */
+  readonly stalled: boolean
 }
 
 /**
@@ -1325,6 +1418,31 @@ export type RecordingEventReadSchema = {
   data: {
     [key: string]: unknown
   }
+}
+
+/**
+ * RecordingPagination
+ *
+ * `meta.total`: the exact number of matches, counted only for a search (null otherwise; fastapi-ronin's
+ * PageNumberPagination calls it `total` too).
+ */
+export type RecordingPagination = {
+  /**
+   * Page
+   */
+  page?: number
+  /**
+   * Page Size
+   */
+  page_size?: number
+  /**
+   * Has Next
+   */
+  has_next?: boolean
+  /**
+   * Total
+   */
+  total?: number | null
 }
 
 /**
@@ -1438,6 +1556,16 @@ export type RecordingReadSchema = {
    * Snippet
    */
   snippet?: Array<SnippetPartSchema> | null
+  /**
+   * Snippet Start Ms
+   */
+  snippet_start_ms?: number | null
+  /**
+   * Stalled
+   *
+   * The upload has not moved for UPLOAD_STALLED_AFTER_HOURS (12 h): the app likely gave up on it.
+   */
+  readonly stalled: boolean
 }
 
 /**
@@ -1739,6 +1867,10 @@ export type SummaryTemplateCreateSchema = {
    */
   prompt: string
   /**
+   * Description
+   */
+  description?: string
+  /**
    * Auto
    */
   auto?: boolean
@@ -1773,6 +1905,10 @@ export type SummaryTemplateReadSchema = {
    */
   prompt: string
   /**
+   * Description
+   */
+  description: string
+  /**
    * Auto
    */
   auto: boolean
@@ -1798,6 +1934,10 @@ export type SummaryTemplateUpdateSchema = {
    * Prompt
    */
   prompt?: string | null
+  /**
+   * Description
+   */
+  description?: string | null
   /**
    * Auto
    */
@@ -2290,6 +2430,290 @@ export type ErrorResponseWritable = {
    */
   data?: null
   error: ErrorData
+}
+
+/**
+ * RecordingReadSchemaPage
+ */
+export type RecordingReadSchemaPageWritable = {
+  /**
+   * Data
+   */
+  data: Array<RecordingReadSchemaWritable>
+  meta: RecordingPagination
+}
+
+/**
+ * RecordingCreatedSchema
+ */
+export type RecordingCreatedSchemaWritable = {
+  recording: RecordingDetailSchemaWritable
+  upload: UploadPlanSchema | null
+}
+
+/**
+ * RecordingDetailSchema
+ */
+export type RecordingDetailSchemaWritable = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  created_by: LibraryUserSchema | null
+  visibility: RecordingVisibility
+  /**
+   * Project Id
+   */
+  project_id: string | null
+  project: ProjectBriefSchema | null
+  /**
+   * Suggested Project Id
+   */
+  suggested_project_id: string | null
+  suggested_project: ProjectBriefSchema | null
+  project_suggestion_state: ProjectSuggestionState
+  /**
+   * Tags
+   */
+  tags: Array<TagBriefSchema>
+  /**
+   * Title
+   */
+  title: string
+  title_source: TitleSource
+  /**
+   * Recorded At
+   */
+  recorded_at: string
+  /**
+   * Duration Ms
+   */
+  duration_ms: number
+  source: RecordingSource
+  /**
+   * Audio Size
+   */
+  audio_size: number
+  /**
+   * Audio Mime
+   */
+  audio_mime: string
+  /**
+   * Original Filename
+   */
+  original_filename: string
+  upload_state: UploadState
+  status: RecordingStatus
+  /**
+   * Progress
+   */
+  progress: number
+  /**
+   * Segments Done
+   */
+  segments_done: number
+  /**
+   * Segments Total
+   */
+  segments_total: number
+  /**
+   * Transcription Model
+   */
+  transcription_model: string | null
+  /**
+   * Language
+   */
+  language: string | null
+  /**
+   * Error Code
+   */
+  error_code: string | null
+  /**
+   * Error Message
+   */
+  error_message: string | null
+  /**
+   * Deleted At
+   */
+  deleted_at: string | null
+  /**
+   * Snippet
+   */
+  snippet?: Array<SnippetPartSchema> | null
+  /**
+   * Snippet Start Ms
+   */
+  snippet_start_ms?: number | null
+  /**
+   * Transcript Text
+   */
+  transcript_text: string
+  /**
+   * Transcript Segments
+   */
+  transcript_segments: Array<TranscriptSegmentSchema>
+}
+
+/**
+ * RecordingReadSchema
+ *
+ * What the list shows. `snippet` is set only by a search: transcript fragment split into highlighted parts.
+ */
+export type RecordingReadSchemaWritable = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Updated At
+   */
+  updated_at: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Created By Id
+   */
+  created_by_id: string | null
+  created_by: LibraryUserSchema | null
+  visibility: RecordingVisibility
+  /**
+   * Project Id
+   */
+  project_id: string | null
+  project: ProjectBriefSchema | null
+  /**
+   * Suggested Project Id
+   */
+  suggested_project_id: string | null
+  suggested_project: ProjectBriefSchema | null
+  project_suggestion_state: ProjectSuggestionState
+  /**
+   * Tags
+   */
+  tags: Array<TagBriefSchema>
+  /**
+   * Title
+   */
+  title: string
+  title_source: TitleSource
+  /**
+   * Recorded At
+   */
+  recorded_at: string
+  /**
+   * Duration Ms
+   */
+  duration_ms: number
+  source: RecordingSource
+  /**
+   * Audio Size
+   */
+  audio_size: number
+  /**
+   * Audio Mime
+   */
+  audio_mime: string
+  /**
+   * Original Filename
+   */
+  original_filename: string
+  upload_state: UploadState
+  status: RecordingStatus
+  /**
+   * Progress
+   */
+  progress: number
+  /**
+   * Segments Done
+   */
+  segments_done: number
+  /**
+   * Segments Total
+   */
+  segments_total: number
+  /**
+   * Transcription Model
+   */
+  transcription_model: string | null
+  /**
+   * Language
+   */
+  language: string | null
+  /**
+   * Error Code
+   */
+  error_code: string | null
+  /**
+   * Error Message
+   */
+  error_message: string | null
+  /**
+   * Deleted At
+   */
+  deleted_at: string | null
+  /**
+   * Snippet
+   */
+  snippet?: Array<SnippetPartSchema> | null
+  /**
+   * Snippet Start Ms
+   */
+  snippet_start_ms?: number | null
+}
+
+/**
+ * RecordingSyncSchema
+ *
+ * Changes after `cursor`, ordered by (updated_at, id). `deleted_ids`: recordings the client must drop if it has
+ * them (deleted, or no longer visible to the caller). Pass `next_cursor` back until `has_more` is false.
+ */
+export type RecordingSyncSchemaWritable = {
+  /**
+   * Items
+   */
+  items: Array<RecordingDetailSchemaWritable>
+  /**
+   * Deleted Ids
+   */
+  deleted_ids: Array<string>
+  /**
+   * Next Cursor
+   */
+  next_cursor: string | null
+  /**
+   * Has More
+   */
+  has_more: boolean
 }
 
 /**
@@ -7081,6 +7505,10 @@ export type RecordingsListData = {
      */
     deleted?: boolean
     /**
+     * Include Stalled
+     */
+    include_stalled?: boolean
+    /**
      * Page
      *
      * Page number
@@ -7272,6 +7700,67 @@ export type RecordingsSyncResponses = {
 }
 
 export type RecordingsSyncResponse = RecordingsSyncResponses[keyof RecordingsSyncResponses]
+
+export type RecordingsBulkData = {
+  body: RecordingBulkSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/recordings/bulk'
+}
+
+export type RecordingsBulkErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingsBulkError = RecordingsBulkErrors[keyof RecordingsBulkErrors]
+
+export type RecordingsBulkResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingBulkResultSchema
+}
+
+export type RecordingsBulkResponse = RecordingsBulkResponses[keyof RecordingsBulkResponses]
 
 export type RecordingsDestroyData = {
   body?: never

@@ -128,9 +128,13 @@
 import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, CloudUpload, RotateCcw, X } from '@lucide/vue'
 import { NuxtLink } from '#components'
 import { useUploadStore, type UploadItem } from '../../stores/useUploadStore'
+import { useAiOptions } from '../../composables/useRecordingDetail'
+import { uploadDoneHint } from '../../utils/processingCopy'
 
 const uploads = useUploadStore()
 const expanded = ref(true)
+// Only once there is something in the tray (the layout also renders before an organization is chosen).
+const { data: aiOptions } = useAiOptions(() => uploads.items.length > 0)
 
 const percent = (item: UploadItem) => (item.size ? Math.min(100, Math.round((item.loaded / item.size) * 100)) : 0)
 
@@ -164,7 +168,7 @@ const summary = computed(() => {
     busy: false,
     tone: 'success' as const,
     title: 'Загрузка завершена',
-    hint: 'Расшифровка начнётся, если она включена в организации',
+    hint: uploadDoneHint(aiOptions.value),
   }
 })
 

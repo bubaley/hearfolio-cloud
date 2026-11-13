@@ -195,8 +195,7 @@
 import { AudioLines, Folder, Lock, RotateCcw, Trash2 } from '@lucide/vue'
 import { pluralize } from '~/features/project/composables/projectLabels'
 import type { Recording } from '../../resources/recording'
-import { isStalledUpload, recordingTitle } from '../../composables/useRecordingLabels'
-import { TRASH_DAYS } from '../../composables/useRecordingMutations'
+import { recordingTitle } from '../../composables/useRecordingLabels'
 import RecordingStatusLabel from '../RecordingStatusLabel.vue'
 import SnippetText from '../SnippetText.vue'
 import TagChip from '~/features/tag/components/TagChip.vue'
@@ -213,6 +212,8 @@ const props = defineProps<{
   selecting?: boolean
   /** «Корзина»: no link, «Восстановить» and the days left. */
   trash?: boolean
+  /** Days a deleted recording stays in «Корзина» (the server's retention). */
+  trashDays?: number
   /** Restore in the trash, delete of a stalled upload: author or org admin. */
   canManage?: boolean
 }>()
@@ -225,14 +226,21 @@ const icon = computed(() => (props.recording.visibility === 'personal' ? Lock : 
 const link = computed(() => ({
   name: 'recordings-id',
   params: { id: props.recording.id },
-  query: props.query && props.recording.snippet?.length ? { q: props.query } : undefined,
+  // A transcript hit opens at its first matching segment (`?t=`) with the words highlighted (`?q=`).
+  query:
+    props.query && props.recording.snippet?.length
+      ? {
+          q: props.query,
+          ...(props.recording.snippet_start_ms != null ? { t: String(props.recording.snippet_start_ms) } : {}),
+        }
+      : undefined,
 }))
 const meta = computed(() =>
   [props.time, props.recording.duration_ms ? formatDuration(props.recording.duration_ms) : '']
     .filter(Boolean)
     .join(' · '),
 )
-const stalled = computed(() => isStalledUpload(props.recording))
+const stalled = computed(() => props.recording.stalled)
 let shift = false
 const rememberShift = (event: MouseEvent) => {
   shift = event.shiftKey
@@ -241,7 +249,7 @@ const rememberShift = (event: MouseEvent) => {
 const trashHint = computed(() => {
   const deletedAt = props.recording.deleted_at
   if (!deletedAt) return ''
-  const left = Math.ceil((Date.parse(deletedAt) + TRASH_DAYS * 86_400_000 - Date.now()) / 86_400_000)
+  const left = Math.ceil((Date.parse(deletedAt) + (props.trashDays ?? 30) * 86_400_000 - Date.now()) / 86_400_000)
   const when = formatDate(deletedAt, { format: 'D MMMM, HH:mm' })
   const remains = left > 0 ? `удалится навсегда через ${pluralize(left, ['день', 'дня', 'дней'])}` : 'удалится сегодня'
   return `Удалена ${when} · ${remains}`

@@ -54,7 +54,7 @@
           />
           <span class="flex min-w-0 flex-col gap-0.5">
             <span class="text-sm">{{ template.name }}</span>
-            <span class="line-clamp-2 text-xs text-muted-foreground">{{ templateDescription(template.prompt) }}</span>
+            <span class="line-clamp-2 text-xs text-muted-foreground">{{ templateDescription(template) }}</span>
           </span>
         </label>
       </fieldset>
@@ -112,7 +112,7 @@ import { summaryTemplateResource, type SummaryTemplate } from '~/features/ai/res
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { useAiOptions, type useRecordingResults } from '../../composables/useRecordingDetail'
 import { recordingErrorMessage } from '../../composables/useRecordingMutations'
-import { templateDescription } from '../../utils/resultContent'
+import { templateDescription } from '~/features/ai/resources/summaryTemplate'
 
 const props = defineProps<{ create: ReturnType<typeof useRecordingResults>['create'] }>()
 const open = defineModel<boolean>({ default: false })

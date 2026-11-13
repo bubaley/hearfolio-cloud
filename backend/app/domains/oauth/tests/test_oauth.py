@@ -371,6 +371,7 @@ def test_allowed_redirect_uris(uri, allowed):
 async def test_well_known_hearfolio(api_client, monkeypatch):
     monkeypatch.setattr(settings, 'public_url', 'https://rec.example.com')
     monkeypatch.setattr(settings, 'app_version', '1.2.3')
+    monkeypatch.setattr(settings, 'recording_purge_after_days', 14)
     async with _app_client() as app_client:
         response = await app_client.get('/.well-known/hearfolio')
     assert response.status_code == 200
@@ -389,6 +390,7 @@ async def test_well_known_hearfolio(api_client, monkeypatch):
             'multipart_threshold_bytes': settings.upload_multipart_threshold_bytes,
             'part_size_bytes': settings.upload_part_size_bytes,
         },
+        'recording_purge_after_days': 14,
     }
 
 

@@ -98,6 +98,11 @@ class AIOptionsSchema(BaseSchema):
     transcription_default_model: str | None
     summary_models: list[str]
     summary_default_model: str | None
+    # The automation switches, so clients can say what happens after an upload
+    auto_transcribe: bool
+    auto_title: bool
+    auto_tags: bool
+    auto_project: bool
 
 
 # SUMMARY_TEMPLATE_SCHEMAS
@@ -107,6 +112,8 @@ class AIOptionsSchema(BaseSchema):
 class SummaryTemplateCreateSchema(BaseCreateSchema):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
     prompt: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)]
+    # One line for pickers; clients fall back to the prompt's first sentence when it is empty
+    description: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ''
     auto: bool = False
     position: int | None = Field(None, ge=0)
 
@@ -115,6 +122,7 @@ class SummaryTemplateCreateSchema(BaseCreateSchema):
 class SummaryTemplateUpdateSchema(BaseCreateSchema):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)] | None = None
     prompt: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)] | None = None
+    description: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = None
     auto: bool | None = None
     position: int | None = Field(None, ge=0)
 
@@ -125,6 +133,7 @@ class SummaryTemplateUpdateSchema(BaseCreateSchema):
 class SummaryTemplateReadSchema(BaseReadSchema):
     name: str
     prompt: str
+    description: str
     auto: bool
     position: int
     created_by_id: UUID | None

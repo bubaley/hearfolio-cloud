@@ -56,7 +56,7 @@
                 :icon="Zap"
               />
             </span>
-            <span class="line-clamp-1 text-sm text-muted-foreground">{{ template.prompt }}</span>
+            <span class="line-clamp-1 text-sm text-muted-foreground">{{ templateDescription(template) }}</span>
           </button>
           <template v-if="isAdmin">
             <AppSwitch
@@ -127,7 +127,7 @@ import { useApiClient, useResourceList, useResourceMutations } from '~/shared/ap
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import SummaryTemplateModal from '../components/summary-templates/SummaryTemplateModal.vue'
-import { summaryTemplateResource, type SummaryTemplate } from '../resources/summaryTemplate'
+import { summaryTemplateResource, templateDescription, type SummaryTemplate } from '../resources/summaryTemplate'
 
 const { isAdmin } = useOrganizationRole()
 const client = useApiClient()

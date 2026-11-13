@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from loguru import logger
@@ -42,6 +43,25 @@ class LibraryRealtime:
         )
 
     @classmethod
+    async def _notify_many(cls, rows: list[tuple[UUID, UUID, datetime]], message_type: str) -> None:
+        """One event per recording, or one RECORDINGS_RESYNC per organization above TOUCH_EVENT_LIMIT."""
+        if len(rows) > TOUCH_EVENT_LIMIT:
+            latest: dict[UUID, datetime] = {}
+            for _, organization_id, updated_at in rows:
+                latest[organization_id] = max(latest.get(organization_id, updated_at), updated_at)
+            for organization_id, updated_at in latest.items():
+                await cls._send(organization_id, RECORDINGS_RESYNC, {'updated_at': updated_at})
+            return
+        for recording_id, organization_id, updated_at in rows:
+            await cls._send(organization_id, message_type, {'id': recording_id, 'updated_at': updated_at})
+
+    @classmethod
+    async def recordings_changed(cls, recordings: list[Recording], *, deleted: bool = False) -> None:
+        """Saved recordings of a bulk action: `recording.updated` / `recording.deleted` each, or one resync."""
+        rows = [(recording.id, recording.organization_id, recording.updated_at) for recording in recordings]
+        await cls._notify_many(rows, RECORDING_DELETED if deleted else RECORDING_UPDATED)
+
+    @classmethod
     async def touch(cls, recordings: QuerySet[Recording]) -> int:
         """
         Bump `updated_at` of recordings whose visibility or nested data changed without saving them (project made
@@ -53,10 +73,7 @@ class LibraryRealtime:
             return 0
         now = utcnow()
         await Recording.filter(id__in=ids).update(updated_at=now)
-        if len(ids) > TOUCH_EVENT_LIMIT:
-            for organization_id in {row[1] for row in rows}:
-                await cls._send(organization_id, RECORDINGS_RESYNC, {'updated_at': now})
-            return len(ids)
-        for recording_id, organization_id in rows:
-            await cls._send(organization_id, RECORDING_UPDATED, {'id': recording_id, 'updated_at': now})
+        await cls._notify_many(
+            [(recording_id, organization_id, now) for recording_id, organization_id in rows], RECORDING_UPDATED
+        )
         return len(ids)

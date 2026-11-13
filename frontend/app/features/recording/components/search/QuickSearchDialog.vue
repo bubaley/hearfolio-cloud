@@ -212,8 +212,13 @@ type Entry = {
 }
 type Group = { key: string; title: string; entries: Entry[] }
 
-const openRecording = (id: string, search?: string) =>
-  navigateTo({ name: 'recordings-id', params: { id }, query: search ? { q: search } : undefined })
+// A transcript hit opens at its first matching segment (`?t=`) with the words highlighted (`?q=`).
+const openRecording = (id: string, search?: string, startMs?: number | null) =>
+  navigateTo({
+    name: 'recordings-id',
+    params: { id },
+    query: search ? { q: search, ...(startMs != null ? { t: String(startMs) } : {}) } : undefined,
+  })
 
 const recordingEntry = (recording: Recording): Entry => ({
   key: `recording-${recording.id}`,
@@ -221,7 +226,10 @@ const recordingEntry = (recording: Recording): Entry => ({
   icon: recording.visibility === 'personal' ? Lock : AudioLines,
   hint: formatDate(recording.recorded_at, { type: 'date' }) ?? undefined,
   snippet: recording.snippet,
-  run: () => void openRecording(recording.id, recording.snippet?.length ? debounced.value : undefined),
+  run: () =>
+    void (recording.snippet?.length
+      ? openRecording(recording.id, debounced.value, recording.snippet_start_ms)
+      : openRecording(recording.id)),
 })
 
 const fileInput = ref<HTMLInputElement>()
