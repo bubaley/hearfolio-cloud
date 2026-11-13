@@ -2,10 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   // colada.options.ts is loaded by @pinia/colada-nuxt by file name.
   "entry": ["tests/**/*.test.ts", "scripts/*.mjs", "colada.options.ts"],
-  "ignore": [
-    // Documented for organization realtime; no backend event is sent yet, so nothing uses it.
-    "app/shared/composables/useWebSocket.ts",
-  ],
+  "ignore": [],
   // vue-tsc runs through `nuxt typecheck`.
   "ignoreDependencies": ["vue-tsc"],
 }

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { Square, SquareCheck } from '@lucide/vue'
 import { h, type VNodeChild } from 'vue'
+import AppIcon from './AppIcon.vue'
 import { parseMarkdown, type MdBlock, type MdInline } from '~/shared/lib/markdown'
 
 /**
@@ -77,7 +79,20 @@ const block = (node: MdBlock): VNodeChild => {
           class: ['mt-2 flex flex-col gap-1 pl-5 first:mt-0', node.ordered ? 'list-decimal' : 'list-disc'],
           start: node.ordered && node.start !== 1 ? node.start : undefined,
         },
-        node.items.map((item) => h('li', { class: 'pl-1 [&>p]:mt-0' }, item.map(block))),
+        node.items.map((item, index) => {
+          const checked = node.checked[index]
+          if (checked === null || checked === undefined) return h('li', { class: 'pl-1 [&>p]:mt-0' }, item.map(block))
+          // A task item: a read-only check mark instead of the bullet.
+          return h('li', { class: '-ml-5 flex list-none items-start gap-2 [&>p]:mt-0' }, [
+            h(AppIcon, {
+              icon: checked ? SquareCheck : Square,
+              size: 'sm',
+              class: ['mt-0.5 shrink-0', checked ? 'text-primary' : 'text-muted-foreground'],
+              label: checked ? 'Выполнено' : 'Не выполнено',
+            }),
+            h('div', { class: ['min-w-0 flex-1', checked && 'text-muted-foreground line-through'] }, item.map(block)),
+          ])
+        }),
       )
     case 'table':
       return h('div', { class: 'mt-3 overflow-x-auto first:mt-0' }, [

@@ -22,6 +22,8 @@ export default defineNuxtConfig({
   routeRules: {
     '/home': clientOnly,
     '/home/**': clientOnly,
+    '/recordings': clientOnly,
+    '/recordings/**': clientOnly,
     '/settings': clientOnly,
     '/settings/**': clientOnly,
     '/projects': clientOnly,

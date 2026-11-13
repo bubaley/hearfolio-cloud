@@ -102,7 +102,7 @@
 <script setup lang="ts">
 import { UserPlus } from '@lucide/vue'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
-import { userDisplayName, type Project, type ProjectMember } from '../resources/project'
+import type { Project, ProjectMember } from '../resources/project'
 import { projectErrorMessage, useProjectActions, useProjectPermissions } from '../composables/useProjects'
 import ProjectMemberPicker from './ProjectMemberPicker.vue'
 

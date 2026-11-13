@@ -43,7 +43,6 @@
 
 <script setup lang="ts">
 import type { TranscriptSegmentSchema } from '~/shared/api/generated'
-import { formatClock } from '../composables/usePublicShare'
 
 /** Transcript by segments with timestamps; with audio a click seeks and the playing segment is highlighted. */
 const props = defineProps<{

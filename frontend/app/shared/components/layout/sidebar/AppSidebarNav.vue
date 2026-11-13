@@ -105,6 +105,7 @@ const activeKey = computed(() => {
   let best: { key: string; score: number } | null = null
   props.sections.forEach((section, sectionIndex) =>
     section.items.forEach((item, index) => {
+      if (!item.to) return
       const target = router.resolve(item.to)
       const name = target.name?.toString()
       if (!name || !sameRoute(name, current)) return

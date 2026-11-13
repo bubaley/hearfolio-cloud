@@ -104,7 +104,7 @@ Page meta drives the global middleware (`app/middleware/`):
 
 ### Rendering
 
-`routeRules` in `nuxt.config.ts`: app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) and the public-but-personal pages `/invite/**` (every lookup counts against the per-IP limit, so it must come from the visitor) and `/oauth/**` are `ssr: false` — the server sends the SPA shell and guards run in the browser. Everything else renders on the server. A public page:
+`routeRules` in `nuxt.config.ts`: app routes (`/home/**`, `/recordings/**`, `/projects/**`, `/settings/**`, `/auth`, `/ui`) and the public-but-personal pages `/invite/**` (every lookup counts against the per-IP limit, so it must come from the visitor) and `/oauth/**` are `ssr: false` — the server sends the SPA shell and guards run in the browser. Everything else renders on the server. A public page:
 
 - lives under `pages/` with `definePageMeta({ auth: false })` and mounts a feature view (example: `pages/index.vue` → `features/landing/views/LandingView.vue`);
 - sets `useSeoMeta` (title, description, `og:*`);
@@ -121,7 +121,7 @@ getters to `useSeoMeta` (`title: () => seo.value.title`) instead of reading the 
 
 ### Realtime
 
-`useWebSocketService(channel)` (`shared/composables/useWebSocket.ts`) connects to the same origin (`/ws/<channel>`, proxied like `/api/v1`); the browser sends the access cookie with the handshake. The organization channel is `organizations/<organization_id>`. The backend sends no events yet, so nothing uses it; when it does, invalidate the matching query key in `onMessage` (e.g. `[organization-users, 'list']` on a membership event) instead of patching data.
+`useWebSocketService(channel)` (`shared/composables/useWebSocket.ts`) connects to the same origin (`/ws/<channel>`, proxied like `/api/v1`); the browser sends the access cookie with the handshake. The organization channel is `organizations/<organization_id>`. Invalidate the matching query keys in `onMessage` instead of patching data: events carry ids only, and the refetch goes through the visibility-checked API. Example: `features/recording/composables/useRecordingRealtime.ts`, mounted once by `layouts/default.vue` — `recording.updated`/`recording.deleted` invalidate `[recordings, id]` at once and the list prefix debounced (an event per transcribed chunk), `recordings.resync` the whole `recordings` root, `result.updated` `[recordings, id, results]`. Keep data that must not change under the user (a playing presigned audio URL) outside the invalidated prefix (`['recording-audio', id]`).
 
 ### Adding a feature end to end
 
@@ -186,7 +186,7 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppProgress` / `AppSkeleton` / `AppScrollArea` | Linear progress with `tone`, loading placeholder lines, bounded area with themed scrollbars |
 | `AppImageLightbox` | Mounted once in `app.vue`; open with `useAppImageLightboxStore().open(urls, index)` |
 | `AppThemeSwitcher` | Theme (system/light/dark) and palette controls; used in the profile menu and on `/ui` |
-| `AppPopover` | Anchored panel for small pickers and forms: `#trigger` (as-child) + content, `v-model:open`, `align`/`side`, joins the overlay stack |
+| `AppPopover` | Anchored panel for small pickers and forms: `#trigger` (as-child, gets `open`) + content (gets `close`), `v-model:open`, `align`/`side`/`sideOffset`, `contentClass` (`p-0` for panels with their own sections), `preventOpenAutoFocus`; scrolls within the available height; joins the overlay stack |
 | `AppEmojiPicker` | Curated emoji grid (`emojiCatalog.ts`, ~64 emoji in 4 groups) in an `AppPopover`; `v-model` is the emoji or `null` («Убрать»); `#trigger` replaces the default button (project icons) |
 | `AppMarkdown` | Renders Markdown (AI summaries) safely, see [Markdown](#markdown) |
 
@@ -337,8 +337,9 @@ the `sidebar-folded` cookie), `limit` shows that many items plus «Показа�
 visible), `loading` shows skeleton rows instead of the `empty` text. One item is active: the route name matches (or
 nests under it), the item's own params and query match, so `?personal=1` beats the bare route and only the open project
 is active. Items are 44px tall on phones, 32px on desktop. The workspace sidebar is data in `app/navigation/workspace.ts`;
-`layouts/default.vue` adds «Проекты» from `features/project/composables/useProjectsSidebar.ts` (and mounts the
-«Новый проект» modal its «+» opens).
+`layouts/default.vue` adds «Поиск» (an item without `to` is a button with `onClick`; it opens the ⌘K dialog), «Проекты»
+from `features/project/composables/useProjectsSidebar.ts` (and mounts the «Новый проект» modal its «+» opens), the
+quick search dialog, the upload tray and the recordings realtime listener.
 
 **Settings sidebar** — data: `app/navigation/settings.ts` (`settingsNavigation`), rendered by `layouts/settings.vue`
 in groups (`settingsSections`: organization, account, instance; `section` defaults to organization). Add an entry above
@@ -534,11 +535,33 @@ database); AppAppearancePicker has no emoji mode.
 ### Markdown
 
 `AppMarkdown :source` renders AI summaries. `shared/lib/markdown.ts` parses a small Markdown subset into a tree
-(headings, paragraphs with line breaks, nested lists, quotes, fenced code, rules, tables; bold, italic, strikethrough,
+(headings, paragraphs with line breaks, nested lists with task items `- [ ]`/`- [x]` shown as read-only check marks, quotes, fenced code, rules, tables; bold, italic, strikethrough,
 inline code, links and bare http(s) URLs) and the component renders that tree with `h()`. There is no `v-html`
 anywhere on this path: raw HTML in the source stays text, only `http(s)://` and `mailto:` become links
 (`target="_blank" rel="noopener noreferrer nofollow"`). Extend the parser (and `tests/markdown.test.ts`) for new syntax;
 never render model output with `v-html`.
+
+### Recording screens (feature `recording`)
+
+Patterns worth reusing, all in `features/recording/`:
+
+- **One list, fixed scope.** `components/list/RecordingList.vue` serves «Все записи», «Личные» and the project page;
+  the screen passes `fixed` filters (`{ personal: true }`, `{ project_id }`) that are neither shown nor editable.
+  Editable filters live in the URL through `composables/useRecordingFilters.ts` (`?q=&project=&tag=&author=&status=`);
+  the toolbar and the list each call it, so there is no shared mutable prop. Rows are grouped by day
+  (`useRecordingGroups`, `useDate`).
+- **Container queries for dense rows.** The list root is `@container`; rows and the toolbar switch between the narrow
+  layout (meta line under the title) and the Notion-like columns with `@3xl:` / `@5xl:`, so the sidebar and the
+  project page width count, not the viewport. Touch heights (`max-md:h-11`) stay viewport-based.
+- **Optimistic writes on one record.** `useRecordingMutations.patch(id, body, optimistic)` writes the detail cache at
+  once, replaces it with the response, rolls back with a toast on failure and invalidates the lists. Sub-resources of
+  a record (`[recordings, id, events|results|share]`) are `useQuery`s in `useRecordingDetail.ts`.
+- **Uploads outside the page.** `stores/useUploadStore.ts` (Pinia, lives for the tab) runs browser uploads with
+  `utils/audioUpload.ts` (XHR for progress, multipart with three workers and retries); `UploadTray` is mounted by the
+  default layout. `utils/` holds plain helpers of a feature (`lib/` is ignored by git in this repo).
+- **Shared formatting.** `formatClock` / `formatDuration` (`shared/utils/duration.ts`) and `userDisplayName`
+  (`shared/utils/userDisplayName.ts`) are auto-imported; do not add per-feature copies. Error texts by stable
+  `error_code` live in `processingErrorText` (`useRecordingLabels.ts`).
 
 ### Tag palette
 
@@ -563,8 +586,8 @@ The Overlays catalogue demonstrates a date picker and a modal opened from a draw
 forwards these slots. `subtitle` remains an alias for `subheader`, with subheader
 winning when both are supplied. Description appears once in the standard header.
 `titleSize`, `backAction` and `contentClass` configure the heading, return action
-and body spacing. `/ui` → Layout shows every region. (The template's HomeView demo is replaced in Hearfolio by the
-workspace placeholder `HomeView` until the recording screens exist; pages/home/index.vue stays a thin wrapper.)
+and body spacing. `/ui` → Layout shows every region. (In Hearfolio `pages/home/index.vue` redirects to `/recordings`, keeping the query: `/home` stays the post-login
+target of the template guards.)
 
 `AppListTemplate` enables `infiniteScroll` by default for server-backed queries.
 The existing `AppInfiniteScroll` observes a sentinel within the visible scroll
