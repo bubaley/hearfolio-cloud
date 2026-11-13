@@ -1,5 +1,6 @@
 # Dokploy: "Docker Compose" service from this GitHub repository, compose path `./compose.dokploy.yaml`.
-# Dokploy writes the service's Environment tab to `.env` next to this file; the image is built from the repo.
+# Dokploy writes the service's Environment tab to `.env` next to this file. The app image is pulled from Docker Hub
+# (built by .github/workflows/dockerhub.yaml); set APP_IMAGE to pin a version, e.g. bubaley/hearfolio-cloud:0.2.0.
 # Add the domain in Dokploy → Domains: service `app`, container port 8080, HTTPS on.
 # Guide: docs/deployment.md#dokploy.
 
@@ -18,12 +19,8 @@ x-healthcheck: &healthcheck
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: ${APP_VERSION:-0.0.0}
-        GIT_SHA: ${GIT_SHA:-dokploy}
+    image: ${APP_IMAGE:-bubaley/hearfolio-cloud:latest}
+    pull_policy: always
     restart: unless-stopped
     init: false # s6-overlay is PID 1
     stop_grace_period: 40s

@@ -224,12 +224,23 @@ Without `YC_REGISTRY_ID`/`IMAGE_NAME` the pipeline still releases (tag, changelo
 
 ## Dokploy
 
-The simplest self-hosted path: Dokploy builds the image straight from this GitHub repository and runs [`compose.dokploy.yaml`](../compose.dokploy.yaml) (app + PostgreSQL + Redis, no host ports; Traefik from Dokploy terminates TLS).
+The simplest self-hosted path: GitHub Actions builds the image and pushes it to Docker Hub ([`.github/workflows/dockerhub.yaml`](../.github/workflows/dockerhub.yaml), after CI is green on `main`), and Dokploy runs [`compose.dokploy.yaml`](../compose.dokploy.yaml) from this repository (app from Docker Hub + PostgreSQL + Redis, no host ports; Traefik from Dokploy terminates TLS).
 
-1. **Create the service.** Dokploy → Project → *Create Service* → **Compose**. Provider: GitHub, this repository, branch `main`, compose path `./compose.dokploy.yaml`. Enable *Autodeploy* to redeploy on every push to `main`.
-2. **Environment.** Paste the variables into the service's *Environment* tab (Dokploy writes them to `.env` next to the compose file). Required: `PUBLIC_URL` (e.g. `https://hearfolio.example.com`), `SECRET_KEY` (≥ 64 chars), `ENCRYPTION_KEY` (exactly 32 chars), `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD`, `AWS_*` for the bucket (see [S3 bucket](#s3-bucket)). Optional: `INSTANCE_NAME`, `APP_VERSION` (shown by `/.well-known/hearfolio`), `BACKEND_WORKERS`, `TASKIQ_WORKERS`, `MIN_APP_VERSION`. Generate secrets once and never change `SECRET_KEY`, `ENCRYPTION_KEY` or `PASSWORD_PEPPER` afterwards: they protect sessions, stored AI keys and passwords.
+**Docker Hub publishing.** Repository → Settings → Secrets and variables → Actions:
+
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `DOCKERHUB_USERNAME` | Docker Hub user |
+| Secret | `DOCKERHUB_TOKEN` | Docker Hub access token (Account settings → Personal access tokens, scope *Read & Write*) |
+| Variable | `DOCKERHUB_IMAGE` | e.g. `bubaley/hearfolio-cloud` — publishing is off while it is empty |
+| Secret (optional) | `DOKPLOY_DEPLOY_WEBHOOK` | the service's deploy webhook from Dokploy; the workflow calls it after pushing, so Dokploy redeploys with the new image |
+
+Tags: `latest`, `<version>`, `<major>.<minor>`, `sha-<commit>`. A private Docker Hub repository also needs the registry credentials in Dokploy (Settings → Registry).
+
+1. **Create the service.** Dokploy → Project → *Create Service* → **Compose**. Provider: GitHub, this repository, branch `main`, compose path `./compose.dokploy.yaml`. Leave *Autodeploy* off when `DOKPLOY_DEPLOY_WEBHOOK` is set: a push would redeploy before the new image exists; the workflow triggers the deploy after the image is pushed.
+2. **Environment.** Paste the variables into the service's *Environment* tab (Dokploy writes them to `.env` next to the compose file). Required: `PUBLIC_URL` (e.g. `https://hearfolio.example.com`), `SECRET_KEY` (≥ 64 chars), `ENCRYPTION_KEY` (exactly 32 chars), `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD`, `AWS_*` for the bucket (see [S3 bucket](#s3-bucket)). Optional: `APP_IMAGE` (pin a tag instead of `latest`), `INSTANCE_NAME`, `BACKEND_WORKERS`, `TASKIQ_WORKERS`, `MIN_APP_VERSION`. Generate secrets once and never change `SECRET_KEY`, `ENCRYPTION_KEY` or `PASSWORD_PEPPER` afterwards: they protect sessions, stored AI keys and passwords.
 3. **Domain.** *Domains* → add the host, service `app`, container port **8080**, HTTPS with Let's Encrypt. The compose file attaches `app` to the external `dokploy-network` that Traefik uses.
-4. **Deploy.** The first build takes several minutes (Python + Nuxt + ffmpeg). Migrations run automatically when the container starts; `app` becomes healthy when `/healthz` answers.
+4. **Deploy.** Dokploy pulls the image from Docker Hub. Migrations run automatically when the container starts; `app` becomes healthy when `/healthz` answers.
 5. **First user.** Dokploy → service → *Terminal* (container `app`), then run `cd /app/backend && python manage.py create_superuser` and answer the prompts. Sign in at `PUBLIC_URL`, create the organization, then open *Настройки → AI и модели* and set the OpenRouter key.
 6. **Bucket CORS.** Allow `PUT`, `GET`, `HEAD` from `PUBLIC_URL` with `ExposeHeaders: ETag` (example above), otherwise uploads from the browser fail. The desktop/Android app does not need CORS.
 
