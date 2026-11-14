@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.3.0] - 2026-11-14
+
+### Features
+- **web:** unify the page shell and rework the recording pages (a2de16d)
 ## [0.2.0] - 2026-11-13
 
 ### Features
