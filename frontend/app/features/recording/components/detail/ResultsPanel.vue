@@ -1,6 +1,6 @@
 <template>
-  <!-- No boxes here: a summary is a titled piece of text in the reading column, apart from the next one by space. -->
-  <div class="flex max-w-(--reading-width) flex-col gap-8">
+  <!-- No boxes here: a summary is a titled piece of text across the content column, apart from the next one by space. -->
+  <div class="flex flex-col gap-8">
     <AppButton
       v-if="results.length"
       variant="ghost"

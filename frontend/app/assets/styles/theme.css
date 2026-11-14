@@ -15,8 +15,6 @@
   --font-size-root: 93.75%;
   /* One content column for every page: lists, project, recording, settings and the public share page. */
   --page-width: 63rem;
-  /* Long text inside the column (transcript, summaries): about 80 characters per line. */
-  --reading-width: 46rem;
   --app-font-sans: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 
   /* Surfaces and text. Hearfolio: white page, a slightly tinted sidebar (Notion-like). */

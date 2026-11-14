@@ -1,6 +1,6 @@
 <template>
-  <!-- The reading column: lines of about 80 characters, timestamps in a quiet gutter, no boxes. -->
-  <div class="flex max-w-(--reading-width) flex-col gap-3">
+  <!-- The full content column, timestamps in a quiet gutter, no boxes. -->
+  <div class="flex flex-col gap-3">
     <div class="flex min-h-control-md items-center justify-between gap-2">
       <p class="text-xs text-muted-foreground">{{ meta }}</p>
       <AppButton
