@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.3.1] - 2026-11-14
+
+### Bug fixes
+- **web:** transcript, summaries and history use the full content column (76eafea)
 ## [0.3.0] - 2026-11-14
 
 ### Features
