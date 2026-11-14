@@ -13,7 +13,7 @@
       maxlength="255"
       spellcheck="false"
       :placeholder="placeholder"
-      class="block w-full resize-none overflow-hidden rounded-md bg-transparent px-1 py-0.5 text-2xl leading-tight font-bold tracking-tight break-words outline-none placeholder:text-muted-foreground/60 hover:bg-field-hover focus:bg-transparent focus-visible:ring-0 md:-mx-1 md:text-[2rem]"
+      class="-mx-1 block w-[calc(100%+0.5rem)] resize-none overflow-hidden rounded-md bg-transparent px-1 py-0.5 text-2xl leading-tight font-bold tracking-tight break-words outline-none placeholder:text-muted-foreground/60 hover:bg-field-hover focus:bg-transparent focus-visible:ring-0 md:text-3xl"
       @keydown.enter.prevent="field?.blur()"
       @keydown.esc.prevent="cancel"
       @blur="commit"

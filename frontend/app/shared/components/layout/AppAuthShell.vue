@@ -1,5 +1,7 @@
 <template>
-  <main class="flex min-h-dvh flex-col items-center bg-background px-4 py-10 sm:justify-center sm:py-12">
+  <main class="relative flex min-h-dvh flex-col items-center bg-background px-4 py-10 sm:justify-center sm:py-12">
+    <!-- No profile menu before sign-in: the theme switch sits in the corner, as on the landing and shared pages. -->
+    <AppThemeToggle class="absolute top-2 right-2 md:top-4 md:right-4" />
     <div class="flex w-full max-w-md flex-col gap-6">
       <AppLogo class="mx-auto w-fit" />
       <div class="rounded-xl border border-border bg-card p-5 sm:p-7">

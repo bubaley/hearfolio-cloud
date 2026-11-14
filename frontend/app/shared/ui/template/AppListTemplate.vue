@@ -8,13 +8,15 @@
       #actions
     >
       <slot name="actions" />
+      <!-- A page has one primary action in its header; a nested section gets a quiet one. -->
       <AppButton
         v-if="!hideCreateButton && !$slots.actions"
-        variant="default"
+        :variant="templateVariant === 'page' ? 'default' : 'outline'"
+        :size="templateVariant === 'page' ? 'md' : 'sm'"
+        :icon="Plus"
+        :label="createLabel || 'Создать'"
         @click="handleCreateClick"
-      >
-        {{ createLabel || 'Создать' }}
-      </AppButton>
+      />
     </template>
 
     <template
@@ -135,6 +137,7 @@
 
 <script setup generic="T extends ResourceItem, F extends ResourceForm" lang="ts">
 import { watch } from 'vue'
+import { Plus } from '@lucide/vue'
 import type { ViewFilters } from '../app/filters/types'
 import { deepClone } from '~/shared/lib/clone'
 import type { ResourceForm, ResourceItem } from '~/shared/api/resource'
@@ -208,7 +211,7 @@ watch(detailModal, (open) => {
 
 const detailModalActionsProps = computed(() => ({
   hideHeaderActions: true,
-  disableRouterAutoResolving: props.detailMode === 'modal',
+  disableRouterAutoResolving: props.detailMode === 'modal' || Boolean(props.createInModal),
   ...props.detailModalProps?.actionsProps,
 }))
 
@@ -260,7 +263,8 @@ const handleDetailAction = (event: AppDetailActionsDeleteResult<F>) => {
 }
 
 const _openItem = (item: T | null) => {
-  if (props.detailMode === 'modal') {
+  // `createInModal`: rows open their route page, a new record is still created in a modal like everywhere else.
+  if (props.detailMode === 'modal' || (!item && props.createInModal)) {
     if (!props.resource) return
     selectedItem.value = item
       ? props.resource.toForm(deepClone(item))

@@ -10,7 +10,7 @@ withDefaults(
   }>(),
   { size: 'lg', weight: 'semibold', as: 'h2' },
 )
-const sizes = { sm: 'text-sm', md: 'text-base', lg: 'text-xl', xl: 'text-2xl' }
+const sizes = { sm: 'text-sm', md: 'text-base', lg: 'text-xl', xl: 'text-2xl md:text-3xl' }
 const weights = {
   light: 'font-light',
   regular: 'font-normal',

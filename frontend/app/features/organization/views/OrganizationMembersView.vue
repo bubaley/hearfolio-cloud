@@ -2,12 +2,17 @@
   <AppPageView
     title="Участники"
     :description="description"
-    content-class="px-4 pb-10"
   >
     <template
       v-if="menuActions.some((action) => !action.hidden) || isAdmin"
       #actions
     >
+      <AppButton
+        v-if="isAdmin"
+        :icon="Link2"
+        label="Пригласить по ссылке"
+        @click="inviteOpen = true"
+      />
       <AppMenu
         v-if="menuActions.some((action) => !action.hidden)"
         :actions="menuActions"
@@ -17,24 +22,16 @@
         <template #trigger>
           <AppButton
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             text-variant="muted"
-            class="size-11 md:size-control-sm"
+            class="size-11 md:size-control-md"
             :icon="Ellipsis"
             aria-label="Ещё действия"
           />
         </template>
       </AppMenu>
-      <AppButton
-        v-if="isAdmin"
-        size="sm"
-        class="h-11 md:h-control-sm"
-        :icon="Link2"
-        label="Пригласить по ссылке"
-        :to="{ name: 'settings-invites' }"
-      />
     </template>
-    <div class="flex flex-col gap-3 pt-2">
+    <div class="flex flex-col gap-3">
       <AppInput
         v-if="items.length > 6 || search"
         v-model="search"
@@ -101,6 +98,7 @@
       />
     </div>
 
+    <InviteCreateModal v-model="inviteOpen" />
     <AppConfirmModal
       :model-value="Boolean(pendingRemove)"
       title="Удалить участника?"
@@ -130,6 +128,7 @@
 import { Ellipsis, Link2, LogOut, UserPlus } from '@lucide/vue'
 import { useResourceList, useResourceMutations } from '~/shared/api/useResource'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
+import InviteCreateModal from '../components/invite-list/InviteCreateModal.vue'
 import MemberRow from '../components/member-list/MemberRow.vue'
 import OrganizationMemberAddModal from '../components/member-list/OrganizationMemberAddModal.vue'
 import { organizationUserResource, type OrganizationUser } from '../resources/organizationUser'
@@ -167,6 +166,7 @@ const description = computed(() =>
 const membership = computed(() => items.value.find((member) => member.user_id === user.value?.id) ?? null)
 const confirmLeave = ref(false)
 const addOpen = ref(false)
+const inviteOpen = ref(false)
 
 // Invite links are the main way in; adding an existing account needs the server's user list (superusers only).
 const menuActions = computed<AppMenuAction[]>(() => [

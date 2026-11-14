@@ -2,13 +2,16 @@
   <div class="flex min-h-dvh flex-col bg-background text-foreground">
     <header class="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-4 md:px-8">
       <AppLogo />
-      <AppButton
-        variant="ghost"
-        :href="primary.href"
-        class="h-11 md:h-control-md"
-      >
-        {{ primary.label }}
-      </AppButton>
+      <div class="flex items-center gap-1">
+        <AppThemeToggle />
+        <AppButton
+          variant="ghost"
+          :href="primary.href"
+          class="h-11 md:h-control-md"
+        >
+          {{ primary.label }}
+        </AppButton>
+      </div>
     </header>
 
     <main class="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-12 md:px-8 md:py-20">

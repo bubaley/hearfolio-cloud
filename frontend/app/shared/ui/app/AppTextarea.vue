@@ -74,7 +74,8 @@ watch(model, () => void nextTick(resize))
           // Height is controlled by `rows` / autoGrow, not by CSS field sizing.
           '[field-sizing:fixed] min-h-24 resize-y bg-background text-sm text-foreground shadow-xs md:text-sm dark:bg-background',
           autoGrow && 'min-h-0 resize-none overflow-hidden',
-          variant === 'ghost' && 'border-transparent bg-transparent shadow-none hover:border-border focus:border-ring',
+          variant === 'ghost' &&
+            'border-transparent bg-transparent shadow-none hover:border-border focus:border-border-strong',
           error && 'border-destructive focus:border-destructive',
         ]"
         @input="resize"

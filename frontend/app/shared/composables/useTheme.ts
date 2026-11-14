@@ -16,8 +16,8 @@ import {
  */
 export const useTheme = () => {
   const colorMode = useColorMode()
+  // No default: only an explicit choice is persisted, so a visitor who never picked a palette follows DEFAULT_PALETTE.
   const paletteCookie = useCookie<string | null>(PALETTE_COOKIE, {
-    default: () => DEFAULT_PALETTE,
     maxAge: 60 * 60 * 24 * 365,
     sameSite: 'lax',
   })

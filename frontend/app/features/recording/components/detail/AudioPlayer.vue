@@ -1,11 +1,13 @@
 <template>
+  <!-- The page gutter sits outside the column, as in AppDocumentPage: the controls line up with the content. -->
   <div
     class="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+    :class="PAGE_GUTTER_CLASS"
     role="region"
     aria-label="Плеер"
   >
     <div
-      class="mx-auto flex w-full max-w-3xl flex-col gap-1 px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-row md:items-center md:gap-3 md:px-6 md:py-2"
+      class="mx-auto flex w-full max-w-(--page-width) flex-col gap-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-row md:items-center md:gap-3 md:py-2"
     >
       <!-- Scrubber: the progress bar shows position, a transparent range input on top takes pointer and keys. -->
       <div class="group relative flex h-6 min-w-0 items-center md:order-2 md:flex-1">
@@ -124,6 +126,7 @@
 <script setup lang="ts">
 import { CircleAlert, Keyboard, Pause, Play, RotateCcw, RotateCw } from '@lucide/vue'
 import type { AudioPlayer } from '../../composables/useAudioPlayer'
+import { PAGE_GUTTER_CLASS } from '~/shared/ui/app/pageContainer'
 
 const props = defineProps<{ player: AudioPlayer; disabled?: boolean }>()
 

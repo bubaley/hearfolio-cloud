@@ -6,17 +6,15 @@
         ? 'Все проекты организации, включая приватные. Записи приватного проекта видят только его участники'
         : 'Проекты, которые вам доступны. Приватные видят только их участники'
     "
-    content-class="px-4 pb-10"
   >
     <template #actions>
       <AppButton
-        size="sm"
         label="Новый проект"
         :icon="Plus"
         @click="createOpen = true"
       />
     </template>
-    <div class="flex max-w-3xl flex-col gap-3 pt-2">
+    <div class="flex flex-col gap-3">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <AppInput
           v-model="search"

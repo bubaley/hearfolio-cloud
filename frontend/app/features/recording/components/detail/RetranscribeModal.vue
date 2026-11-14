@@ -12,7 +12,6 @@
       :option-value="(item: string) => item"
       :option-label="(item: string) => item"
       :placeholder="options?.transcription_default_model ?? 'Модель по умолчанию'"
-      :filter="false"
       emit-value
       :disabled="!options?.transcription_models.length"
       :hint="options?.transcription_models.length ? undefined : 'Администратор ещё не выбрал модели для расшифровки'"

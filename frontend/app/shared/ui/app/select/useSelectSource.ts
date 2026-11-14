@@ -50,15 +50,19 @@ export function useSelectSource<T>(
       // Empty pages end pagination even if the server reports an inconsistent has_next.
       hasMore.value = result.items.length > 0 && result.hasNext
     } catch (reason) {
-      if (requestRevision === revision) error.value = reason
+      if (requestRevision === revision) {
+        error.value = reason
+        if (requestedPage === 1) items.value = []
+      }
     } finally {
       if (requestRevision === revision) loading.value = false
     }
   }
+  // The loaded options stay on screen until the new page 1 arrives (reopening, typing in the search): emptying the
+  // list first made the dropdown collapse to a spinner and jump back, moving options under the pointer.
   const restart = (delay: boolean) => {
     invalidate()
     error.value = null
-    items.value = []
     page.value = 0
     hasMore.value = false
     if ((!open.value && !props().autoLoad) || !props().source || props().disabled) return
@@ -69,6 +73,14 @@ export function useSelectSource<T>(
       }, props().debounce ?? 300)
     } else void load(1)
   }
+  // Another source has other options: nothing of the old one may stay.
+  watch(
+    () => props().source,
+    () => {
+      items.value = []
+    },
+    { flush: 'sync' },
+  )
   watch([open, () => props().source, () => props().disabled, () => props().pageSize], () => restart(false), {
     immediate: true,
     flush: 'sync',

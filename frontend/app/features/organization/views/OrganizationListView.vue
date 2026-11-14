@@ -6,8 +6,24 @@
     :resource="organizationResource"
     search-param="name"
     create-label="Новая организация"
+    create-in-modal
+    :detail-modal-props="{ title: 'Новая организация', width: '28rem' }"
     empty-text="Организаций не нашлось"
   >
+    <template #detail-modal="{ detailItem }">
+      <AppInput
+        v-model="detailItem.name"
+        label="Название"
+        placeholder="Например, «Моя команда»"
+        autofocus
+      />
+      <AppInput
+        v-model="detailItem.key"
+        label="Ключ"
+        placeholder="my-team"
+        hint="Латиница, цифры и дефис. Идентификатор для приложения и API, потом не меняется"
+      />
+    </template>
     <AppColumn header="Организация">
       <template #body="{ data }">
         <div class="flex min-w-0 items-center gap-3">

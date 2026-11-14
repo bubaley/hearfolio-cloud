@@ -74,7 +74,6 @@
         :option-value="(item: string) => item"
         :option-label="(item: string) => item"
         :placeholder="options?.summary_default_model ?? 'Модель по умолчанию'"
-        :filter="false"
         emit-value
         :disabled="!options?.summary_models.length"
         :hint="options?.summary_models.length ? undefined : 'Администратор ещё не выбрал модели для саммари'"

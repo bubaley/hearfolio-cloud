@@ -8,7 +8,8 @@ import { parseMarkdown, type MdBlock, type MdInline } from '~/shared/lib/markdow
  * Renders Markdown (AI summaries) as Vue nodes from `parseMarkdown`: no `v-html`, raw HTML in the source shows as
  * text, links open in a new tab and only http(s)/mailto are linked.
  */
-const props = defineProps<{ source: string | null | undefined }>()
+/** `md`: reading text (a summary, a shared page); `sm`: dense places. */
+const props = withDefaults(defineProps<{ source: string | null | undefined; size?: 'sm' | 'md' }>(), { size: 'sm' })
 
 const blocks = computed(() => parseMarkdown(props.source))
 
@@ -96,7 +97,7 @@ const block = (node: MdBlock): VNodeChild => {
       )
     case 'table':
       return h('div', { class: 'mt-3 overflow-x-auto first:mt-0' }, [
-        h('table', { class: 'w-full border-collapse text-sm' }, [
+        h('table', { class: 'w-full border-collapse text-sm leading-relaxed' }, [
           h(
             'thead',
             h(
@@ -137,7 +138,12 @@ const block = (node: MdBlock): VNodeChild => {
   }
 }
 
-const render = () => h('div', { class: 'text-sm leading-relaxed break-words' }, blocks.value.map(block))
+const render = () =>
+  h(
+    'div',
+    { class: ['break-words', props.size === 'md' ? 'text-[0.9375rem] leading-7' : 'text-sm leading-relaxed'] },
+    blocks.value.map(block),
+  )
 </script>
 
 <template>

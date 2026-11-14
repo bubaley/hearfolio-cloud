@@ -2,18 +2,16 @@
   <AppPageView
     title="Приглашения"
     description="Ссылка открывает регистрацию или вход и добавляет человека в организацию с выбранной ролью"
-    content-class="px-4 pb-10"
   >
-    <div class="flex flex-col gap-8 pt-2">
-      <InviteCreateForm />
-
-      <section aria-labelledby="invite-list-title">
-        <h2
-          id="invite-list-title"
-          class="mb-1 text-sm font-medium text-muted-foreground"
-        >
-          Созданные ссылки
-        </h2>
+    <template #actions>
+      <AppButton
+        :icon="Plus"
+        label="Новое приглашение"
+        @click="createOpen = true"
+      />
+    </template>
+    <div class="flex flex-col">
+      <section aria-label="Созданные ссылки">
         <AppAlert
           v-if="error && !items.length"
           tone="destructive"
@@ -44,12 +42,26 @@
             @revoke="pendingRevoke = invite"
           />
         </ul>
-        <p
+        <div
           v-else
-          class="py-6 text-sm text-muted-foreground"
+          class="flex justify-center py-10"
         >
-          Приглашений пока нет. Создайте ссылку и отправьте её коллеге в любом мессенджере
-        </p>
+          <div class="w-full max-w-sm">
+            <AppResultState
+              :icon="Link2"
+              title="Приглашений пока нет"
+              description="Создайте ссылку и отправьте её коллеге в любом мессенджере"
+            >
+              <template #actions>
+                <AppButton
+                  :icon="Plus"
+                  label="Новое приглашение"
+                  @click="createOpen = true"
+                />
+              </template>
+            </AppResultState>
+          </div>
+        </div>
         <AppButton
           v-if="hasNextPage"
           variant="ghost"
@@ -60,6 +72,7 @@
       </section>
     </div>
 
+    <InviteCreateModal v-model="createOpen" />
     <AppConfirmModal
       :model-value="Boolean(pendingRevoke)"
       title="Отозвать приглашение?"
@@ -77,7 +90,8 @@ import { useQueryCache } from '@pinia/colada'
 import { organizationInvitesRevoke } from '~/shared/api/generated'
 import { resourceKeys } from '~/shared/api/resource'
 import { useApiClient, useResourceList } from '~/shared/api/useResource'
-import InviteCreateForm from '../components/invite-list/InviteCreateForm.vue'
+import { Link2, Plus } from '@lucide/vue'
+import InviteCreateModal from '../components/invite-list/InviteCreateModal.vue'
 import InviteRow from '../components/invite-list/InviteRow.vue'
 import { organizationInviteResource, type OrganizationInvite } from '../resources/organizationInvite'
 import { organizationErrorMessage } from '../composables/organizationErrors'
@@ -86,6 +100,10 @@ const client = useApiClient()
 const queryCache = useQueryCache()
 const toast = useToast()
 const { items, isLoading, error, refetch, hasNextPage, loadNextPage } = useResourceList(organizationInviteResource)
+
+// `?new=1` opens the modal at once (links from the empty «Все записи» screen).
+const route = useRoute()
+const createOpen = ref(route.query.new === '1')
 
 const pendingRevoke = ref<OrganizationInvite | null>(null)
 const revoke = async () => {

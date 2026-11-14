@@ -50,9 +50,10 @@
     </AppDrawer>
 
     <div class="flex min-h-0 min-w-0 flex-1 flex-col">
-      <!-- Narrow screens always; desktop only while the sidebar is hidden. -->
+      <!-- Narrow screens always; desktop only while the sidebar is hidden, and not over a page that has its own top
+           bar (AppDocumentPage shows «Показать боковую панель» there): two stacked bars read as a mistake. -->
       <header
-        class="flex h-12 shrink-0 items-center gap-1 border-b border-border px-1 md:px-2"
+        class="flex h-12 shrink-0 items-center gap-1 border-b border-border px-1 md:px-2 md:[&:has(~main_[data-slot=page-topbar])]:hidden"
         :class="!collapsed && 'md:hidden'"
       >
         <AppButton

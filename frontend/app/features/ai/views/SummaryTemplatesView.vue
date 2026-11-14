@@ -2,18 +2,16 @@
   <AppPageView
     title="Шаблоны саммари"
     description="Готовые инструкции для саммари. Автоматические создаются для каждой новой записи"
-    content-class="px-4 pb-10"
   >
     <template #actions>
       <AppButton
         v-if="isAdmin"
-        size="sm"
         label="Новый шаблон"
         :icon="Plus"
         @click="openTemplate(null)"
       />
     </template>
-    <div class="flex flex-col gap-3 pt-2">
+    <div class="flex flex-col gap-3">
       <AppAlert
         v-if="error && !items.length"
         tone="destructive"

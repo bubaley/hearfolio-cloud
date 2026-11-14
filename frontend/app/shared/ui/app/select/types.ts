@@ -21,7 +21,6 @@ export interface SelectProps<T> {
   optionLabel?: SelectAccessor<T, string>
   extraParams?: Record<string, unknown>
   searchParam?: string
-  filter?: boolean
   onlyClientSearch?: boolean
   filterFields?: string[]
   autoLoad?: boolean

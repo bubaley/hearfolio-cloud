@@ -48,6 +48,9 @@ export const recordingErrorMessage = (error: unknown, fallback: string) => {
   return fallback
 }
 
+/** PATCH requests in flight per recording, shared by every screen that edits it. */
+const patchQueues = new Map<string, { tail: Promise<unknown>; size: number }>()
+
 /**
  * Writes on one recording. Edits are optimistic: the detail cache changes at once, the server response replaces it,
  * a failure restores the previous value and shows a toast. Lists refetch by invalidation afterwards.
@@ -79,13 +82,29 @@ export const useRecordingMutations = () => {
   ) => {
     const previous = detail(id)
     if (previous) store({ ...previous, ...(body as Partial<RecordingDetail>), ...optimistic })
+    // Quick edits in a row (ticking several tags) go to the server one after another, and only the answer to the
+    // last one replaces the optimistic state: an earlier answer would briefly undo the newer ticks on screen.
+    const queue = patchQueues.get(id) ?? { tail: Promise.resolve(), size: 0 }
+    patchQueues.set(id, queue)
+    queue.size++
+    const request = queue.tail.then(() =>
+      recordingsPartialUpdate({ client, throwOnError: true, path: { item_id: id }, body }),
+    )
+    queue.tail = request.catch(() => undefined)
+    const settle = () => {
+      queue.size--
+      if (!queue.size) patchQueues.delete(id)
+      return !queue.size
+    }
     try {
-      const { data } = await recordingsPartialUpdate({ client, throwOnError: true, path: { item_id: id }, body })
-      store(data)
-      void refreshAround(id)
+      const { data } = await request
+      if (settle()) {
+        store(data)
+        void refreshAround(id)
+      }
       return data
     } catch (error) {
-      if (previous) store(previous)
+      if (settle() && previous) store(previous)
       if (!quiet) toast.error(recordingErrorMessage(error, 'Не удалось сохранить изменения'))
       throw error
     }

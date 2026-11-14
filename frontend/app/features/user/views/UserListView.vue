@@ -5,8 +5,47 @@
     detail-route-name="settings-users-id"
     :resource="userResource"
     create-label="Новый пользователь"
+    create-in-modal
+    :detail-modal-props="{ title: 'Новый пользователь', width: '28rem' }"
     empty-text="Пользователей не нашлось"
   >
+    <template #detail-modal="{ detailItem }">
+      <AppInput
+        v-model="detailItem.email"
+        type="email"
+        label="Электронная почта"
+        autocomplete="off"
+        autofocus
+      />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <AppInput
+          v-model="detailItem.first_name"
+          label="Имя"
+        />
+        <AppInput
+          v-model="detailItem.last_name"
+          label="Фамилия"
+        />
+      </div>
+      <AppInput
+        v-model="detailItem.password"
+        type="password"
+        label="Пароль"
+        autocomplete="new-password"
+      />
+      <div class="flex items-center gap-2">
+        <AppCheckbox
+          v-model="detailItem.is_superuser"
+          binary
+          input-id="new-user-su"
+        />
+        <label
+          for="new-user-su"
+          class="text-sm"
+          >Администратор сервера: создаёт пользователей и видит все организации</label
+        >
+      </div>
+    </template>
     <AppColumn header="Пользователь">
       <template #body="{ data }">
         <div class="flex min-w-0 items-center gap-3">

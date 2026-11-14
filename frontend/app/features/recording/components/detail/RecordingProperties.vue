@@ -3,8 +3,7 @@
     <div
       v-for="row in rows"
       :key="row.key"
-      class="min-h-9 grid-cols-[6.5rem_1fr] items-start gap-2 max-md:min-h-11 md:grid-cols-[9rem_1fr]"
-      :class="expanded || row.level === 'primary' ? 'grid' : row.level === 'wide' ? 'hidden md:grid' : 'hidden'"
+      class="grid min-h-9 grid-cols-[8.75rem_1fr] items-start gap-2 max-md:min-h-11 md:grid-cols-[9rem_1fr]"
     >
       <dt class="flex min-h-9 items-center gap-2 px-1 text-muted-foreground max-md:min-h-11">
         <AppIcon
@@ -96,42 +95,18 @@
         </div>
         <div
           v-else
-          class="flex min-h-9 min-w-0 items-center px-1 max-md:min-h-11"
+          class="flex min-h-9 min-w-0 items-center px-1 py-1.5 max-md:min-h-11"
           :class="!row.value && 'text-muted-foreground'"
         >
-          <span class="truncate">{{ row.value || '—' }}</span>
+          <span class="min-w-0 break-words">{{ row.value || '—' }}</span>
         </div>
       </dd>
     </div>
-    <button
-      type="button"
-      class="flex min-h-11 w-fit items-center gap-2 rounded-md px-1 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
-      :aria-expanded="expanded"
-      @click="expanded = !expanded"
-    >
-      <AppIcon
-        :icon="expanded ? ChevronUp : ChevronDown"
-        size="sm"
-      />
-      <span class="md:hidden">{{ expanded ? 'Свернуть свойства' : 'Все свойства' }}</span>
-      <span class="max-md:hidden">{{ expanded ? 'Свернуть' : 'Ещё' }}</span>
-    </button>
   </dl>
 </template>
 
 <script setup lang="ts">
-import {
-  CalendarDays,
-  ChevronDown,
-  ChevronUp,
-  Folder,
-  Lock,
-  ShieldCheck,
-  Tags,
-  Timer,
-  UserRound,
-  Users,
-} from '@lucide/vue'
+import { CalendarDays, Folder, Lock, ShieldCheck, Tags, Timer, UserRound, Users } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { RecordingSource, RecordingVisibility } from '~/shared/api/generated'
 import type { RecordingDetail, TagBrief } from '../../resources/recording'
@@ -146,8 +121,7 @@ const emit = defineEmits<{
   visibility: [value: RecordingVisibility]
 }>()
 
-// Phones show the editable properties, wider screens add the author; the rest folds under «Ещё» / «Все свойства».
-const expanded = ref(false)
+// Every property is shown at once: nothing folds under a toggle.
 const { formatDate } = useDate()
 
 const SOURCES: Record<RecordingSource, string> = {
@@ -167,28 +141,26 @@ const privateProject = computed(() =>
   props.recording.visibility === 'organization' && props.recording.project?.is_private ? props.recording.project : null,
 )
 
-type Row = { key: string; label: string; icon: Component; value?: string; level: 'primary' | 'wide' | 'more' }
+type Row = { key: string; label: string; icon: Component; value?: string }
 const rows = computed<Row[]>(() => {
   const recording = props.recording
   const created = formatDate(recording.recorded_at, { format: 'D MMMM YYYY, HH:mm' })
   return [
-    { key: 'project', label: 'Проект', icon: Folder, level: 'primary' },
-    { key: 'tags', label: 'Теги', icon: Tags, level: 'primary' },
-    { key: 'visibility', label: 'Доступ', icon: ShieldCheck, level: 'primary' },
-    { key: 'author', label: 'Автор', icon: UserRound, level: 'wide' },
+    { key: 'project', label: 'Проект', icon: Folder },
+    { key: 'tags', label: 'Теги', icon: Tags },
+    { key: 'visibility', label: 'Доступ', icon: ShieldCheck },
+    { key: 'author', label: 'Автор', icon: UserRound },
     {
       key: 'created',
       label: 'Создано',
       icon: CalendarDays,
       value: created ? `${created} · ${SOURCES[recording.source] ?? recording.source}` : '',
-      level: 'more',
     },
     {
       key: 'duration',
       label: 'Длительность',
       icon: Timer,
       value: recording.duration_ms ? formatDuration(recording.duration_ms) : '',
-      level: 'more',
     },
   ]
 })

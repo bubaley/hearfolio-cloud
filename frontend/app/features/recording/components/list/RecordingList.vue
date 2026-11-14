@@ -12,19 +12,23 @@
       v-if="showToolbar"
       class="sticky top-0 z-10 bg-background px-3 pt-1 pb-3 md:px-4"
     >
-      <RecordingBulkBar
-        v-if="selected.length"
-        :selected="selected"
-        @clear="clearSelection"
-      />
-      <RecordingListToolbar
-        v-else
-        ref="toolbar"
-        :fixed="fixed"
-        :can-upload="canUpload"
-        :trash="trash"
-        @upload="pickFiles"
-      />
+      <!-- The bulk bar lies over the toolbar instead of replacing it: the toolbar keeps its height, so the rows do
+           not move under the pointer when the first one is ticked. -->
+      <div class="relative">
+        <RecordingListToolbar
+          ref="toolbar"
+          :fixed="fixed"
+          :trash="trash"
+          :class="selected.length && 'invisible'"
+          :inert="selected.length > 0"
+        />
+        <RecordingBulkBar
+          v-if="selected.length"
+          :selected="selected"
+          class="absolute inset-x-0 top-0"
+          @clear="clearSelection"
+        />
+      </div>
     </div>
 
     <div class="flex flex-1 flex-col px-1 pb-10 md:px-2">

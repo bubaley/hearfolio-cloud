@@ -1,15 +1,29 @@
 <template>
-  <div>
+  <!-- The reading column: lines of about 80 characters, timestamps in a quiet gutter, no boxes. -->
+  <div class="flex max-w-(--reading-width) flex-col gap-3">
+    <div class="flex min-h-control-md items-center justify-between gap-2">
+      <p class="text-xs text-muted-foreground">{{ meta }}</p>
+      <AppButton
+        variant="ghost"
+        size="sm"
+        text-variant="muted"
+        :icon="copied ? Check : Copy"
+        :label="copied ? 'Скопировано' : 'Копировать'"
+        aria-label="Копировать расшифровку"
+        class="-mr-2 shrink-0 max-md:h-11"
+        @click="copyAll"
+      />
+    </div>
     <ol
       v-if="segments.length"
-      class="flex flex-col"
+      class="flex flex-col gap-0.5"
       aria-label="Расшифровка"
     >
       <li
         v-for="(segment, index) in segments"
         :key="index"
         :ref="(el) => setRow(index, el)"
-        class="group -mx-2 flex cursor-pointer gap-3 rounded-md px-2 py-1.5 transition-colors md:gap-4"
+        class="group -mx-2 flex cursor-pointer gap-3 rounded-md px-2 py-2 transition-colors md:gap-5"
         :class="
           index === activeIndex ? 'bg-accent/70' : index === targetIndex ? 'bg-tag-yellow/60' : 'hover:bg-row-hover'
         "
@@ -18,7 +32,7 @@
       >
         <button
           type="button"
-          class="h-6 w-12 shrink-0 rounded text-left text-xs leading-6 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="h-7 w-11 shrink-0 rounded text-left text-xs leading-7 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
           :class="index === activeIndex ? 'font-medium text-foreground' : 'text-muted-foreground'"
           :aria-label="`Воспроизвести с ${formatClock(segment.start_ms)}`"
           @click.stop="onSegmentClick(segment, $event)"
@@ -26,7 +40,7 @@
           {{ formatClock(segment.start_ms) }}
         </button>
         <p
-          class="min-w-0 flex-1 text-[0.9375rem] leading-6 break-words"
+          class="min-w-0 flex-1 text-[0.9375rem] leading-7 break-words"
           :class="!segment.text.trim() && 'text-muted-foreground italic'"
         >
           <template v-if="terms.length && segment.text.trim()">
@@ -48,7 +62,7 @@
     </ol>
     <div
       v-else-if="text"
-      class="flex flex-col gap-3 text-[0.9375rem] leading-relaxed"
+      class="flex flex-col gap-4 text-[0.9375rem] leading-7 break-words"
     >
       <p
         v-for="(paragraph, index) in text.split(/\n{2,}/)"
@@ -82,8 +96,9 @@
 </template>
 
 <script setup lang="ts">
-import { useEventListener } from '@vueuse/core'
-import { LocateFixed } from '@lucide/vue'
+import { useClipboard, useEventListener } from '@vueuse/core'
+import { Check, Copy, LocateFixed } from '@lucide/vue'
+import { pluralize } from '~/features/project/composables/projectLabels'
 import type { ComponentPublicInstance } from 'vue'
 import type { TranscriptSegment } from '../../resources/recording'
 import type { AudioPlayer } from '../../composables/useAudioPlayer'
@@ -99,6 +114,26 @@ const props = defineProps<{
   /** A moment to open at (`?t=` in ms): its segment is shown and cued. */
   focusMs?: number | null
 }>()
+
+// Above the text: how much there is, and the whole transcript to the clipboard.
+const plainText = computed(() =>
+  props.segments.length
+    ? props.segments
+        .map((segment) => segment.text.trim())
+        .filter(Boolean)
+        .join('\n')
+    : props.text,
+)
+const meta = computed(() => {
+  const words = plainText.value.split(/\s+/).filter(Boolean).length
+  return pluralize(words, ['слово', 'слова', 'слов'])
+})
+const { copy, copied } = useClipboard({ legacy: true, copiedDuring: 2000 })
+const toast = useToast()
+const copyAll = async () => {
+  await copy(plainText.value)
+  toast.default('Расшифровка скопирована')
+}
 
 const terms = computed(() =>
   (props.highlight ?? '')

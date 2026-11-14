@@ -26,3 +26,25 @@ export const tagErrorMessage = (error: unknown, fallback: string) => {
   if (isApiError(error, 422) || isApiError(error, 400)) return 'Проверьте название тега'
   return fallback
 }
+
+/**
+ * How many whole chips fit a fixed-width slot (`budget` in rem); the rest collapse into «+N». The width comes from
+ * the text length, not the DOM: the same answer on the server and the client, no measuring per row, and rows never
+ * show a chip cut in half. The first chip always shows (a very long name truncates inside the slot).
+ */
+export const fitTagChips = <T extends { name: string }>(tags: T[], budget: number): T[] => {
+  // text-xs chip: 0.75rem of padding, ~0.44rem per character; 0.25rem gap; «+N» takes ~1.6rem.
+  const GAP = 0.25
+  const COUNTER = 1.6
+  const width = (tag: T) => 0.75 + tag.name.length * 0.44
+  const fitted: T[] = []
+  let used = 0
+  for (const [index, tag] of tags.entries()) {
+    const next = used + (fitted.length ? GAP : 0) + width(tag)
+    const rest = tags.length - index - 1
+    if (fitted.length && next + (rest ? GAP + COUNTER : 0) > budget) break
+    fitted.push(tag)
+    used = next
+  }
+  return fitted
+}

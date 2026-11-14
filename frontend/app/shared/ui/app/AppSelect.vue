@@ -24,16 +24,10 @@ import { normalizeSelection, readItem, selectionKey, valueOf } from './select/se
 import type { AppSelectProps, SelectSource, SelectValue } from './select/types'
 import { resourceSource } from '~/shared/api/resource'
 import { useApiClient } from '~/shared/api/useResource'
-import {
-  activeOutlineClasses,
-  appSelectIconSize,
-  appSelectSizeClasses,
-  appSelectValueSizeClasses,
-} from './types/control'
+import { appSelectIconSize, appSelectSizeClasses, appSelectValueSizeClasses } from './types/control'
 
 const props = withDefaults(defineProps<AppSelectProps<T>>(), {
   variant: 'outline',
-  filter: true,
   size: 'md',
   hideDropdownIcon: undefined,
   locale: 'ru',
@@ -139,7 +133,7 @@ watch(
 const source = useSelectSource(() => ({ ...props, source: optionSource.value }), open, search, key, remember)
 const options = computed(() => {
   const items = optionSource.value ? source.items.value : (props.options ?? props.items ?? [])
-  if ((optionSource.value && !props.onlyClientSearch) || props.filter === false) return items
+  if (optionSource.value && !props.onlyClientSearch) return items
   const query = search.value.trim().toLocaleLowerCase()
   return items.filter((item) =>
     (props.filterFields?.length
@@ -150,6 +144,8 @@ const options = computed(() => {
       .includes(query),
   )
 })
+/** Chips shown in a multi-select trigger before «+N». */
+const MAX_TRIGGER_CHIPS = 2
 const selectedKeys = computed(() =>
   normalizeSelection(model.value).map((value) => selectionKey<T>(value, valueAccessor.value)),
 )
@@ -252,13 +248,11 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                 ? 'group border border-transparent hover:bg-field-hover'
                 : variant === 'secondary'
                   ? 'group border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-accent'
-                  : [
-                      'group border bg-background shadow-xs hover:bg-field-hover',
-                      open ? 'border-ring' : 'border-input',
-                    ],
-              variant === 'active-outline' && activeOutlineClasses,
-              // Focus only recolors the border, like AppInput.
-              'has-[[data-select-button]:focus-visible]:border-ring',
+                  : // A chosen value or an open list never recolors the trigger (`active-outline` included): the
+                    // border and background stay as in the empty state, only the text goes from muted to foreground.
+                    'group border border-input bg-background shadow-xs hover:bg-field-hover',
+              // Keyboard focus only recolors the border, like AppInput.
+              'has-[[data-select-button]:focus-visible]:border-border-strong',
               error && 'border-destructive',
               disabled && 'opacity-50',
             ]"
@@ -289,7 +283,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             <div
               :id="`${field.id}-value`"
               data-avatar-owner
-              class="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center gap-1"
+              class="pointer-events-none flex min-w-0 flex-1 items-center gap-1"
               :class="[appSelectValueSizeClasses[size], multiple && 'pr-1']"
               @click="!disabled && (open = !open)"
             >
@@ -305,13 +299,15 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                 :selected="selected"
               />
               <template v-else-if="multiple && selected.length">
+                <!-- One line, always: the first chips and «+N». Wrapping chips made the trigger grow with every tick,
+                     which moved the page and the open list under the pointer. -->
                 <SelectChip
-                  v-for="entry in selected"
+                  v-for="entry in selected.slice(0, MAX_TRIGGER_CHIPS)"
                   :key="entry.value"
                   :label="entry.label"
                   :disabled="disabled"
                   :remove-label="messages.remove"
-                  class="pointer-events-none"
+                  class="pointer-events-none min-w-0"
                   @remove="remove(entry.value)"
                 >
                   <slot
@@ -323,6 +319,12 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                     {{ entry.label }}
                   </slot>
                 </SelectChip>
+                <span
+                  v-if="selected.length > MAX_TRIGGER_CHIPS"
+                  class="shrink-0 text-xs text-muted-foreground tabular-nums"
+                  :title="selected.map((entry) => entry.label).join(', ')"
+                  >+{{ selected.length - MAX_TRIGGER_CHIPS }}</span
+                >
               </template>
               <span
                 v-else-if="selected.length"
@@ -344,7 +346,6 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             <AppClearButton
               v-if="(clearable || showClear) && selected.length && !disabled"
               :size="size"
-              :active="variant === 'active-outline'"
               type="button"
               :label="messages.clear"
               :class="
@@ -383,10 +384,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             class="z-overlay flex max-h-[min(380px,var(--reka-combobox-content-available-height))] w-[max(240px,var(--reka-combobox-trigger-width))] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-lg border border-border-strong bg-background text-foreground shadow-overlay"
             @escape-key-down.stop
           >
-            <div
-              v-if="filter !== false"
-              class="flex shrink-0 items-center gap-2 border-b border-border px-3"
-            >
+            <div class="flex shrink-0 items-center gap-2 border-b border-border px-3">
               <Search
                 class="size-4 text-muted-foreground"
                 aria-hidden="true"
@@ -410,7 +408,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                   v-for="item in options"
                   :key="key(item)"
                   :value="key(item)"
-                  :disabled="itemDisabled(item) || source.pending.value"
+                  :disabled="itemDisabled(item)"
                   class="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-[13px] outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-accent"
                   @pointerenter="emit('itemPointerEnter', item)"
                   @pointerleave="emit('itemPointerLeave', item)"
@@ -432,8 +430,9 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                   </ComboboxItemIndicator>
                 </ComboboxItem>
               </ComboboxViewport>
+              <!-- A refetch keeps the options on screen: the loader replaces only an empty list. -->
               <AppLoadingIndicator
-                v-if="busy"
+                v-if="busy && !options.length"
                 fluid
                 size="md"
                 class="p-4"

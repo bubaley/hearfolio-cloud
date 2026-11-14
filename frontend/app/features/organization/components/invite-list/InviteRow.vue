@@ -9,7 +9,7 @@
           :label="stateLabel.label"
         />
       </div>
-      <div class="truncate text-sm text-muted-foreground">{{ details }}</div>
+      <div class="text-sm break-words text-muted-foreground md:truncate">{{ details }}</div>
     </div>
     <AppButton
       v-if="invite.state === 'valid'"

@@ -37,7 +37,7 @@
     </div>
     <p
       v-else-if="!events.length"
-      class="py-6 text-center text-sm text-muted-foreground"
+      class="py-6 text-sm text-muted-foreground"
     >
       История пока пуста
     </p>

@@ -2,9 +2,8 @@
   <AppPageView
     title="Профиль"
     description="Ваше имя видят коллеги в записях, проектах и списке участников"
-    content-class="px-4 pb-10"
   >
-    <div class="flex flex-col gap-10 pt-4">
+    <div class="flex flex-col gap-10">
       <div class="flex min-w-0 items-center gap-4">
         <AppAvatar
           :name="displayName"

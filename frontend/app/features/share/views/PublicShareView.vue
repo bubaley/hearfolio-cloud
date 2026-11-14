@@ -1,6 +1,35 @@
 <template>
   <div class="flex min-h-dvh flex-col bg-background text-foreground">
-    <main class="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pt-10 pb-8 sm:px-6 md:pt-16">
+    <!-- Guests have no profile menu: the theme switch and «copy link» live in a quiet top bar. -->
+    <header
+      class="mx-auto flex w-full max-w-(--page-width) items-center justify-between gap-2 pt-3 md:pt-5"
+      :class="PAGE_GUTTER_CLASS"
+    >
+      <NuxtLink
+        to="/"
+        class="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        :aria-label="productName"
+      >
+        <AppLogo />
+      </NuxtLink>
+      <div class="flex items-center gap-1">
+        <AppButton
+          v-if="share"
+          variant="ghost"
+          text-variant="muted"
+          class="max-md:h-11"
+          :icon="copied ? Check : LinkIcon"
+          :label="copied ? 'Скопировано' : 'Копировать ссылку'"
+          @click="copyLink"
+        />
+        <AppThemeToggle />
+      </div>
+    </header>
+    <!-- The same column and gutters as the app pages: readable on a desktop, a 16px gutter on a phone. -->
+    <main
+      class="mx-auto flex w-full max-w-(--page-width) flex-1 flex-col pt-8 pb-8 md:pt-12"
+      :class="PAGE_GUTTER_CLASS"
+    >
       <div
         v-if="isPending"
         class="flex flex-col gap-4"
@@ -49,7 +78,7 @@
         class="flex flex-col gap-8"
       >
         <header class="flex flex-col gap-2">
-          <h1 class="text-2xl leading-tight font-bold tracking-tight break-words sm:text-3xl">
+          <h1 :class="[PAGE_TITLE_CLASS, 'break-words']">
             {{ share.title || 'Запись без названия' }}
           </h1>
           <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -84,7 +113,7 @@
           <h2 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{{ result.title }}</h2>
           <AppMarkdown
             :source="stripLeadingTitle(result.content, result.title)"
-            class="text-[0.95rem]"
+            size="md"
           />
         </section>
 
@@ -122,7 +151,10 @@
 </template>
 
 <script setup lang="ts">
-import { CircleAlert, Link as LinkIcon, RotateCw } from '@lucide/vue'
+import { useClipboard } from '@vueuse/core'
+import { Check, CircleAlert, Link as LinkIcon, RotateCw } from '@lucide/vue'
+import AppLogo from '~/shared/components/layout/header/AppLogo.vue'
+import { PAGE_GUTTER_CLASS, PAGE_TITLE_CLASS } from '~/shared/ui/app/pageContainer'
 import { stripLeadingTitle } from '~/features/recording/utils/resultContent'
 import ShareAudioPlayer from '../components/ShareAudioPlayer.vue'
 import ShareTranscript from '../components/ShareTranscript.vue'
@@ -135,6 +167,9 @@ const { formatDate } = useDate()
 const { data: share, error, isPending, isLoading, refetch, refresh } = usePublicShare(() => props.token)
 // Head tags are resolved once on the server: wait for the share before they are set.
 if (import.meta.server) await refresh().catch(() => null)
+
+const { copy, copied } = useClipboard({ legacy: true, copiedDuring: 2000 })
+const copyLink = () => copy(window.location.href)
 
 const player = ref<InstanceType<typeof ShareAudioPlayer>>()
 const currentMs = ref(0)

@@ -1,23 +1,17 @@
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center gap-2">
-      <p class="min-w-0 flex-1 text-xs text-muted-foreground">
-        {{
-          transcribed
-            ? 'Саммари создаются по шаблонам организации или по вашему запросу'
-            : 'Саммари можно создать после расшифровки'
-        }}
-      </p>
-      <AppButton
-        size="sm"
-        variant="outline"
-        :icon="Sparkles"
-        label="Создать саммари"
-        class="shrink-0 max-md:h-11"
-        :disabled="!transcribed"
-        @click="createOpen = true"
-      />
-    </div>
+  <!-- No boxes here: a summary is a titled piece of text in the reading column, apart from the next one by space. -->
+  <div class="flex max-w-(--reading-width) flex-col gap-8">
+    <AppButton
+      v-if="results.length"
+      variant="ghost"
+      text-variant="muted"
+      :icon="Sparkles"
+      label="Создать саммари"
+      class="-ml-3 self-start max-md:h-11"
+      :disabled="!transcribed"
+      :title="transcribed ? undefined : 'Саммари можно создать после расшифровки'"
+      @click="createOpen = true"
+    />
 
     <AppAlert
       v-if="error && !results.length"
@@ -32,51 +26,77 @@
     </AppAlert>
     <div
       v-else-if="isLoading && !results.length"
-      class="flex flex-col gap-3"
+      class="flex flex-col gap-8"
+      aria-busy="true"
+      aria-label="Загрузка саммари"
     >
-      <AppSkeleton
+      <div
         v-for="row in 2"
         :key="row"
-        :lines="4"
-      />
+        class="flex flex-col gap-3"
+      >
+        <AppSkeleton class="h-5 w-40" />
+        <AppSkeleton :lines="4" />
+      </div>
     </div>
     <div
       v-else-if="!results.length"
-      class="py-6"
+      class="flex flex-col items-start gap-4 py-2"
     >
-      <AppResultState
+      <span
+        class="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground"
+        aria-hidden="true"
+      >
+        <AppIcon
+          :icon="Sparkles"
+          size="md"
+        />
+      </span>
+      <div class="flex flex-col gap-1">
+        <h3 class="text-lg font-semibold">Саммари пока нет</h3>
+        <p class="max-w-md text-sm text-muted-foreground">
+          {{
+            transcribed
+              ? 'Выберите шаблоны — например «Кратко» или «Задачи и ответственные» — или напишите свой запрос, и модель соберёт главное из записи'
+              : 'Когда расшифровка будет готова, здесь можно будет собрать главное из записи'
+          }}
+        </p>
+      </div>
+      <AppButton
         :icon="Sparkles"
-        title="Саммари пока нет"
-        :description="
-          transcribed
-            ? 'Выберите шаблоны — например «Кратко» или «Задачи и ответственные» — и модель соберёт главное'
-            : 'Когда расшифровка будет готова, здесь можно будет собрать главное из записи'
-        "
+        label="Создать саммари"
+        class="max-md:h-11"
+        :disabled="!transcribed"
+        @click="createOpen = true"
       />
     </div>
 
     <article
       v-for="result in results"
       :key="result.id"
-      class="rounded-lg border border-border"
+      class="flex flex-col gap-4"
       :aria-label="result.title"
     >
-      <header class="flex min-h-11 items-center gap-2 border-b border-border py-1 pr-1 pl-4">
-        <h3 class="min-w-0 flex-1 truncate text-sm font-semibold">{{ result.title }}</h3>
-        <AppLabel
-          v-if="result.status !== 'done'"
-          :config="RESULT_STATUS_LABELS[result.status]"
-          size="xs"
-          variant="soft"
-          class="shrink-0"
-        />
-        <span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">{{ shortModel(result.model) }}</span>
+      <header class="flex items-start gap-1">
+        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h3 class="text-lg leading-snug font-semibold break-words">{{ result.title }}</h3>
+          <p class="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+            <span
+              v-if="result.status !== 'done'"
+              :class="result.status === 'failed' ? 'text-destructive' : undefined"
+              >{{ RESULT_STATUS_LABELS[result.status].label }}</span
+            >
+            <span v-else>{{ formatDate(result.updated_at, { format: 'D MMMM, HH:mm' }) }}</span>
+            <span aria-hidden="true">·</span>
+            <span class="break-all">{{ shortModel(result.model) }}</span>
+          </p>
+        </div>
         <AppButton
           v-if="result.status === 'done'"
           variant="ghost"
           size="icon"
           text-variant="muted"
-          class="size-11 md:size-control-md"
+          class="size-11 shrink-0 md:size-control-md"
           :icon="copiedId === result.id ? Check : Copy"
           :aria-label="`Копировать текст: ${result.title}`"
           :title="copiedId === result.id ? 'Скопировано' : 'Копировать текст'"
@@ -91,43 +111,43 @@
               variant="ghost"
               size="icon"
               text-variant="muted"
-              class="size-11 md:size-control-md"
+              class="size-11 shrink-0 md:size-control-md"
               :icon="Ellipsis"
               :aria-label="`Действия: ${result.title}`"
             />
           </template>
         </AppMenu>
       </header>
-      <div class="px-4 py-3">
-        <AppMarkdown
-          v-if="result.status === 'done'"
-          :source="stripLeadingTitle(result.content, result.title)"
+      <AppMarkdown
+        v-if="result.status === 'done'"
+        size="md"
+        :source="stripLeadingTitle(result.content, result.title)"
+      />
+      <div
+        v-else-if="result.status === 'failed'"
+        class="flex flex-col items-start gap-3"
+      >
+        <p class="text-sm text-muted-foreground">
+          {{ processingErrorText(result.error_code, result.error_message) || 'Модель не смогла собрать саммари' }}
+        </p>
+        <AppButton
+          size="sm"
+          variant="secondary"
+          :icon="RotateCcw"
+          label="Повторить"
+          class="max-md:h-11"
+          @click="regenerate(result)"
         />
-        <div
-          v-else-if="result.status === 'failed'"
-          class="flex flex-col items-start gap-2"
-        >
-          <p class="text-sm text-destructive">
-            {{ processingErrorText(result.error_code, result.error_message) || 'Модель не смогла собрать саммари' }}
-          </p>
-          <AppButton
-            size="sm"
-            variant="outline"
-            :icon="RotateCcw"
-            label="Повторить"
-            @click="regenerate(result)"
-          />
-        </div>
-        <div
-          v-else
-          class="flex flex-col gap-3"
-          role="status"
-        >
-          <p class="text-xs text-muted-foreground">
-            {{ result.status === 'running' ? 'Модель пишет саммари…' : 'Ждёт своей очереди…' }}
-          </p>
-          <AppSkeleton :lines="3" />
-        </div>
+      </div>
+      <div
+        v-else
+        class="flex flex-col gap-3"
+        role="status"
+      >
+        <p class="text-sm text-muted-foreground">
+          {{ result.status === 'running' ? 'Модель пишет саммари…' : 'Ждёт своей очереди…' }}
+        </p>
+        <AppSkeleton :lines="3" />
       </div>
     </article>
 
@@ -170,6 +190,7 @@ const confirmOpen = ref(false)
 const pendingDelete = ref<RecordingResult | null>(null)
 const { copy } = useClipboard({ legacy: true })
 const toast = useToast()
+const { formatDate } = useDate()
 
 const shortModel = (model: string) => model.split('/').pop() ?? model
 

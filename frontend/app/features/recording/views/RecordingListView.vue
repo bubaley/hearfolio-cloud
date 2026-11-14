@@ -4,8 +4,21 @@
     :description="screen.description"
     :icon="screen.icon"
   >
+    <template
+      v-if="scope !== 'trash'"
+      #actions
+    >
+      <AppButton
+        variant="ghost"
+        :icon="Upload"
+        label="Загрузить"
+        text-variant="muted"
+        @click="list?.pickFiles()"
+      />
+    </template>
     <!-- The list brings its own gutters (sticky toolbar, row hover); pull it to the column edges. -->
     <RecordingList
+      ref="list"
       :key="scope"
       :fixed="screen.fixed"
       class="-mx-3 md:-mx-4"
@@ -35,13 +48,14 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { AudioLines, Lock, Sparkles, Trash2, UserPlus } from '@lucide/vue'
+import { AudioLines, Lock, Sparkles, Trash2, Upload, UserPlus } from '@lucide/vue'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import type { RecordingFilters } from '../resources/recording'
 import { daysLabel, useTrashDays } from '../composables/useRecordingMutations'
 import RecordingList from '../components/list/RecordingList.vue'
 
 const route = useRoute()
+const list = ref<{ pickFiles: () => void }>()
 const setupStore = useSetupStore()
 const { isAdmin } = useOrganizationRole()
 const trashDays = useTrashDays()

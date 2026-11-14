@@ -15,7 +15,7 @@ const model = defineModel<string>({ default: '' })
     data-slot="input"
     :class="
       cn(
-        'flex w-full rounded-md border border-input bg-background py-1 text-foreground shadow-xs transition-colors outline-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:border-ring enabled:hover:bg-field-hover disabled:cursor-not-allowed disabled:opacity-50',
+        'flex w-full rounded-md border border-input bg-background py-1 text-foreground shadow-xs transition-colors outline-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:border-border-strong enabled:hover:bg-field-hover disabled:cursor-not-allowed disabled:opacity-50',
         props.class,
       )
     "

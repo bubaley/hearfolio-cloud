@@ -8,7 +8,6 @@
     <template #trigger>
       <AppButton
         variant="ghost"
-        size="sm"
         :icon="link ? Globe : Share2"
         :label="wide ? (link ? 'Опубликовано' : 'Поделиться') : undefined"
         :aria-label="link ? 'Опубликовано по ссылке — настроить' : 'Поделиться'"

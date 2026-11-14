@@ -21,6 +21,7 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | How to run the project locally? | [README.md](README.md) |
 | How is the image built, released and deployed? | [docs/deployment.md](docs/deployment.md) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml` |
 | How to lint, format, test, what CI checks? | `make lint` / `make check` in [README.md](README.md#makefile); frontend tooling in [docs/frontend-concept.md](docs/frontend-concept.md#tooling) |
+| Which layout rules make the screens one product (page shell, header actions, control heights, rows, chips, modals)? What was audited and what is still open? | [docs/ui-audit.md](docs/ui-audit.md); the code-level rules are in [docs/frontend-concept.md](docs/frontend-concept.md#dialogs-settings-column-switches) |
 | How do recordings reach the AI pipeline? Which `RecordingService` methods does the pipeline call? | [docs/pipeline-seam.md](docs/pipeline-seam.md) — `domains/library/services/pipeline.py` |
 | Known open items (upstream workarounds, CI not yet run, deferred decisions)? | [docs/follow-ups.md](docs/follow-ups.md); history of the 2026 modernization: [docs/archive/roadmap-2026.md](docs/archive/roadmap-2026.md) |
 

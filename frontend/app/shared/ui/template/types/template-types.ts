@@ -66,6 +66,8 @@ export type AppListTemplateBaseProps<F> = AppSectionProps & {
   hideCreateButton?: boolean
   hideHeader?: boolean
   detailMode?: 'modal' | 'route'
+  /** With `detailMode: 'route'`: the create button opens the `#detail-modal` form instead of the `new` route. */
+  createInModal?: boolean
   detailRouteName?: string
   detailRouteParam?: string
   buildNewItem?: () => F

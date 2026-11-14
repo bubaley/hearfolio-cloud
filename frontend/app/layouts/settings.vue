@@ -34,8 +34,8 @@ import { useOrganizationRole } from '~/features/organization/composables/useOrga
 import { settingsNavigation, settingsSections } from '~/navigation/settings'
 import { PAGE_CONTAINER_CLASS } from '~/shared/ui/app/pageContainer'
 
-// Every settings screen shares one centered column; header actions stay at its edge on wide screens.
-provide(PAGE_CONTAINER_CLASS, 'max-w-5xl')
+// Every settings screen sits in the same centered column as the workspace pages; header actions stay at its edge.
+provide(PAGE_CONTAINER_CLASS, 'max-w-(--page-width)')
 
 const setupStore = useSetupStore()
 const { isAdmin, isSuperuser } = useOrganizationRole()

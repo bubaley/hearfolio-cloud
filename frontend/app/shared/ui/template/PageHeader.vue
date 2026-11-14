@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject } from 'vue'
-import { PAGE_CONTAINER_CLASS } from '../app/pageContainer'
+import { PAGE_ACTIONS_CLASS, PAGE_CONTAINER_CLASS } from '../app/pageContainer'
 
 withDefaults(
   defineProps<{ title?: string; titleSize?: TitleSizeToken; description?: string; backAction?: () => void }>(),
@@ -11,8 +11,8 @@ const inContainer = Boolean(inject(PAGE_CONTAINER_CLASS, ''))
 </script>
 <template>
   <header
-    class="flex min-h-12 w-full flex-wrap items-center gap-3 py-3"
-    :class="inContainer ? 'px-0' : 'px-4'"
+    class="flex w-full flex-wrap items-start gap-3"
+    :class="inContainer ? 'px-0' : 'min-h-12 px-4 py-3'"
   >
     <AppBackButton
       v-if="backAction"
@@ -28,13 +28,14 @@ const inContainer = Boolean(inject(PAGE_CONTAINER_CLASS, ''))
           v-if="title || $slots.title"
           as="h1"
           :size="titleSize"
+          :weight="titleSize === 'xl' ? 'bold' : 'semibold'"
         >
           <slot name="title">{{ title }}</slot> </AppTitle
         ><slot name="title-append" />
       </div>
       <p
         v-if="description"
-        class="mt-0.5 text-sm text-muted-foreground"
+        class="mt-2 text-base text-muted-foreground"
       >
         {{ description }}
       </p>
@@ -42,7 +43,8 @@ const inContainer = Boolean(inject(PAGE_CONTAINER_CLASS, ''))
     <!-- Phones: every header button is a 44px touch target. -->
     <div
       v-if="$slots.actions"
-      class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 max-md:[&_[data-slot=button]]:min-h-11 max-md:[&_[data-slot=button]]:min-w-11"
+      class="ml-auto max-w-full"
+      :class="PAGE_ACTIONS_CLASS"
     >
       <slot name="actions" />
     </div>

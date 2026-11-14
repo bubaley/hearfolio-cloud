@@ -18,7 +18,7 @@
     </div>
     <ul
       v-else-if="devices.length"
-      class="max-w-3xl"
+      class="w-full"
     >
       <li
         v-for="device in devices"

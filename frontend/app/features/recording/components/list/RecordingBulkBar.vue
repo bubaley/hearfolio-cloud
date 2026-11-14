@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1 shadow-sm md:min-h-control-md"
+    class="flex h-11 items-center gap-1.5 rounded-md bg-accent px-2 md:h-control-md"
     role="toolbar"
     aria-label="Действия с выбранными записями"
   >

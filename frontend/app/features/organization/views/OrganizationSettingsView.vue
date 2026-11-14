@@ -2,9 +2,8 @@
   <AppPageView
     title="Общие"
     :description="isOwner ? 'Название организации и её удаление' : 'Сведения об организации'"
-    content-class="px-4 pb-10"
   >
-    <div class="flex flex-col gap-8 pt-2">
+    <div class="flex flex-col gap-8">
       <section>
         <AppSettingRow
           v-if="!isAdmin"

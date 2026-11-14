@@ -7,22 +7,25 @@
     data-recording-row
     @dragstart="onDragStart"
   >
+    <!-- The whole leading zone ticks the row (::before, 36px; 40px on phones): a click a few pixels off the 18px box
+         must not fall through to the row link and open the recording. -->
     <span
       v-if="selectable"
-      class="relative z-1 mt-0.5 flex size-4 shrink-0 items-center justify-center @3xl:mt-0"
+      class="relative z-1 mt-0.5 flex size-4 shrink-0 cursor-pointer items-center justify-center before:absolute before:-inset-2.5 before:content-[''] max-md:before:-inset-3 @3xl:mt-0"
       @click.capture="rememberShift"
+      @click.self="emit('select', shift)"
     >
       <AppCheckbox
         :model-value="selected"
         :aria-label="`Выбрать «${title}»`"
-        class="absolute inset-0 justify-center transition-opacity max-md:-inset-3"
+        class="pointer-events-none absolute inset-0 justify-center transition-opacity [&_button]:pointer-events-auto"
         :class="selecting || selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'"
         @update:model-value="emit('select', shift)"
       />
       <AppIcon
         :icon="icon"
         size="sm"
-        class="text-muted-foreground transition-opacity"
+        class="pointer-events-none text-muted-foreground transition-opacity"
         :class="selecting || selected ? 'opacity-0' : 'group-hover:opacity-0'"
         :label="recording.visibility === 'personal' ? 'Личная запись' : undefined"
       />
@@ -34,7 +37,7 @@
       class="mt-0.5 shrink-0 text-muted-foreground @3xl:mt-0"
       :label="recording.visibility === 'personal' ? 'Личная запись' : undefined"
     />
-    <div class="flex min-w-0 flex-1 flex-col gap-1 @3xl:gap-0.5">
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5 @3xl:gap-0.5">
       <div class="flex min-w-0 items-center gap-3">
         <NuxtLink
           v-if="!trash"
@@ -71,43 +74,36 @@
       >
         {{ trashHint }}<template v-if="!canManage"> · восстановить может автор или администратор</template>
       </p>
-      <!-- Narrow lists (phones, a tablet with the sidebar open): one muted meta line under the title. -->
-      <div
-        v-else
-        class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground @3xl:hidden"
-      >
-        <RecordingStatusLabel :recording="recording" />
-        <span class="tabular-nums">{{ meta }}</span>
-        <!-- The separator travels with the project, so a wrapped line never ends with «·». -->
-        <template v-if="recording.project && !hideProject">
-          <span class="inline-flex min-w-0 items-center gap-1">
-            <span
-              aria-hidden="true"
-              class="mr-0.5"
-              >·</span
-            >
-            <span
-              v-if="recording.project.emoji"
-              class="leading-none"
-              aria-hidden="true"
-              >{{ recording.project.emoji }}</span
-            >
-            <AppIcon
-              v-else
-              :icon="Folder"
-              size="xs"
-            />
-            <span class="max-w-36 truncate">{{ recording.project.name }}</span>
-          </span>
-        </template>
-        <TagChip
-          v-for="tag in recording.tags.slice(0, 3)"
-          :key="tag.id"
-          :name="tag.name"
-          :color="tag.color"
-          class="ml-0.5 max-w-40 shrink-0"
+      <!-- Narrow lists (phones, a tablet with the sidebar open): one muted meta line, then one line of whole chips. -->
+      <template v-else>
+        <div class="flex min-w-0 items-center gap-x-1.5 text-xs text-muted-foreground @3xl:hidden">
+          <RecordingStatusLabel :recording="recording" />
+          <span class="shrink-0 tabular-nums">{{ meta }}</span>
+          <template v-if="recording.project && !hideProject">
+            <span aria-hidden="true">·</span>
+            <span class="inline-flex min-w-0 items-center gap-1">
+              <span
+                v-if="recording.project.emoji"
+                class="shrink-0 leading-none"
+                aria-hidden="true"
+                >{{ recording.project.emoji }}</span
+              >
+              <AppIcon
+                v-else
+                :icon="Folder"
+                size="xs"
+                class="shrink-0"
+              />
+              <span class="truncate">{{ recording.project.name }}</span>
+            </span>
+          </template>
+        </div>
+        <TagChipList
+          :tags="recording.tags"
+          :budget="17"
+          class="@3xl:hidden"
         />
-      </div>
+      </template>
     </div>
 
     <AppButton
@@ -137,28 +133,20 @@
         :name="author"
         :title="author"
       />
-      <!-- Wide lists: properties in fixed columns to the right, like a Notion database list. The breakpoints are
-           container queries on the list (`@container` in RecordingList), so the sidebar and the project page width count. -->
-      <div class="hidden shrink-0 items-center gap-3 text-xs text-muted-foreground @3xl:flex">
-        <!-- Chips shrink and truncate from the right; with `justify-end` an overflow would cut their start. -->
-        <div class="flex w-28 min-w-0 items-center justify-end gap-1 @5xl:w-44">
-          <TagChip
-            v-for="tag in recording.tags.slice(0, 2)"
-            :key="tag.id"
-            :name="tag.name"
-            :color="tag.color"
-            :title="tag.name"
-            class="max-w-28 min-w-0 shrink"
+      <!-- Wide lists: properties in fixed, left-aligned columns (tags, project, duration, author, time), like a
+           database list: every column starts at the same x in every row and nothing is cut in half. The breakpoints
+           are container queries on the list (`@container` in RecordingList), so the sidebar width counts. -->
+      <div class="hidden shrink-0 items-center gap-4 text-xs text-muted-foreground @3xl:flex">
+        <span class="flex w-52">
+          <TagChipList
+            :tags="recording.tags"
+            :budget="13"
           />
-          <span
-            v-if="recording.tags.length > 2"
-            class="shrink-0"
-            >+{{ recording.tags.length - 2 }}</span
-          >
-        </div>
+        </span>
         <span
           v-if="!hideProject"
-          class="hidden w-36 min-w-0 items-center gap-1 @5xl:inline-flex"
+          class="hidden w-40 min-w-0 items-center gap-1.5 @5xl:inline-flex"
+          :title="recording.project?.name"
         >
           <template v-if="recording.project">
             <span
@@ -177,17 +165,18 @@
           </template>
         </span>
         <span
-          class="w-20 text-right whitespace-nowrap tabular-nums"
+          class="w-16 shrink-0 text-right whitespace-nowrap tabular-nums"
           :title="recording.duration_ms ? `Длительность ${formatDuration(recording.duration_ms)}` : undefined"
           >{{ recording.duration_ms ? formatDuration(recording.duration_ms) : '' }}</span
         >
         <AppAvatar
           variant="soft"
           size="xsmall"
+          class="shrink-0"
           :name="author"
           :title="author"
         />
-        <span class="w-10 text-right tabular-nums">{{ time }}</span>
+        <span class="w-10 shrink-0 text-right tabular-nums">{{ time }}</span>
       </div>
     </template>
   </div>
@@ -200,7 +189,7 @@ import type { Recording } from '../../resources/recording'
 import { recordingTitle } from '../../composables/useRecordingLabels'
 import RecordingStatusLabel from '../RecordingStatusLabel.vue'
 import SnippetText from '../SnippetText.vue'
-import TagChip from '~/features/tag/components/TagChip.vue'
+import TagChipList from '~/features/tag/components/TagChipList.vue'
 
 const props = defineProps<{
   recording: Recording

@@ -6,17 +6,15 @@
         ? 'Общие теги организации. AI добавляет их к записям сам, вы можете переименовать, перекрасить, объединить или удалить'
         : 'Общие теги организации. Создавать может каждый, менять и удалять — администраторы'
     "
-    content-class="px-4 pb-10"
   >
     <template #actions>
       <AppButton
-        size="sm"
         label="Новый тег"
         :icon="Plus"
         @click="createOpen = true"
       />
     </template>
-    <div class="flex flex-col gap-4 pt-2">
+    <div class="flex flex-col gap-4">
       <AppInput
         v-if="items.length > 10 || search"
         v-model="search"

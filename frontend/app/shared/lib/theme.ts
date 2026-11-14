@@ -6,7 +6,8 @@ export type ThemeMode = (typeof THEME_MODES)[number]
 export const PALETTES = ['neutral', 'blue', 'violet', 'green', 'orange'] as const
 export type Palette = (typeof PALETTES)[number]
 
-export const DEFAULT_PALETTE: Palette = 'violet'
+// First visit: system color mode (nuxt.config `colorMode.preference`) and the neutral accent.
+export const DEFAULT_PALETTE: Palette = 'neutral'
 export const PALETTE_COOKIE = 'palette'
 export const COLOR_MODE_COOKIE = 'colorScheme'
 

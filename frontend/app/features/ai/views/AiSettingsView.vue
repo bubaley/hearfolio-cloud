@@ -2,7 +2,6 @@
   <AppPageView
     title="AI и модели"
     description="Расшифровка, названия, теги и саммари идут через ваш ключ OpenRouter"
-    content-class="px-4 pb-10"
   >
     <template #title-append>
       <span
@@ -12,7 +11,7 @@
         >Сохраняем…</span
       >
     </template>
-    <div class="flex flex-col gap-10 pt-2">
+    <div class="flex flex-col gap-10">
       <AppAlert
         v-if="!isAdmin"
         tone="info"
@@ -117,7 +116,6 @@
               option-label="label"
               option-value="value"
               emit-value
-              :filter="false"
               class="w-full sm:w-60"
               aria-label="Длина фрагмента"
               @update:model-value="(value: number | null) => value && patch({ segment_seconds: value })"
@@ -157,10 +155,14 @@ const toast = useToast()
 
 // Shown values change at once; the server response (or a refetch on failure) settles them.
 const draft = ref<OrganizationSettingsReadSchema | null>(null)
+// Edits made in a row (ticking several models) are saved one after another, and the server state replaces the draft
+// only when nothing is waiting: an earlier answer would un-tick what was chosen after it.
+let saving = 0
+let queue: Promise<unknown> = Promise.resolve()
 watch(
   settings,
   (value) => {
-    if (value) draft.value = { ...value }
+    if (value && !saving) draft.value = { ...value }
   },
   { immediate: true },
 )
@@ -168,11 +170,16 @@ watch(
 const patch = async (body: AiSettingsPatch) => {
   if (!draft.value) return
   draft.value = { ...draft.value, ...(body as Partial<OrganizationSettingsReadSchema>) }
+  saving++
+  const request = queue.then(() => update.mutateAsync(body))
+  queue = request.catch(() => undefined)
   try {
-    await update.mutateAsync(body)
+    await request
   } catch (error) {
     toast.error(aiErrorMessage(error, 'Не удалось сохранить'))
-    if (settings.value) draft.value = { ...settings.value }
+  } finally {
+    saving--
+    if (!saving && settings.value) draft.value = { ...settings.value }
   }
 }
 

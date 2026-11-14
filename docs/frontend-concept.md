@@ -171,12 +171,12 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppListTemplate` | List page or nested list on a `resource` (or local `items`): search, filters, infinite pagination, create, detail as route or modal |
 | `AppDetailTemplate` | Form + save/delete (`AppDetailActions`) on a `resource` |
 | `AppTemplateActions` | **Two or more buttons in a row.** Do not put several `AppButton`s side by side |
-| `AppTabs` / `AppTabPanel` | Sections on a screen. `v-model` is the active tab `value`. `query-key` writes it to the URL. Live: `/ui` |
+| `AppTabs` / `AppTabPanel` | Sections on a screen. `v-model` is the active tab `value`. `query-key` writes it to the URL. The recording page uses the default `segment` switch, aligned to the content edge (no negative offset). Live: `/ui` |
 | `AppMenu` | Overflow, context menu, or custom overlay (`:actions`, `label` for heading). Live: `/ui` → Overlays |
 | `AppModal` | Custom modal: `v-model`, `title`, `description` (`subtitle` compatibility), `width`. App-level overlay names use `Modal` |
 | `AppConfirmModal` | Confirm/Decline modal: `:confirm` / `:decline`. Built on `AppModal` + `AppTemplateActions`. Live: `/ui` → Overlays |
 | `AppTable` / `AppColumn` | Table with declarative `field`, `header`, `format` and scoped `#body`; retained by `AppListTemplate` |
-| `AppSelect` | Single/multiple selection, search and pagination; API-backed via `:resource="userResource"` (or a custom `:source`) |
+| `AppSelect` | Single/multiple selection, search and pagination; API-backed via `:resource="userResource"` (or a custom `:source`). The trigger never changes with a value or while open (same border and background; placeholder muted, value in the foreground color) and stays one line high: a multi-select shows two chips and «+N» |
 | `AppFilterToolbar` | List filter bar: search, fixed fields, compact conditions added through **+**, quick/actions slots |
 | `AppFilters` | Internal condition editor; toolbar uses `inline` mode. Specification and `v-model` are shared; feature owns query mapping |
 | `AppCheckbox` / `AppSwitch` / `AppRadioGroup` | Choice controls on the shadcn primitives. `AppRadioGroup` takes `:items="[{ label, value }]"` + `v-model` |
@@ -284,7 +284,7 @@ checks. Tooling is described in [Tooling](#tooling).
 
 `shared/ui/shadcn/` contains the local shadcn/Reka primitives. Product views consume `App*` wrappers from `shared/ui/app/`. Styling rules are in [Design system](#design-system). The catalogue at `/ui` is public with static examples.
 
-`AppListTemplate` keeps route/modal detail behavior. `useListData` (template composable) owns search (debounced), filters and `extraParams` and hands them to `useResourceList`; each combination is its own infinite query from page 1. Without a resource (or with `onlyClientSearch`) it filters `items` locally and never requests pages. `AppSelect` keeps its own page requests and selected-item hydration (`resourceSource`); it reloads options every time it opens.
+`AppListTemplate` keeps route/modal detail behavior. `useListData` (template composable) owns search (debounced), filters and `extraParams` and hands them to `useResourceList`; each combination is its own infinite query from page 1. Without a resource (or with `onlyClientSearch`) it filters `items` locally and never requests pages. `AppSelect` keeps its own page requests and selected-item hydration (`resourceSource`); it reloads options every time it opens, keeping the loaded ones on screen until the new page arrives (no spinner flash, no jump).
 
 `AppTable` keeps its header visible for empty, loading and error states. A body slot receives `{ data, item, index }`; buttons and links inside a row do not activate row navigation. Existing `AppColumn` formatting remains available:
 
@@ -432,15 +432,17 @@ All design values live in `app/assets/styles/theme.css`; there is no SCSS.
   merges will drop classes.
 - Rem base: `--font-size-root: 93.75%` (15px by default, so `text-sm` ≈ 13px, still following the user's browser
   font size). Every Tailwind spacing and type utility is rem-based, so this one value scales the whole UI.
-- Fields: inputs, textareas and select triggers share `shadow-xs`; focus only recolors the border (`border-ring`),
-  no focus ring. Overlays (menus, popovers, select lists, date picker) use `shadow-overlay`, a soft shadow.
+- Fields: inputs, textareas and select triggers share `shadow-xs`; focus only darkens the border to the neutral
+  `border-border-strong` (never the accent `ring`), no focus ring. Every `AppSelect` has a search field: local
+  `options` are filtered on the client, a `resource`/`source` searches the API. Overlays (menus, popovers, select lists, date picker) use `shadow-overlay`, a soft shadow.
 - Font: Inter (variable) is self-hosted via `@fontsource-variable/inter` (imported in `app.vue`); the stack in
   `--app-font-sans` prefers the system UI font on Apple platforms.
 
 **Palettes.** `[data-palette=…]` blocks override only `--primary`, `--primary-foreground` and `--ring`
-(`sidebar-primary` follows). Shipped: `violet` (default, the original accent), `neutral`, `blue`, `green`, `orange`. `useTheme()`
+(`sidebar-primary` follows). Shipped: `neutral` (default), `blue`, `violet`, `green`, `orange`. A first-time visitor (signed in or not: landing,
+`/auth`, a shared recording) gets the system color mode and the neutral accent. `useTheme()`
 returns `mode` (`system`/`light`/`dark`), `resolvedMode` and `palette`; both choices are stored in cookies
-(`colorScheme`, `palette`). `app.vue` renders `<html data-palette>` during SSR and an inline head script
+(`colorScheme`, `palette`), and the palette cookie is written only after an explicit choice. `app.vue` renders `<html data-palette>` during SSR and an inline head script
 (`shared/lib/theme.ts`) applies it on client-only routes, so there is no flash.
 
 **Re-branding a fork.** Change the neutral surfaces in `theme.css` if needed, add or edit a palette block in both
@@ -506,13 +508,35 @@ inline styles. PrimeVue-era props (`severity`, `text`, `outlined`, `iconPos`, `s
   width, cancel first. `AppTemplateActions` inside the footer follows it and ignores `full-width`/`fluid`; plain
   `AppButton`s in the footer get it from the flex layout. List cancel first, the primary last; do not add your own
   wrappers or width classes.
-- **Settings column**: `layouts/settings.vue` provides `PAGE_CONTAINER_CLASS` (`max-w-5xl`); `AppPage` centers its
-  header, controls, body and footer in it with the gutter (`px-4`) outside the container and `PageHeader` dropping its
-  own padding there, so the title and header actions share the content's edge. Settings views pass
-  `content-class="px-4 pb-10"` and do not set their own max width.
-- **Document pages**: `AppDocumentPage` (`shared/ui/template`) is the Notion-like page — large icon, actions on the
-  right, a big title, `meta` badges, a description, then content in a `max-w-5xl` column; a `state` slot replaces it
-  for loading/not-found. The project page and «Все записи» / «Личные» / «Корзина» use it. Page header buttons are 44 px tall on phones (`PageHeader`).
+- **One page shell** (rules and reasons: [ui-audit.md](ui-audit.md)). `shared/ui/app/pageContainer.ts` holds the
+  shared geometry: `PAGE_GUTTER_CLASS` (`px-4 md:px-10`), `PAGE_TOP_CLASS` (`pt-6 md:pt-10`), `PAGE_TITLE_CLASS`
+  (the h1 of every page) and `PAGE_ACTIONS_CLASS` (header actions, 44 px on phones). Do not hand-write these on a page.
+- **Page actions.** Workspace pages (`AppDocumentPage`) have a Notion-like top bar over the whole main area: where you
+  are on the left (`#lead`: the icon and title, or «← Все записи › запись»), actions on the right — all `ghost`
+  («Загрузить», «Поделиться»), the «⋯» menu last. The bar does not scroll. With the sidebar hidden it also holds
+  «Показать боковую панель» and `AppLayout` drops its own desktop header. Settings pages keep actions in the page
+  header at the top right of the column: the primary action first (`md`, with an icon: «Новый проект»), the «⋯» last.
+  Toolbars hold search and filters only.
+- **Settings column**: `layouts/settings.vue` provides `PAGE_CONTAINER_CLASS` (`max-w-(--page-width)`, the same
+  column as the workspace pages). In a container `AppPage` is one scrolling document: header (`PageHeader`: title,
+  description, actions), `controls` sticky at the top, body; no divider. It owns the paddings (`contentClass` is
+  ignored); views do not set their own max width or `content-class`.
+- **Page width**: one token, `--page-width` (63rem), for every page: lists, project, recording, settings and the
+  public share page; use `max-w-(--page-width)` instead of a fixed `max-w-*`.
+- **Document pages**: `AppDocumentPage` (`shared/ui/template`) is the workspace page — a lead (default: icon and title;
+  or `#lead`, e.g. a back button) with `#actions` on the right — both in the top bar — then, in a `max-w-(--page-width)`
+  column, an optional large icon (`icon`/`#icon`), the title (`#title`, or `#heading` for a custom h1), `#meta`
+  badges, a description and the content; `#state` replaces the document for
+  loading/not-found (same column), `#footer` stays fixed under the scroll (the audio player), and the scrolling
+  element is exposed as `scroller`. «Все записи» / «Личные» / «Корзина», the project page and the recording page use it.
+- **Creation is a modal** everywhere: tags, projects, templates, tokens, invitations (`InviteCreateModal`, two steps:
+  form → the link shown once), organizations and users (`AppListTemplate create-in-modal` + `#detail-modal`; rows
+  still open their route page). Never put a create form inline on a page.
+- **One toolbar, one height**: search, filter selects and buttons in a page toolbar are all `md` (44 px on phones).
+  `sm` is for controls inside rows and section headers (`AppListTemplate` sections get an `outline sm` create button).
+- **Chips in dense rows**: `TagChipList` (`features/tag`) shows whole chips that fit a `budget` (rem) and «+N»; the
+  parent gives the slot a fixed width. Never let a chip truncate next to other chips, never vary the column width.
+- **Theme on public pages**: `AppThemeToggle` (one icon button, light ↔ dark) on `/s/{token}` and the landing page.
 - **Switch**: off is a light knob on a muted track (`--switch-track`, `--switch-thumb` in both themes), on is the
   brand color. A switch without a visible `<label>` gets `aria-label`.
 - **Empty states** speak human: pass `empty-text` to lists (`AppTable`/`AppList` default «Здесь пока пусто»).
@@ -577,8 +601,10 @@ Patterns worth reusing, all in `features/recording/`:
   the toolbar and the list each call it, so there is no shared mutable prop. Rows are grouped by day
   (`useRecordingGroups`, `useDate`).
 - **Container queries for dense rows.** The list root is `@container`; rows and the toolbar switch between the narrow
-  layout (meta line under the title) and the Notion-like columns with `@3xl:` / `@5xl:`, so the sidebar and the
-  project page width count, not the viewport. Touch heights (`max-md:h-11`) stay viewport-based.
+  layout (meta line, then a line of chips under the title) and fixed left-aligned columns (tags `w-52`, project
+  `w-40` from `@5xl`, duration, author, time) with `@3xl:` / `@5xl:`, so the sidebar and the project page width count,
+  not the viewport. Touch heights (`max-md:h-11`) stay viewport-based. «Загрузить» is a page header action: the list
+  exposes `pickFiles()` and the view calls it.
 - **Optimistic writes on one record.** `useRecordingMutations.patch(id, body, optimistic)` writes the detail cache at
   once, replaces it with the response, rolls back with a toast on failure and invalidates the lists. Sub-resources of
   a record (`[recordings, id, events|results|share]`) are `useQuery`s in `useRecordingDetail.ts`.

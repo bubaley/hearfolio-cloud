@@ -6,7 +6,7 @@
     >
       <div
         v-if="isLoading"
-        class="mx-auto flex w-full max-w-5xl flex-col gap-4 pt-10"
+        class="flex flex-col gap-4"
         aria-label="Загрузка"
       >
         <AppSkeleton class="size-14 rounded-lg" />
@@ -61,7 +61,7 @@
         <template #trigger>
           <button
             type="button"
-            class="-ml-1 rounded-lg p-1 outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring"
+            class="-m-1 rounded-lg p-1 outline-none hover:bg-field-hover focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Сменить иконку проекта"
             title="Сменить иконку"
           >
@@ -80,10 +80,29 @@
     </template>
 
     <template
-      v-if="project && menuActions.some((action) => !action.hidden)"
+      v-if="project"
+      #lead
+    >
+      <span class="flex min-w-0 items-center gap-2 px-3 md:px-2">
+        <ProjectIcon :emoji="project.emoji" />
+        <span class="truncate">{{ project.name || 'Без названия' }}</span>
+      </span>
+    </template>
+
+    <template
+      v-if="project && (showUpload || hasMenu)"
       #actions
     >
+      <AppButton
+        v-if="showUpload"
+        variant="ghost"
+        :icon="Upload"
+        label="Загрузить"
+        text-variant="muted"
+        @click="recordings?.pickFiles()"
+      />
       <AppMenu
+        v-if="hasMenu"
         :actions="menuActions"
         content-class="w-60"
       >
@@ -216,6 +235,7 @@
       </section>
       <ProjectRecordings
         v-else
+        ref="recordings"
         :project-id="project.id"
         :can-upload="!project.archived_at"
       />
@@ -241,6 +261,7 @@ import {
   RotateCw,
   Trash2,
   Unlock,
+  Upload,
   UserPlus,
   Users,
 } from '@lucide/vue'
@@ -267,6 +288,13 @@ const { update, addMember } = useProjectActions()
 useHead({ title: () => (project.value ? project.value.name : 'Проект') })
 
 const dialog = ref<ProjectDialog | null>(null)
+
+// Header actions, as on every page: «Загрузить» first, the «⋯» menu last.
+const recordings = ref<{ pickFiles: () => void }>()
+const showUpload = computed(() =>
+  Boolean(project.value && !project.value.archived_at && (!project.value.is_private || isMember.value)),
+)
+const hasMenu = computed(() => menuActions.value.some((action) => !action.hidden))
 
 const membersLabel = computed(() =>
   pluralize(project.value?.members.length ?? 0, ['участник', 'участника', 'участников']),

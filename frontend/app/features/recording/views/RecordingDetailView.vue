@@ -1,62 +1,12 @@
 <template>
-  <div class="flex h-full min-h-0 flex-col">
-    <div class="flex h-12 shrink-0 items-center gap-1 px-2 md:px-4">
-      <nav
-        aria-label="Путь"
-        class="flex min-w-0 flex-1 items-center gap-1 text-sm"
-      >
-        <AppButton
-          variant="ghost"
-          size="sm"
-          text-variant="muted"
-          :icon="ArrowLeft"
-          :label="backLabel"
-          class="max-w-48 shrink-0 max-md:h-11 [&>span]:truncate"
-          @click="goBack"
-        />
-        <template v-if="recording">
-          <span class="hidden min-w-0 items-center gap-1 md:flex">
-            <AppIcon
-              :icon="ChevronRight"
-              size="xs"
-              class="shrink-0 text-muted-foreground"
-            />
-            <span class="min-w-0 truncate text-muted-foreground">{{ title }}</span>
-          </span>
-        </template>
-      </nav>
-      <template v-if="recording">
-        <SharePopover
-          v-model:open="shareOpen"
-          :recording-id="recording.id"
-          :results="resultsState.results.value"
-        />
-        <AppMenu
-          :actions="menuActions"
-          align="end"
-        >
-          <template #trigger>
-            <AppButton
-              variant="ghost"
-              size="icon"
-              text-variant="muted"
-              class="size-11 md:size-control-md"
-              :icon="Ellipsis"
-              aria-label="Действия с записью"
-            />
-          </template>
-        </AppMenu>
-      </template>
-    </div>
-
-    <div
-      ref="scroller"
-      class="min-h-0 flex-1 overflow-y-auto"
-      tabindex="-1"
+  <AppDocumentPage ref="page">
+    <template
+      v-if="!recording"
+      #state
     >
       <div
-        v-if="error && !recording"
-        class="flex min-h-full items-center justify-center px-4 py-10"
+        v-if="error"
+        class="flex min-h-[60vh] items-center justify-center"
       >
         <div class="w-full max-w-sm">
           <AppResultState
@@ -91,13 +41,13 @@
           </AppResultState>
         </div>
       </div>
-
       <div
-        v-else-if="!recording"
-        class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-6 md:px-6 md:pt-10"
+        v-else
+        class="flex flex-col gap-6"
         aria-busy="true"
         aria-label="Загрузка записи"
       >
+        <AppSkeleton class="h-9 w-32" />
         <AppSkeleton class="h-9 w-3/4" />
         <div class="flex flex-col gap-3">
           <div
@@ -111,86 +61,138 @@
         </div>
         <AppSkeleton :lines="6" />
       </div>
+    </template>
 
-      <article
-        v-else
-        class="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pt-5 pb-16 md:px-6 md:pt-10"
+    <!-- Top bar: the way back and the recording's name on the left, its actions on the right. -->
+    <template #lead>
+      <AppButton
+        variant="ghost"
+        size="sm"
+        text-variant="muted"
+        :icon="ArrowLeft"
+        :label="backLabel"
+        class="max-w-48 shrink-0 max-md:h-11 [&>span]:truncate"
+        @click="goBack"
+      />
+      <template v-if="recording">
+        <AppIcon
+          :icon="ChevronRight"
+          size="xs"
+          class="shrink-0 opacity-60 max-md:hidden"
+        />
+        <span class="truncate px-1 text-foreground max-md:hidden">{{ title }}</span>
+      </template>
+    </template>
+    <template
+      v-if="recording"
+      #actions
+    >
+      <SharePopover
+        v-model:open="shareOpen"
+        :recording-id="recording.id"
+        :results="resultsState.results.value"
+      />
+      <AppMenu
+        :actions="menuActions"
+        align="end"
       >
-        <RecordingTitle
-          :title="recording.title"
-          :placeholder="title"
-          @save="(value) => save({ title: value })"
-        />
-        <RecordingProperties
-          :recording="recording"
-          :is-author="isAuthor"
-          @project="moveTo"
-          @tags="setTags"
-          @visibility="(value) => save({ visibility: value })"
-        />
-        <RecordingNotices
-          :recording="recording"
-          :retry="() => mutations.retry(recording!.id)"
-          :can-delete="canDelete"
-          @delete="deleteOpen = true"
-          @suggestion="(accept) => mutations.answerSuggestion(recording!.id, accept)"
-        />
+        <template #trigger>
+          <AppButton
+            variant="ghost"
+            size="icon"
+            text-variant="muted"
+            class="size-11 md:size-control-md"
+            :icon="Ellipsis"
+            aria-label="Действия с записью"
+          />
+        </template>
+      </AppMenu>
+    </template>
 
-        <AppTabs
-          v-model="tab"
-          query-key="tab"
-          :tabs="tabs"
-          aria-label="Разделы записи"
-          content-class="pt-5"
-          select-class="max-md:h-11 max-md:[&>button]:h-9 max-md:[&>button]:px-3"
-        >
-          <AppTabPanel tab-value="transcript">
-            <TranscriptView
-              v-if="recording.transcript_segments.length || recording.transcript_text"
-              :segments="recording.transcript_segments"
-              :text="recording.transcript_text"
-              :player="player"
-              :scroller="scroller ?? null"
-              :highlight="highlight"
-              :focus-ms="focusMs"
-            />
-            <AppResultState
-              v-else
-              :icon="processing ? Sparkles : FileAudio"
-              :title="processing ? 'Текст появится здесь' : 'Расшифровки нет'"
-              :description="
-                processing
-                  ? 'Расшифровка идёт по частям — первые фразы покажутся, как только будет готова первая часть'
-                  : recording.status === 'failed'
-                    ? 'Расшифровка не удалась — нажмите «Повторить» выше'
-                    : 'Запустите расшифровку из меню «…» → «Расшифровать заново»'
-              "
-              class="py-8"
-            />
-          </AppTabPanel>
-          <AppTabPanel tab-value="summary">
-            <ResultsPanel
-              :recording="recording"
-              :state="resultsState"
-              :user-id="userId"
-              :is-admin="isAdmin"
-            />
-          </AppTabPanel>
-          <AppTabPanel tab-value="history">
-            <EventsList
-              :state="eventsState"
-              :model="recording.transcription_model"
-            />
-          </AppTabPanel>
-        </AppTabs>
-      </article>
-    </div>
+    <template
+      v-if="recording"
+      #heading
+    >
+      <RecordingTitle
+        :title="recording.title"
+        :placeholder="title"
+        @save="(value) => save({ title: value })"
+      />
+    </template>
 
-    <AudioPlayer
+    <template v-if="recording">
+      <RecordingProperties
+        :recording="recording"
+        :is-author="isAuthor"
+        @project="moveTo"
+        @tags="setTags"
+        @visibility="(value) => save({ visibility: value })"
+      />
+      <RecordingNotices
+        :recording="recording"
+        :retry="() => mutations.retry(recording!.id)"
+        :can-delete="canDelete"
+        @delete="deleteOpen = true"
+        @suggestion="(accept) => mutations.answerSuggestion(recording!.id, accept)"
+      />
+
+      <AppTabs
+        v-model="tab"
+        query-key="tab"
+        :tabs="tabs"
+        aria-label="Разделы записи"
+        content-class="pt-6"
+      >
+        <AppTabPanel tab-value="transcript">
+          <TranscriptView
+            v-if="recording.transcript_segments.length || recording.transcript_text"
+            :segments="recording.transcript_segments"
+            :text="recording.transcript_text"
+            :player="player"
+            :scroller="scroller ?? null"
+            :highlight="highlight"
+            :focus-ms="focusMs"
+          />
+          <AppResultState
+            v-else
+            :icon="processing ? Sparkles : FileAudio"
+            :title="processing ? 'Текст появится здесь' : 'Расшифровки нет'"
+            :description="
+              processing
+                ? 'Расшифровка идёт по частям — первые фразы покажутся, как только будет готова первая часть'
+                : recording.status === 'failed'
+                  ? 'Расшифровка не удалась — нажмите «Повторить» выше'
+                  : 'Запустите расшифровку из меню «…» → «Расшифровать заново»'
+            "
+            class="py-8"
+          />
+        </AppTabPanel>
+        <AppTabPanel tab-value="summary">
+          <ResultsPanel
+            :recording="recording"
+            :state="resultsState"
+            :user-id="userId"
+            :is-admin="isAdmin"
+          />
+        </AppTabPanel>
+        <AppTabPanel tab-value="history">
+          <EventsList
+            :state="eventsState"
+            :model="recording.transcription_model"
+          />
+        </AppTabPanel>
+      </AppTabs>
+    </template>
+
+    <template
       v-if="recording && recording.upload_state === 'uploaded'"
-      :player="player"
-      class="shrink-0"
-    />
+      #footer
+    >
+      <AudioPlayer
+        :player="player"
+        class="shrink-0"
+      />
+    </template>
 
     <RetranscribeModal
       v-model="retranscribeOpen"
@@ -204,7 +206,7 @@
       :confirm-props="{ variant: 'destructive' }"
       :confirm="confirmDelete"
     />
-  </div>
+  </AppDocumentPage>
 </template>
 
 <script setup lang="ts">
@@ -298,7 +300,8 @@ const player = useAudioPlayer({
   title: () => title.value,
   durationMs: () => recording.value?.duration_ms ?? 0,
 })
-const scroller = ref<HTMLElement>()
+const page = ref<{ scroller?: HTMLElement }>()
+const scroller = computed(() => page.value?.scroller)
 
 // Back returns to the list the user came from (with its filters); a direct link goes to «Все записи».
 const previous = String((import.meta.client && router.options.history.state.back) || '')
