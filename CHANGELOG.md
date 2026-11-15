@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.4.0] - 2026-11-15
+
+### Features
+- **ai:** cut audio at pauses and keep phrase timings and speakers (cc894fb)
+- **sso:** sign in to an organization through its own OpenID Connect provider (b118c9a)
+- **web:** send signed-in users from the site root to their recordings (3cb7914)
+
+### Bug fixes
+- **ci:** commit transcript test fixtures and mark cleared tokens for bandit (9475a6c)
+- **ci:** end transcript test fixtures with a newline (35b6da4)
 ## [0.3.1] - 2026-11-14
 
 ### Bug fixes
