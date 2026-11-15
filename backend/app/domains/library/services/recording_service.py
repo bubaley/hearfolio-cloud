@@ -47,6 +47,14 @@ class RecordingUpdateData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
+def transcript_end_ms(segment: dict[str, Any]) -> int:
+    """Where a stored segment's audio ends: its chunk's end when the pipeline recorded one, else its own end."""
+    ends = [segment.get('end_ms'), segment.get('chunk_end_ms')]
+    return max(
+        (int(value) for value in ends if isinstance(value, int | float) and not isinstance(value, bool)), default=0
+    )
+
+
 def _segments_text(segments: list[dict[str, Any]]) -> str:
     return '\n'.join(text for segment in segments if (text := str(segment.get('text', '')).strip()))
 
@@ -324,14 +332,19 @@ class RecordingService:
         *,
         segments_done: int,
         segments_total: int | None = None,
+        chunk_end_ms: int | None = None,
     ) -> Recording:
         """
         Append the segments of one finished audio chunk to the live transcript and advance progress. Segments that
         start before the end of the saved transcript are dropped, so re-running a chunk never duplicates text.
+        `chunk_end_ms` (where the chunk ends, at or after its last phrase) is kept on each stored segment for the
+        pipeline's resume; API schemas do not expose it.
         """
         existing: list[dict[str, Any]] = list(recording.transcript_segments or [])
-        last_end = max((int(segment.get('end_ms', 0)) for segment in existing), default=-1)
-        new = [segment.model_dump() for segment in segments if segment.start_ms >= last_end]
+        last_end = max((transcript_end_ms(segment) for segment in existing), default=-1)
+        new = [segment.model_dump(exclude_none=True) for segment in segments if segment.start_ms >= last_end]
+        if chunk_end_ms is not None:
+            new = [{**segment, 'chunk_end_ms': chunk_end_ms} for segment in new]
         recording.transcript_segments = existing + new
         recording.transcript_text = _segments_text(recording.transcript_segments)
         if segments_total is not None:
@@ -355,7 +368,7 @@ class RecordingService:
         language: str | None = None,
     ) -> Recording:
         """Replace the transcript at once (a finished re-transcription) and mark the recording `transcribed`."""
-        recording.transcript_segments = [segment.model_dump() for segment in segments]
+        recording.transcript_segments = [segment.model_dump(exclude_none=True) for segment in segments]
         recording.transcript_text = text if text is not None else _segments_text(recording.transcript_segments)
         return await cls.mark_transcribed(recording, model=model, language=language)
 

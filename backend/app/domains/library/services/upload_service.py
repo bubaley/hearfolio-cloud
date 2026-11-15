@@ -122,7 +122,11 @@ class UploadService:
     async def create(cls, payload: RecordingCreateData) -> Recording:
         data = payload.data
         has_transcript = bool(data.transcript_text and data.transcript_text.strip())
-        segments = [segment.model_dump() for segment in data.transcript_segments or []] if has_transcript else []
+        segments = (
+            [segment.model_dump(exclude_none=True) for segment in data.transcript_segments or []]
+            if has_transcript
+            else []
+        )
         title = ' '.join((data.title or '').split())
         recording = Recording(
             organization_id=payload.organization.id,

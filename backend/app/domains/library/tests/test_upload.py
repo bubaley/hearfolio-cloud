@@ -191,7 +191,12 @@ async def test_size_mismatch_fails_the_upload_and_restart_issues_a_new_plan(api_
 async def test_existing_transcript_skips_transcription(api_client, s3, library, enqueued):
     payload = _payload(
         transcript_text='Привет, это расшифровка',
-        transcript_segments=[{'start_ms': 0, 'end_ms': 1500, 'text': 'Привет, это расшифровка'}],
+        transcript_segments=[
+            {'start_ms': 0, 'end_ms': 1500, 'text': 'Привет, это расшифровка', 'speaker': '0:1'},
+            {'start_ms': 1500, 'end_ms': 2000, 'text': 'Да', 'speaker': 2},
+            {'start_ms': 2000, 'end_ms': 2500, 'text': 'Нет', 'speaker': 'x' * 200},
+            {'start_ms': 2500, 'end_ms': 3000, 'text': 'Ок', 'speaker': {'odd': True}},
+        ],
         transcription_model='local/whisper',
         language='ru',
     )
@@ -199,6 +204,16 @@ async def test_existing_transcript_skips_transcription(api_client, s3, library, 
     recording = response.json()['recording']
     assert recording['status'] == 'transcribed'
     assert recording['transcript_segments'][0]['text'] == 'Привет, это расшифровка'
+    # The app's speaker labels are kept, loosely validated.
+    assert [s['speaker'] for s in recording['transcript_segments']] == ['0:1', '2', 'x' * 80, None]
+    stored = await Recording.get(id=recording['id'])
+    assert stored.transcript_segments[0] == {
+        'start_ms': 0,
+        'end_ms': 1500,
+        'text': 'Привет, это расшифровка',
+        'speaker': '0:1',
+    }
+    assert 'speaker' not in stored.transcript_segments[3]
     s3.objects[(await Recording.get(id=recording['id'])).audio_key] = 1000
     response = await api_client.post(
         f'/api/v1/recordings/{recording["id"]}/upload/complete', json={}, headers=library.h(library.author)

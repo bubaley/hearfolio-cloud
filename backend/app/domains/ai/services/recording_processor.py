@@ -8,7 +8,7 @@ from loguru import logger
 
 from app.core.services.s3_service import get_s3_service
 from app.domains.ai.models import OrganizationSettings, RecordingProcessing, RecordingResult, ResultStatus
-from app.domains.ai.services.audio_segmenter import AudioProcessingError, AudioSegmenter, SegmentRange
+from app.domains.ai.services.audio_segmenter import AudioProcessingError, AudioSegmenter, Pause, SegmentRange
 from app.domains.ai.services.model_catalog_service import ModelCatalogService
 from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderError
 from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
@@ -22,10 +22,11 @@ from app.domains.ai.services.transcription_engine import (
     TranscribedSegment,
     TranscriptionEngine,
     TranscriptionError,
+    long_chunk_seconds,
 )
 from app.domains.library.models import Recording, RecordingStatus, Tag, TitleSource, UploadState
 from app.domains.library.schemas import TranscriptSegmentSchema
-from app.domains.library.services.recording_service import RecordingService
+from app.domains.library.services.recording_service import RecordingService, transcript_end_ms
 from app.domains.library.services.visibility import LibraryVisibility
 from app.domains.organization.models import Organization
 from app.domains.user.models import User
@@ -62,7 +63,42 @@ def _segment_dicts(segments: list[Any]) -> list[dict[str, Any]]:
 
 
 def _last_end(segments: list[dict[str, Any]]) -> int:
-    return max((int(segment.get('end_ms', 0)) for segment in segments), default=0)
+    """Where the saved transcript's audio ends: the end of the last saved chunk, not of its last phrase."""
+    return max((transcript_end_ms(segment) for segment in segments), default=0)
+
+
+def _saved_chunks(segments: list[dict[str, Any]]) -> int:
+    """
+    How many chunks the saved segments came from: phrases of one chunk share its `chunk_end_ms`; a segment without
+    it (saved before chunks had several phrases) is a chunk of its own.
+    """
+    marked = {segment['chunk_end_ms'] for segment in segments if 'chunk_end_ms' in segment}
+    return len(marked) + sum(1 for segment in segments if 'chunk_end_ms' not in segment)
+
+
+def _chunk_segments(segment: TranscribedSegment) -> list[TranscriptSegmentSchema]:
+    """The phrases of a finished chunk; a silent chunk keeps one empty segment so resuming skips it."""
+    if not segment.phrases:
+        return [TranscriptSegmentSchema(start_ms=segment.start_ms, end_ms=segment.end_ms, text=segment.text)]
+    return [
+        TranscriptSegmentSchema(
+            start_ms=phrase.start_ms, end_ms=phrase.end_ms, text=phrase.text, speaker=phrase.speaker
+        )
+        for phrase in segment.phrases
+    ]
+
+
+class _PauseCache:
+    """Pauses of the source, detected once and only when a plan needs them."""
+
+    def __init__(self, segmenter: AudioSegmenter, source: Path, duration_ms: int):
+        self._segmenter, self._source, self._duration_ms = segmenter, source, duration_ms
+        self._pauses: list[Pause] | None = None
+
+    async def get(self) -> list[Pause]:
+        if self._pauses is None:
+            self._pauses = await self._segmenter.detect_pauses(self._source, self._duration_ms)
+        return self._pauses
 
 
 class RecordingProcessor:
@@ -171,9 +207,10 @@ class RecordingProcessor:
         async def save(segment: TranscribedSegment, done: int, total: int) -> None:
             await RecordingService.save_segments(
                 recording,
-                [TranscriptSegmentSchema(start_ms=segment.start_ms, end_ms=segment.end_ms, text=segment.text)],
+                _chunk_segments(segment),
                 segments_done=done,
                 segments_total=total,
+                chunk_end_ms=segment.end_ms,
             )
             await lock.extend()
 
@@ -193,7 +230,10 @@ class RecordingProcessor:
         async def save(segment: TranscribedSegment, done: int, total: int) -> None:
             processing.retranscribe_segments = [
                 *_segment_dicts(processing.retranscribe_segments),
-                {'start_ms': segment.start_ms, 'end_ms': segment.end_ms, 'text': segment.text},
+                *(
+                    {**item.model_dump(exclude_none=True), 'chunk_end_ms': segment.end_ms}
+                    for item in _chunk_segments(segment)
+                ),
             ]
             await processing.save(update_fields=['retranscribe_segments', 'updated_at'])
             await RecordingService.update_progress(recording, segments_done=done, segments_total=total)
@@ -218,28 +258,45 @@ class RecordingProcessor:
     ) -> None:
         """Transcribe the audio after the end of `saved` chunk by chunk; `save` persists each finished chunk."""
         language = None if settings.language == 'auto' else settings.language
+        saved_chunks = _saved_chunks(saved)
+
+        async def counted(segment: TranscribedSegment, done: int, total: int) -> None:
+            # Progress counts chunks over the whole recording, saved ones included, not only this run's share.
+            await save(segment, saved_chunks + done, saved_chunks + total)
+
         with AudioSegmenter.workspace() as work_dir:
             source = work_dir / 'source'
             await self.download(recording, source)
             try:
                 duration_ms = await self.segmenter.probe_duration_ms(source)
-                resume_from = _last_end(saved)
-                remaining = AudioSegmenter.plan(max(duration_ms - resume_from, 0), settings.segment_seconds)
-                if duration_ms - resume_from < RESUME_TOLERANCE_MS:
-                    remaining = []
-                segments = [
-                    SegmentRange(len(saved) + item.index, item.start_ms + resume_from, item.end_ms + resume_from)
-                    for item in remaining
-                ]
+                mode = await ModelCatalogService.transcription_mode(settings, model)
+                long_seconds = long_chunk_seconds(model, mode)
+                pauses = _PauseCache(self.segmenter, source, duration_ms)
+                segments = await self._plan(
+                    pauses, duration_ms, _last_end(saved), max(long_seconds or 0, settings.segment_seconds)
+                )
+                segments = [SegmentRange(saved_chunks + item.index, item.start_ms, item.end_ms) for item in segments]
                 await RecordingService.start_transcription(
-                    recording, model=model, segments_total=len(saved) + len(segments), language=language
+                    recording, model=model, segments_total=saved_chunks + len(segments), language=language
                 )
                 if not segments:
                     return
-                mode = await ModelCatalogService.transcription_mode(settings, model)
+
+                async def normal_chunks(segment: SegmentRange) -> list[SegmentRange]:
+                    return AudioSegmenter.plan(
+                        segment.end_ms, settings.segment_seconds, await pauses.get(), start_ms=segment.start_ms
+                    )
+
                 async with OrganizationSettingsService.build_client(settings, max_attempts=2) as client:
-                    engine = TranscriptionEngine(client, self.segmenter, model=model, language=language, mode=mode)
-                    await engine.transcribe(source, work_dir, segments=segments, on_segment=save)
+                    engine = TranscriptionEngine(
+                        client,
+                        self.segmenter,
+                        model=model,
+                        language=language,
+                        mode=mode,
+                        fallback_plan=normal_chunks if long_seconds else None,
+                    )
+                    await engine.transcribe(source, work_dir, segments=segments, on_segment=counted)
             except TranscriptionError as error:
                 raise ProcessingFailure(error.code, error.message) from error
             except AIProviderError as error:
@@ -247,6 +304,23 @@ class RecordingProcessor:
             except AudioProcessingError as error:
                 logger.warning('Audio processing of {} failed: {}', recording.id, error.detail)
                 raise ProcessingFailure(AIErrorCode.AUDIO, error.message) from error
+
+    @staticmethod
+    async def _plan(
+        pauses: _PauseCache, duration_ms: int, resume_from: int, segment_seconds: int
+    ) -> list[SegmentRange]:
+        """
+        Chunks for the audio after `resume_from` (the end of the saved transcript), cut at pauses. Resuming never
+        depends on an earlier plan: saved chunks stay as they are, whatever boundaries produced them, and only the
+        rest is planned, so a run interrupted under the old fixed offsets continues seamlessly.
+        """
+        remaining = duration_ms - resume_from
+        if remaining < RESUME_TOLERANCE_MS:
+            return []
+        found: list[Pause] = []
+        if AudioSegmenter.needs_split(remaining, segment_seconds):
+            found = await pauses.get()
+        return AudioSegmenter.plan(duration_ms, segment_seconds, found, start_ms=resume_from)
 
     # AFTER TRANSCRIPTION
 

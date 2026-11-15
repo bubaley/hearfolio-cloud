@@ -16,6 +16,7 @@ from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderErr
 from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
 from app.domains.ai.services.task_kicker import GENERATE_RESULT_TASK, AITaskKicker
 from app.domains.ai.services.text_task_service import TextTaskService
+from app.domains.ai.utils.transcript_phrases import speaker_transcript
 from app.domains.library.models import Recording, RecordingEventKind, RecordingStatus
 from app.domains.library.services.recording_service import RecordingService
 from app.domains.organization.models import Organization
@@ -197,7 +198,9 @@ class ResultService:
             settings = await OrganizationSettingsService.ensure(await Organization.get(id=recording.organization_id))
             async with OrganizationSettingsService.build_client(settings, max_attempts=2) as client:
                 content = await TextTaskService(client, result.model).summarize(
-                    recording.transcript_text, result.prompt, title=recording.title or None
+                    speaker_transcript(recording.transcript_segments) or recording.transcript_text,
+                    result.prompt,
+                    title=recording.title or None,
                 )
             result.content = content
             result.status = ResultStatus.DONE

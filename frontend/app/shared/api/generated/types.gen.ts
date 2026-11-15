@@ -2052,6 +2052,10 @@ export type TitleSource = 'auto' | 'user'
 
 /**
  * TranscriptSegmentSchema
+ *
+ * One phrase of a transcript. `speaker` is set when the model told speakers apart: an opaque label, equal labels
+ * mean the same speaker. A label is scoped to one transcription request (`<request start ms>:<provider id>`), so
+ * labels from different requests never claim to be the same person.
  */
 export type TranscriptSegmentSchema = {
   /**
@@ -2066,6 +2070,10 @@ export type TranscriptSegmentSchema = {
    * Text
    */
   text: string
+  /**
+   * Speaker
+   */
+  speaker?: string | null
 }
 
 /**

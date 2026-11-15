@@ -13,6 +13,7 @@ from app.domains.ai.services.transcription_engine import (
     max_tokens_for,
 )
 from app.domains.ai.tests.fakes import FakeProvider, chat_reply, error_reply, no_sleep
+from app.domains.ai.utils.transcript_phrases import Phrase
 
 
 class FakeSegmenter(AudioSegmenter):
@@ -108,8 +109,9 @@ async def test_repeated_failure_falls_back_to_halves(tmp_path):
     )
     segmenter = FakeSegmenter()
     segment = SegmentRange(0, 0, 300_000)
-    text = await make_engine(provider, segmenter).transcribe_range(tmp_path / 'a.m4a', tmp_path, segment)
-    assert text == 'Первая половина. Вторая половина.'
+    phrases = await make_engine(provider, segmenter).transcribe_range(tmp_path / 'a.m4a', tmp_path, segment)
+    # Each half keeps its own time range.
+    assert phrases == [Phrase(0, 150_000, 'Первая половина.'), Phrase(150_000, 300_000, 'Вторая половина.')]
     assert segmenter.cuts == [(0, 300_000), (0, 150_000), (150_000, 300_000)]
     assert len(provider.calls('/chat/completions')) == 5
 
@@ -164,8 +166,76 @@ async def test_no_speech_marker_and_fences_are_cleaned(tmp_path):
 async def test_transcription_mode_uses_audio_transcriptions_endpoint(tmp_path):
     provider = FakeProvider().add('/audio/transcriptions', httpx2.Response(200, json={'text': 'Привет'}))
     engine = make_engine(provider, FakeSegmenter(), mode=TranscriptionMode.TRANSCRIPTION, language='ru')
-    text = await engine.transcribe_range(tmp_path / 'a.m4a', tmp_path, SegmentRange(0, 0, 60_000))
-    assert text == 'Привет'
+    phrases = await engine.transcribe_range(tmp_path / 'a.m4a', tmp_path, SegmentRange(0, 0, 60_000))
+    assert phrases == [Phrase(0, 60_000, 'Привет')]
     body = provider.bodies('/audio/transcriptions')[0]
     assert body['input_audio']['format'] == 'mp3'
     assert body['language'] == 'ru'
+
+
+def stt_reply(*words: tuple[str, float, float, int]) -> httpx2.Response:
+    return httpx2.Response(
+        200,
+        json={
+            'text': ' '.join(word for word, *_ in words),
+            'words': [{'word': w, 'start': s, 'end': e, 'speaker': p} for w, s, e, p in words],
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_transcription_mode_builds_timed_phrases_with_scoped_speakers(tmp_path):
+    provider = FakeProvider().add(
+        '/audio/transcriptions',
+        stt_reply(('Привет.', 0.5, 1.0, 0), ('Здравствуй.', 3.0, 4.0, 1)),
+        stt_reply(('Пока.', 1.0, 2.0, 0)),
+    )
+    sink = Sink()
+    engine = make_engine(provider, FakeSegmenter(), mode=TranscriptionMode.TRANSCRIPTION)
+    results = await engine.transcribe(tmp_path / 'a.m4a', tmp_path, segments=PLAN, on_segment=sink)
+    assert results[0].phrases == (
+        Phrase(500, 1000, 'Привет.', '0:0'),
+        Phrase(3000, 4000, 'Здравствуй.', '0:1'),
+    )
+    assert results[0].text == 'Привет. Здравствуй.'
+    # The second request's speaker 0 is not the first one's.
+    assert results[1].phrases == (Phrase(301_000, 302_000, 'Пока.', '300000:0'),)
+
+
+async def _split_in_two(segment: SegmentRange) -> list[SegmentRange]:
+    middle = (segment.start_ms + segment.end_ms) // 2
+    return [SegmentRange(0, segment.start_ms, middle), SegmentRange(1, middle, segment.end_ms)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'failure',
+    [error_reply(504, 'Upstream timed out'), error_reply(413, 'Payload too large'), error_reply(400, 'large audio')],
+)
+async def test_long_chunk_falls_back_to_normal_chunks_after_one_attempt(tmp_path, failure):
+    provider = FakeProvider().add(
+        '/audio/transcriptions', failure, stt_reply(('Раз.', 1.0, 2.0, 0)), stt_reply(('Два.', 1.0, 2.0, 0))
+    )
+    segmenter = FakeSegmenter()
+    client = OpenRouterClient('https://router.test/api/v1', 'key', transport=provider.transport, max_attempts=1)
+    engine = TranscriptionEngine(
+        client,
+        segmenter,
+        model='x-ai/grok-stt',
+        mode=TranscriptionMode.TRANSCRIPTION,
+        sleep=no_sleep,
+        fallback_plan=_split_in_two,
+    )
+    phrases = await engine.transcribe_range(tmp_path / 'a.m4a', tmp_path, SegmentRange(0, 0, 2_000_000))
+    assert phrases == [Phrase(1000, 2000, 'Раз.', '0:0'), Phrase(1_001_000, 1_002_000, 'Два.', '1000000:0')]
+    assert segmenter.cuts == [(0, 2_000_000), (0, 1_000_000), (1_000_000, 2_000_000)]
+
+
+@pytest.mark.asyncio
+async def test_long_chunk_does_not_fall_back_on_auth_errors(tmp_path):
+    provider = FakeProvider().add('/audio/transcriptions', error_reply(401, 'User not found'))
+    engine = make_engine(provider, FakeSegmenter(), mode=TranscriptionMode.TRANSCRIPTION, fallback_plan=_split_in_two)
+    with pytest.raises(TranscriptionError) as raised:
+        await engine.transcribe_range(tmp_path / 'a.m4a', tmp_path, SegmentRange(0, 0, 2_000_000))
+    assert raised.value.code == AIErrorCode.AUTH
+    assert len(provider.calls('/audio/transcriptions')) == 1

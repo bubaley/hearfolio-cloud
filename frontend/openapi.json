@@ -17822,6 +17822,17 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
           }
         },
         "type": "object",
@@ -17830,7 +17841,8 @@
           "end_ms",
           "text"
         ],
-        "title": "TranscriptSegmentSchema"
+        "title": "TranscriptSegmentSchema",
+        "description": "One phrase of a transcript. `speaker` is set when the model told speakers apart: an opaque label, equal labels\nmean the same speaker. A label is scoped to one transcription request (`<request start ms>:<provider id>`), so\nlabels from different requests never claim to be the same person."
       },
       "UploadCompleteSchema": {
         "properties": {

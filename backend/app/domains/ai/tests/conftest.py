@@ -10,7 +10,7 @@ import pytest
 
 from app.core.services.crypto_service import CryptoService
 from app.domains.ai.models import OrganizationSettings
-from app.domains.ai.services.audio_segmenter import AudioSegmenter
+from app.domains.ai.services.audio_segmenter import AudioSegmenter, Pause
 from app.domains.ai.services.model_catalog_service import ModelCatalogService
 from app.domains.ai.services.openrouter_client import OpenRouterClient
 from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
@@ -40,11 +40,31 @@ class FakeAI:
         self.audio_requests: list[dict[str, Any]] = []
         self.text_requests: list[dict[str, Any]] = []
         self.hooks: list[Any] = []
+        # Raw catalog entries (`/models`); speech-to-text models listed here go through `/audio/transcriptions`.
+        self.models: list[dict[str, Any]] = []
+        # Consumed one per `/audio/transcriptions` request: a JSON payload or an `httpx2.Response`.
+        self.stt_replies: list[dict[str, Any] | httpx2.Response] = []
+        self.stt_requests: list[dict[str, Any]] = []
+
+    def add_stt_model(self, model_id: str) -> None:
+        self.models.append(
+            {
+                'id': model_id,
+                'name': model_id,
+                'architecture': {'input_modalities': ['audio'], 'output_modalities': ['transcription']},
+            }
+        )
 
     async def handler(self, request: httpx2.Request) -> httpx2.Response:
         if request.url.path.endswith('/models'):
-            return httpx2.Response(200, json={'data': []})
+            return httpx2.Response(200, json={'data': self.models})
         body = json.loads(request.content)
+        if request.url.path.endswith('/audio/transcriptions'):
+            self.stt_requests.append(body)
+            for hook in self.hooks:
+                await hook(len(self.stt_requests))
+            stt = self.stt_replies.pop(0) if self.stt_replies else {'text': self.default_transcript}
+            return stt if isinstance(stt, httpx2.Response) else httpx2.Response(200, json=stt)
         content = body['messages'][-1]['content']
         if isinstance(content, list):
             self.audio_requests.append(body)
@@ -59,6 +79,12 @@ class FakeAI:
         if 'organize voice recordings' in system:
             return chat_reply(json.dumps(self.classification, ensure_ascii=False))
         return chat_reply(self.summary)
+
+
+@pytest.fixture(autouse=True)
+def clean_transcription_levels() -> None:
+    """The per-model transcription capability cache is process memory; tests start without it."""
+    OpenRouterClient.transcription_levels.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -82,15 +108,21 @@ def fake_ai(monkeypatch) -> FakeAI:
 
 
 class FakeSegmenter(AudioSegmenter):
-    """No ffmpeg: a fixed duration, placeholder chunks."""
+    """No ffmpeg: a fixed duration, placeholder chunks, scripted pauses."""
 
-    def __init__(self, duration_ms: int):
+    def __init__(self, duration_ms: int, pauses: list[Pause] | None = None):
         super().__init__()
         self.duration_ms = duration_ms
+        self.pauses = pauses or []
         self.cuts: list[tuple[int, int]] = []
+        self.pause_scans = 0
 
     async def probe_duration_ms(self, source: Path) -> int:
         return self.duration_ms
+
+    async def detect_pauses(self, source: Path, duration_ms: int) -> list[Pause]:
+        self.pause_scans += 1
+        return self.pauses
 
     async def cut(self, source: Path, start_ms: int, end_ms: int, target_dir: Path) -> Path:
         self.cuts.append((start_ms, end_ms))

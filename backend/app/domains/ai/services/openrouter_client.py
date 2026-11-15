@@ -4,11 +4,13 @@ import json
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Self
 
 import httpx2
 from loguru import logger
+
+from app.domains.ai.utils.transcript_phrases import TimedSegment, TimedWord, parse_segments, parse_words
 
 DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1'
 APP_TITLE = 'Hearfolio Cloud'
@@ -106,6 +108,39 @@ class ChatResult:
     usage: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class TranscriptionResult(ChatResult):
+    """A `/audio/transcriptions` answer: text plus whatever timing the model returned (times relative to the audio)."""
+
+    words: list[TimedWord] = field(default_factory=list)
+    segments: list[TimedSegment] = field(default_factory=list)
+
+
+class TranscriptionRequest(IntEnum):
+    """How much structure a `/audio/transcriptions` request asks for; a provider that rejects one gets the next."""
+
+    # verbose_json with segment + word timestamps and the model author's diarization options (if known)
+    DIARIZED = 0
+    # verbose_json with timestamps, no provider options
+    TIMED = 1
+    # the plain request (`text` only), as before timestamps were asked for
+    PLAIN = 2
+
+
+# Diarization flags by model author (the part of the model id before `/`), sent as `provider.options`. Only xAI is
+# verified live; Deepgram and Azure follow the OpenRouter docs. Mirrored by the app.
+DIARIZATION_OPTIONS: dict[str, dict[str, Any]] = {
+    'x-ai': {'xai': {'diarize': True}},
+    'deepgram': {'deepgram': {'diarize': True}},
+    'azure': {'azure': {'diarization': {'enabled': True}}},
+    'microsoft': {'azure': {'diarization': {'enabled': True}}},
+}
+
+
+def diarization_options(model: str) -> dict[str, Any] | None:
+    return DIARIZATION_OPTIONS.get(model.split('/', 1)[0].casefold())
+
+
 Sleep = Callable[[float], Awaitable[None]]
 
 
@@ -118,6 +153,9 @@ class OpenRouterClient:
 
     # Used when no transport is passed; tests install an `httpx2.MockTransport` here.
     default_transport: ClassVar[httpx2.AsyncBaseTransport | None] = None
+    # (base URL, model) -> the richest transcription request it accepted after rejecting a richer one. Process memory:
+    # a new worker pays at most two rejected (free) requests per model again.
+    transcription_levels: ClassVar[dict[tuple[str, str], TranscriptionRequest]] = {}
 
     def __init__(
         self,
@@ -221,19 +259,67 @@ class OpenRouterClient:
 
     async def transcribe(
         self, *, model: str, audio: bytes, audio_format: str, language: str | None, timeout: float
-    ) -> ChatResult:
-        """Dedicated speech-to-text models (`output_modalities=transcription`) through `/audio/transcriptions`."""
-        body: dict[str, Any] = {
-            'model': model,
-            'input_audio': {'data': base64.b64encode(audio).decode('ascii'), 'format': audio_format},
-        }
+    ) -> TranscriptionResult:
+        """
+        Dedicated speech-to-text models (`output_modalities=transcription`) through `/audio/transcriptions`. Asks for
+        word timestamps and speakers first; a model that rejects the request as unsupported (HTTP 400, not a
+        transient or size error) gets the next simpler request, and the accepted level is remembered per model.
+        """
+        key = (self.base_url, model)
+        options = diarization_options(model)
+        first = TranscriptionRequest.DIARIZED if options else TranscriptionRequest.TIMED
+        level = self.transcription_levels.get(key, first)
+        data = base64.b64encode(audio).decode('ascii')
+        while True:
+            body = self._transcription_body(level, model=model, data=data, audio_format=audio_format, language=language)
+            if level == TranscriptionRequest.DIARIZED and options:
+                body['provider'] = {'options': options}
+            try:
+                payload = await self._request('POST', '/audio/transcriptions', json_body=body, timeout=timeout)
+            except AIProviderError as error:
+                if level == TranscriptionRequest.PLAIN or not self._unsupported(error):
+                    raise
+                logger.info('Model {} rejected the {} transcription request: {}', model, level.name, error.detail)
+                level = TranscriptionRequest(level + 1)
+                continue
+            result = self._parse_transcription(payload, model)
+            if level != self.transcription_levels.get(key, first):
+                self.transcription_levels[key] = level
+            return result
+
+    @staticmethod
+    def _transcription_body(
+        level: TranscriptionRequest, *, model: str, data: str, audio_format: str, language: str | None
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {'model': model, 'input_audio': {'data': data, 'format': audio_format}}
         if language:
             body['language'] = language
-        payload = await self._request('POST', '/audio/transcriptions', json_body=body, timeout=timeout)
+        if level <= TranscriptionRequest.TIMED:
+            body['response_format'] = 'verbose_json'
+            body['timestamp_granularities'] = ['segment', 'word']
+        return body
+
+    @staticmethod
+    def _unsupported(error: AIProviderError) -> bool:
+        """A request the provider refuses by shape (unknown parameter, unsupported format), not by load or size."""
+        if error.code == AIErrorCode.BAD_REQUEST and error.status_code in (400, 422):
+            return True
+        return error.status_code == 404 and 'parameter' in error.detail.lower()
+
+    @staticmethod
+    def _parse_transcription(payload: Any, model: str) -> TranscriptionResult:
         text = payload.get('text') if isinstance(payload, dict) else None
         if not isinstance(text, str):
             raise AIProviderError(AIErrorCode.INVALID_RESPONSE, detail='transcription: no text')
-        return ChatResult(text=text, finish_reason='stop', model=model, usage=payload.get('usage') or {})
+        usage = payload.get('usage')
+        return TranscriptionResult(
+            text=text,
+            finish_reason='stop',
+            model=model,
+            usage=usage if isinstance(usage, dict) else {},
+            words=parse_words(payload.get('words')),
+            segments=parse_segments(payload.get('segments')),
+        )
 
     # ----- transport -----
 
@@ -328,7 +414,7 @@ class OpenRouterClient:
             code = AIErrorCode.RATE_LIMITED
         elif status >= 500:
             code = AIErrorCode.SERVER
-        elif 'context length' in lowered or 'too long' in lowered or 'too large' in lowered:
+        elif any(marker in lowered for marker in ('context length', 'too long', 'too large', 'large audio')):
             code = AIErrorCode.TOO_LARGE
         elif 'no endpoints' in lowered or 'not a valid model' in lowered or 'model not found' in lowered:
             code = AIErrorCode.MODEL_UNAVAILABLE

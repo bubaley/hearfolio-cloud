@@ -150,3 +150,165 @@ def test_missing_key_is_not_configured():
     with pytest.raises(AIProviderError) as raised:
         OpenRouterClient('https://router.test', '')
     assert raised.value.code == AIErrorCode.NOT_CONFIGURED
+
+
+GROK_WORDS = {
+    'text': 'Да. Нет.',
+    'segments': [{'id': 0, 'start': 0, 'end': 3.0, 'text': 'Да. Нет.'}],
+    'words': [
+        {'word': 'Да.', 'start': 0.1, 'end': 0.4, 'speaker': 0},
+        {'word': 'Нет.', 'start': 2.0, 'end': 2.3, 'speaker': 1},
+    ],
+}
+UNSUPPORTED = 'The selected model does not support response_format "verbose_json". Use "json" instead.'
+
+
+async def _transcribe(client: OpenRouterClient, model: str = 'x-ai/grok-stt'):
+    return await client.transcribe(model=model, audio=b'abc', audio_format='mp3', language='ru', timeout=10)
+
+
+@pytest.mark.asyncio
+async def test_transcribe_asks_for_timestamps_and_speakers_and_parses_them():
+    provider = FakeProvider().add('/audio/transcriptions', httpx2.Response(200, json=GROK_WORDS))
+    async with make_client(provider) as client:
+        result = await _transcribe(client)
+    body = provider.bodies('/audio/transcriptions')[0]
+    assert body['response_format'] == 'verbose_json'
+    assert body['timestamp_granularities'] == ['segment', 'word']
+    assert body['provider']['options']['xai'] == {'diarize': True}
+    assert body['language'] == 'ru'
+    assert result.text == 'Да. Нет.'
+    assert [(w.text, w.start_ms, w.end_ms, w.speaker) for w in result.words] == [
+        ('Да.', 100, 400, '0'),
+        ('Нет.', 2000, 2300, '1'),
+    ]
+    assert [(s.start_ms, s.end_ms) for s in result.segments] == [(0, 3000)]
+
+
+@pytest.mark.asyncio
+async def test_transcribe_steps_down_on_unsupported_requests_and_remembers_the_level():
+    provider = FakeProvider().add(
+        '/audio/transcriptions',
+        error_reply(400, 'Unknown parameter: provider.options'),
+        error_reply(400, UNSUPPORTED),
+        httpx2.Response(200, json={'text': 'Привет'}),
+    )
+    async with make_client(provider) as client:
+        result = await _transcribe(client, 'x-ai/grok-stt')
+        assert (result.text, result.words, result.segments) == ('Привет', [], [])
+        await _transcribe(client, 'x-ai/grok-stt')
+    bodies = provider.bodies('/audio/transcriptions')
+    assert ['provider' in b for b in bodies[:3]] == [True, False, False]
+    assert ['response_format' in b for b in bodies[:3]] == [True, True, False]
+    # The plain request is exactly the old one.
+    assert set(bodies[2]) == {'model', 'input_audio', 'language'}
+    # The second chunk goes straight to the accepted request, in a new client too.
+    assert len(bodies) == 4 and 'response_format' not in bodies[3]
+    async with make_client(provider) as client:
+        await _transcribe(client, 'x-ai/grok-stt')
+    assert len(provider.bodies('/audio/transcriptions')) == 5
+    # Other models are not affected.
+    async with make_client(provider) as client:
+        await _transcribe(client, 'deepgram/nova-3')
+    assert provider.bodies('/audio/transcriptions')[-1]['provider'] == {'options': {'deepgram': {'diarize': True}}}
+
+
+@pytest.mark.asyncio
+async def test_models_without_known_diarization_skip_the_provider_options():
+    provider = FakeProvider().add(
+        '/audio/transcriptions', error_reply(400, UNSUPPORTED), httpx2.Response(200, json={'text': 'Привет'})
+    )
+    async with make_client(provider) as client:
+        await _transcribe(client, 'openai/gpt-4o-mini-transcribe')
+    bodies = provider.bodies('/audio/transcriptions')
+    assert [('provider' in b, 'response_format' in b) for b in bodies] == [(False, True), (False, False)]
+
+
+@pytest.mark.asyncio
+async def test_not_found_naming_a_parameter_is_a_shape_rejection():
+    provider = FakeProvider().add(
+        '/audio/transcriptions',
+        error_reply(404, 'No endpoints found that support the requested parameter: timestamp_granularities'),
+        httpx2.Response(200, json={'text': 'Привет'}),
+    )
+    async with make_client(provider) as client:
+        await _transcribe(client, 'openai/whisper-1')
+    assert len(provider.calls('/audio/transcriptions')) == 2
+
+
+@pytest.mark.asyncio
+async def test_transcribe_keeps_timestamps_when_only_provider_options_are_rejected():
+    provider = FakeProvider().add(
+        '/audio/transcriptions', error_reply(400, 'Unknown parameter: provider'), httpx2.Response(200, json=GROK_WORDS)
+    )
+    async with make_client(provider) as client:
+        result = await _transcribe(client)
+        await _transcribe(client)
+    bodies = provider.bodies('/audio/transcriptions')
+    assert len(result.words) == 2
+    assert [('provider' in b, b.get('response_format')) for b in bodies] == [
+        (True, 'verbose_json'),
+        (False, 'verbose_json'),
+        (False, 'verbose_json'),
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ('reply', 'code'),
+    [
+        (error_reply(400, 'The selected model does not support large audio inputs'), AIErrorCode.TOO_LARGE),
+        (error_reply(401, 'User not found'), AIErrorCode.AUTH),
+        (error_reply(402, 'no credits'), AIErrorCode.PAYMENT),
+        (error_reply(404, 'No endpoints found'), AIErrorCode.MODEL_UNAVAILABLE),
+    ],
+)
+async def test_transcribe_does_not_step_down_on_other_errors(reply, code):
+    provider = FakeProvider().add('/audio/transcriptions', reply)
+    async with make_client(provider) as client:
+        with pytest.raises(AIProviderError) as raised:
+            await _transcribe(client)
+    assert raised.value.code == code
+    assert len(provider.calls('/audio/transcriptions')) == 1
+    assert OpenRouterClient.transcription_levels == {}
+
+
+@pytest.mark.asyncio
+async def test_transcribe_retries_transient_errors_with_the_same_request():
+    provider = FakeProvider().add('/audio/transcriptions', error_reply(503), httpx2.Response(200, json=GROK_WORDS))
+    async with make_client(provider) as client:
+        await _transcribe(client)
+    bodies = provider.bodies('/audio/transcriptions')
+    assert len(bodies) == 2 and all('provider' in b for b in bodies)
+    assert OpenRouterClient.transcription_levels == {}
+
+
+@pytest.mark.asyncio
+async def test_transcribe_bad_request_at_every_level_raises_without_remembering():
+    provider = FakeProvider().add('/audio/transcriptions', error_reply(400, 'Invalid audio file'))
+    async with make_client(provider) as client:
+        with pytest.raises(AIProviderError) as raised:
+            await _transcribe(client)
+    assert raised.value.code == AIErrorCode.BAD_REQUEST
+    # One request per level, never a loop.
+    assert len(provider.calls('/audio/transcriptions')) == 3
+    assert OpenRouterClient.transcription_levels == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('payload', [{'words': []}, ['text'], {'text': None}])
+async def test_transcribe_without_text_is_an_invalid_response(payload):
+    provider = FakeProvider().add('/audio/transcriptions', httpx2.Response(200, json=payload))
+    async with make_client(provider, max_attempts=1) as client:
+        with pytest.raises(AIProviderError) as raised:
+            await _transcribe(client)
+    assert raised.value.code == AIErrorCode.INVALID_RESPONSE
+
+
+@pytest.mark.asyncio
+async def test_transcribe_ignores_malformed_timing():
+    payload = {'text': 'Текст', 'words': 'nope', 'segments': [{'start': 'x'}], 'usage': 'free'}
+    provider = FakeProvider().add('/audio/transcriptions', httpx2.Response(200, json=payload))
+    async with make_client(provider) as client:
+        result = await _transcribe(client)
+    assert (result.text, result.words, result.segments, result.usage) == ('Текст', [], [], {})

@@ -149,10 +149,29 @@ class TagBriefSchema(BaseSchema):
 # RECORDING_SCHEMAS
 
 
+SPEAKER_MAX_LENGTH = 80
+
+
 class TranscriptSegmentSchema(BaseSchema):
+    """
+    One phrase of a transcript. `speaker` is set when the model told speakers apart: an opaque label, equal labels
+    mean the same speaker. A label is scoped to one transcription request (`<request start ms>:<provider id>`), so
+    labels from different requests never claim to be the same person.
+    """
+
     start_ms: int = Field(ge=0)
     end_ms: int = Field(ge=0)
     text: str
+    speaker: str | None = None
+
+    @field_validator('speaker', mode='before')
+    @classmethod
+    def loose_speaker(cls, value: Any) -> str | None:
+        """Any scalar label is kept as text (trimmed, at most 80 characters); empty or odd values become `None`."""
+        if isinstance(value, bool) or not isinstance(value, str | int | float):
+            return None
+        label = str(value).strip()[:SPEAKER_MAX_LENGTH]
+        return label or None
 
 
 class SnippetPartSchema(BaseSchema):
