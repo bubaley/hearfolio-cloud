@@ -16,7 +16,7 @@ from app.domains.ai.utils.transcript_phrases import (
     speaker_transcript,
 )
 
-DATA = Path(__file__).parent / 'data'
+DATA = Path(__file__).parent / 'fixtures'
 
 
 def _load(name: str) -> dict[str, Any]:

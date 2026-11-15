@@ -317,8 +317,12 @@ class SsoSessionService:
     async def revoke(cls, session: SsoSession, reason: str) -> None:
         """End the session everywhere: its refresh-token family, the app tokens approved from it, its cache entry."""
         async with in_transaction():
+            # Wipe the stored provider tokens; empty strings are not credentials.
             await SsoSession.filter(id=session.id, revoked_at=None).update(
-                revoked_at=utcnow(), revoke_reason=reason[:32], refresh_token_encrypted='', access_token_encrypted=''
+                revoked_at=utcnow(),
+                revoke_reason=reason[:32],
+                refresh_token_encrypted='',  # nosec B106
+                access_token_encrypted='',  # nosec B106
             )
             await AuthService.revoke_family(session.family_id)
             token_ids = await SsoSessionToken.filter(session_id=session.id).values_list('token_id', flat=True)
