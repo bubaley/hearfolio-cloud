@@ -100,7 +100,7 @@ Page meta drives the global middleware (`app/middleware/`):
 | `auth: 'guest'` | Signed-out only (`/auth`); a signed-in user goes to `redirect` or `/home` |
 | `organization: false` | App route that works before an organization is chosen (`/home/setup`, `/settings/profile`) |
 
-`useSetupStore().restore()` picks the organization stored for the same user, else the only membership; a stored id from another account is ignored. A superuser's stored non-member organization is loaded with `organizationsRetrieve`.
+`useSetupStore().restore()` picks the organization an SSO sign-in started from (`sessionStorage` `setup:prefer-organization`, set by `features/sso`), else the one stored for the same user, else the only membership; a stored id from another account is ignored. A request answered `403 details.reason=sso_required` («SSO only» organization) sends the user to `/sso/<key>?redirect=…&required=1` (`plugins/api.ts`, via the client's `onError`). A superuser's stored non-member organization is loaded with `organizationsRetrieve`.
 
 ### Rendering
 

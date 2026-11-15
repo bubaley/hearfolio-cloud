@@ -84,8 +84,9 @@ class OAuthViewSet(BaseGenericViewSet[OAuthAuthorizationCode]):
     @action(methods=['POST'])
     async def authorize(self, data: OAuthAuthorizeRequest) -> OAuthAuthorizeResponse:
         """The signed-in user approves the app: a single-use code valid 60 s and the redirect URL."""
-        info = OAuthService.validate_authorization(data, get_current_auth_state().auth_method)
-        code, redirect_to = await OAuthService.authorize(self.user, data, info)
+        auth_state = get_current_auth_state()
+        info = OAuthService.validate_authorization(data, auth_state.auth_method)
+        code, redirect_to = await OAuthService.authorize(self.user, data, info, auth_state.session_id)
         return OAuthAuthorizeResponse(code=code, state=data.state, redirect_to=redirect_to)
 
     @action(methods=['POST'], openapi_extra=TOKEN_REQUEST_BODY)

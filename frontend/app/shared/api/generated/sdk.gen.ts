@@ -213,6 +213,33 @@ import type {
   RecordingsUploadPartsData,
   RecordingsUploadPartsErrors,
   RecordingsUploadPartsResponses,
+  SsoIdentitiesData,
+  SsoIdentitiesErrors,
+  SsoIdentitiesResponses,
+  SsoLinkData,
+  SsoLinkErrors,
+  SsoLinkResponses,
+  SsoOrganizationData,
+  SsoOrganizationErrors,
+  SsoOrganizationResponses,
+  SsoProviderCurrentData,
+  SsoProviderCurrentErrors,
+  SsoProviderCurrentResponses,
+  SsoProviderDestroyCurrentData,
+  SsoProviderDestroyCurrentErrors,
+  SsoProviderDestroyCurrentResponses,
+  SsoProviderTestConnectionData,
+  SsoProviderTestConnectionErrors,
+  SsoProviderTestConnectionResponses,
+  SsoProviderUpdateCurrentData,
+  SsoProviderUpdateCurrentErrors,
+  SsoProviderUpdateCurrentResponses,
+  SsoStartData,
+  SsoStartErrors,
+  SsoStartResponses,
+  SsoUnlinkData,
+  SsoUnlinkErrors,
+  SsoUnlinkResponses,
   SummaryTemplatesCreateData,
   SummaryTemplatesCreateErrors,
   SummaryTemplatesCreateResponses,
@@ -2458,6 +2485,205 @@ export const oauthToken = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * Destroy Current
+ *
+ * Disconnect the provider: its sessions end, links are deleted, members sign in with passwords again.
+ */
+export const ssoProviderDestroyCurrent = <ThrowOnError extends boolean = false>(
+  options?: Options<SsoProviderDestroyCurrentData, ThrowOnError>,
+): RequestResult<SsoProviderDestroyCurrentResponses, SsoProviderDestroyCurrentErrors, ThrowOnError> =>
+  (options?.client ?? client).delete<SsoProviderDestroyCurrentResponses, SsoProviderDestroyCurrentErrors, ThrowOnError>(
+    {
+      security: [
+        {
+          in: 'cookie',
+          name: 'access_token',
+          type: 'apiKey',
+        },
+        { name: 'Authorization', type: 'apiKey' },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/sso-provider/current',
+      ...options,
+    },
+  )
+
+/**
+ * Current
+ *
+ * The provider (null when none is connected), the redirect URI to register and the public sign-in URL.
+ */
+export const ssoProviderCurrent = <ThrowOnError extends boolean = false>(
+  options?: Options<SsoProviderCurrentData, ThrowOnError>,
+): RequestResult<SsoProviderCurrentResponses, SsoProviderCurrentErrors, ThrowOnError> =>
+  (options?.client ?? client).get<SsoProviderCurrentResponses, SsoProviderCurrentErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/sso-provider/current',
+    ...options,
+  })
+
+/**
+ * Update Current
+ *
+ * Connect or change the provider and rules; discovery is fetched and validated. The secret is never returned.
+ */
+export const ssoProviderUpdateCurrent = <ThrowOnError extends boolean = false>(
+  options: Options<SsoProviderUpdateCurrentData, ThrowOnError>,
+): RequestResult<SsoProviderUpdateCurrentResponses, SsoProviderUpdateCurrentErrors, ThrowOnError> =>
+  (options.client ?? client).patch<SsoProviderUpdateCurrentResponses, SsoProviderUpdateCurrentErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/sso-provider/current',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Test Connection
+ *
+ * Check discovery, signing keys and the client credentials (saved, or the unsaved values in the body).
+ */
+export const ssoProviderTestConnection = <ThrowOnError extends boolean = false>(
+  options: Options<SsoProviderTestConnectionData, ThrowOnError>,
+): RequestResult<SsoProviderTestConnectionResponses, SsoProviderTestConnectionErrors, ThrowOnError> =>
+  (options.client ?? client).post<SsoProviderTestConnectionResponses, SsoProviderTestConnectionErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/sso-provider/test',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Identities
+ *
+ * Provider accounts linked to the caller.
+ */
+export const ssoIdentities = <ThrowOnError extends boolean = false>(
+  options?: Options<SsoIdentitiesData, ThrowOnError>,
+): RequestResult<SsoIdentitiesResponses, SsoIdentitiesErrors, ThrowOnError> =>
+  (options?.client ?? client).get<SsoIdentitiesResponses, SsoIdentitiesErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/sso/identities',
+    ...options,
+  })
+
+/**
+ * Link
+ *
+ * Link the caller's account to an organization's provider (profile «Связанные аккаунты»).
+ */
+export const ssoLink = <ThrowOnError extends boolean = false>(
+  options: Options<SsoLinkData, ThrowOnError>,
+): RequestResult<SsoLinkResponses, SsoLinkErrors, ThrowOnError> =>
+  (options.client ?? client).post<SsoLinkResponses, SsoLinkErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/sso/link',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Start
+ *
+ * Public: begin a sign-in by organization key or work email (its domain finds the organization). Returns the
+ * provider URL to open; sets the HttpOnly `sso_browser` cookie that ties the callback to this browser.
+ */
+export const ssoStart = <ThrowOnError extends boolean = false>(
+  options: Options<SsoStartData, ThrowOnError>,
+): RequestResult<SsoStartResponses, SsoStartErrors, ThrowOnError> =>
+  (options.client ?? client).post<SsoStartResponses, SsoStartErrors, ThrowOnError>({
+    url: '/api/v1/sso/start',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Organization
+ *
+ * Public: whether an organization signs in through a provider, and how the button is labelled.
+ */
+export const ssoOrganization = <ThrowOnError extends boolean = false>(
+  options: Options<SsoOrganizationData, ThrowOnError>,
+): RequestResult<SsoOrganizationResponses, SsoOrganizationErrors, ThrowOnError> =>
+  (options.client ?? client).get<SsoOrganizationResponses, SsoOrganizationErrors, ThrowOnError>({
+    url: '/api/v1/sso/organizations/{key}',
+    ...options,
+  })
+
+/**
+ * Unlink
+ *
+ * Unlink a provider account; the sessions established through it end.
+ */
+export const ssoUnlink = <ThrowOnError extends boolean = false>(
+  options: Options<SsoUnlinkData, ThrowOnError>,
+): RequestResult<SsoUnlinkResponses, SsoUnlinkErrors, ThrowOnError> =>
+  (options.client ?? client).delete<SsoUnlinkResponses, SsoUnlinkErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/sso/identities/{identity}',
+    ...options,
   })
 
 /**

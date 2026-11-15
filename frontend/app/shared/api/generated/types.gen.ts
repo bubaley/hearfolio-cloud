@@ -1855,6 +1855,330 @@ export type SnippetPartSchema = {
 }
 
 /**
+ * SsoAuthorizationSchema
+ *
+ * Where to send the browser: the provider's authorization endpoint with state, nonce and PKCE.
+ */
+export type SsoAuthorizationSchema = {
+  /**
+   * Authorization Url
+   */
+  authorization_url: string
+}
+
+/**
+ * SsoCheckSchema
+ */
+export type SsoCheckSchema = {
+  /**
+   * Label
+   */
+  label: string
+  /**
+   * Ok
+   */
+  ok: boolean
+  /**
+   * Message
+   */
+  message: string
+}
+
+/**
+ * SsoConnectionTestResultSchema
+ */
+export type SsoConnectionTestResultSchema = {
+  /**
+   * Ok
+   */
+  ok: boolean
+  /**
+   * Checks
+   */
+  checks: Array<SsoCheckSchema>
+  /**
+   * Unsupported Scopes
+   */
+  unsupported_scopes: Array<string>
+}
+
+/**
+ * SsoConnectionTestSchema
+ *
+ * Unsaved values to check; omitted ones come from the saved provider.
+ */
+export type SsoConnectionTestSchema = {
+  /**
+   * Issuer
+   */
+  issuer?: string | null
+  /**
+   * Client Id
+   */
+  client_id?: string | null
+  /**
+   * Client Secret
+   */
+  client_secret?: string | null
+  /**
+   * Scopes
+   */
+  scopes?: Array<string> | null
+}
+
+/**
+ * SsoIdentityReadSchema
+ */
+export type SsoIdentityReadSchema = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Organization Id
+   */
+  organization_id: string
+  /**
+   * Organization Name
+   */
+  organization_name: string
+  /**
+   * Organization Key
+   */
+  organization_key: string
+  /**
+   * Provider Label
+   */
+  provider_label: string
+  /**
+   * Issuer
+   */
+  issuer: string
+  /**
+   * Email
+   */
+  email: string
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Is Only Sign In
+   */
+  is_only_sign_in: boolean
+  /**
+   * Created At
+   */
+  created_at: string
+  /**
+   * Last Login At
+   */
+  last_login_at: string | null
+}
+
+/**
+ * SsoJoinPolicy
+ */
+export type SsoJoinPolicy = 'invite_only' | 'provider'
+
+/**
+ * SsoLinkSchema
+ */
+export type SsoLinkSchema = {
+  /**
+   * Organization Key
+   */
+  organization_key: string
+  /**
+   * Redirect
+   */
+  redirect?: string | null
+}
+
+/**
+ * SsoLoginMode
+ */
+export type SsoLoginMode = 'password_and_sso' | 'sso_only'
+
+/**
+ * SsoOrganizationSchema
+ *
+ * Public: an organization that signs in through a provider (`/sso/{key}` page).
+ */
+export type SsoOrganizationSchema = {
+  /**
+   * Organization Name
+   */
+  organization_name: string
+  /**
+   * Organization Key
+   */
+  organization_key: string
+  /**
+   * Button Label
+   */
+  button_label: string
+  login_mode: SsoLoginMode
+  join_policy: SsoJoinPolicy
+}
+
+/**
+ * SsoProviderReadSchema
+ *
+ * The organization's provider and rules as org admins see them; the client secret is never returned.
+ */
+export type SsoProviderReadSchema = {
+  /**
+   * Issuer
+   */
+  issuer: string
+  /**
+   * Client Id
+   */
+  client_id: string
+  /**
+   * Has Client Secret
+   */
+  has_client_secret: boolean
+  /**
+   * Scopes
+   */
+  scopes: Array<string>
+  /**
+   * Button Label
+   */
+  button_label: string
+  login_mode: SsoLoginMode
+  join_policy: SsoJoinPolicy
+  /**
+   * Allowed Email Domains
+   */
+  allowed_email_domains: Array<string>
+  /**
+   * Required Groups
+   */
+  required_groups: Array<string>
+  default_role: OrganizationRole
+  /**
+   * Owner Password Fallback
+   */
+  owner_password_fallback: boolean
+  /**
+   * Revalidate Interval Minutes
+   */
+  revalidate_interval_minutes: number
+  /**
+   * Authorization Endpoint
+   */
+  authorization_endpoint: string | null
+  /**
+   * Userinfo Endpoint
+   */
+  userinfo_endpoint: string | null
+  /**
+   * Scopes Supported
+   */
+  scopes_supported: Array<string> | null
+  /**
+   * Metadata Fetched At
+   */
+  metadata_fetched_at: string | null
+  /**
+   * Updated At
+   */
+  updated_at: string
+}
+
+/**
+ * SsoProviderUpdateSchema
+ *
+ * Connect or change the provider. Connecting needs `issuer`, `client_id` and `client_secret`; later every field is
+ * optional. A new issuer or client id needs the secret again. Discovery is fetched and validated on save.
+ */
+export type SsoProviderUpdateSchema = {
+  /**
+   * Issuer
+   */
+  issuer?: string | null
+  /**
+   * Client Id
+   */
+  client_id?: string | null
+  /**
+   * Client Secret
+   */
+  client_secret?: string | null
+  /**
+   * Scopes
+   */
+  scopes?: Array<string> | null
+  /**
+   * Button Label
+   */
+  button_label?: string | null
+  login_mode?: SsoLoginMode | null
+  join_policy?: SsoJoinPolicy | null
+  /**
+   * Allowed Email Domains
+   */
+  allowed_email_domains?: Array<string> | null
+  /**
+   * Required Groups
+   */
+  required_groups?: Array<string> | null
+  default_role?: OrganizationRole | null
+  /**
+   * Owner Password Fallback
+   */
+  owner_password_fallback?: boolean | null
+  /**
+   * Revalidate Interval Minutes
+   */
+  revalidate_interval_minutes?: number | null
+}
+
+/**
+ * SsoSettingsSchema
+ *
+ * What the «Вход и участники» screen needs: the provider (null when not connected) and the URLs to register.
+ */
+export type SsoSettingsSchema = {
+  provider: SsoProviderReadSchema | null
+  /**
+   * Redirect Uri
+   */
+  redirect_uri: string
+  /**
+   * Login Url
+   */
+  login_url: string
+  /**
+   * Organization Key
+   */
+  organization_key: string
+}
+
+/**
+ * SsoStartSchema
+ *
+ * Start a sign-in: by organization key, or by email (its domain picks the organization).
+ */
+export type SsoStartSchema = {
+  /**
+   * Organization Key
+   */
+  organization_key?: string | null
+  /**
+   * Email
+   */
+  email?: string | null
+  /**
+   * Redirect
+   */
+  redirect?: string | null
+}
+
+/**
  * SummaryTemplateCreateSchema
  */
 export type SummaryTemplateCreateSchema = {
@@ -9036,6 +9360,530 @@ export type OauthTokenResponses = {
 }
 
 export type OauthTokenResponse = OauthTokenResponses[keyof OauthTokenResponses]
+
+export type SsoProviderDestroyCurrentData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/sso-provider/current'
+}
+
+export type SsoProviderDestroyCurrentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoProviderDestroyCurrentError = SsoProviderDestroyCurrentErrors[keyof SsoProviderDestroyCurrentErrors]
+
+export type SsoProviderDestroyCurrentResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type SsoProviderDestroyCurrentResponse =
+  SsoProviderDestroyCurrentResponses[keyof SsoProviderDestroyCurrentResponses]
+
+export type SsoProviderCurrentData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/sso-provider/current'
+}
+
+export type SsoProviderCurrentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoProviderCurrentError = SsoProviderCurrentErrors[keyof SsoProviderCurrentErrors]
+
+export type SsoProviderCurrentResponses = {
+  /**
+   * Successful Response
+   */
+  200: SsoSettingsSchema
+}
+
+export type SsoProviderCurrentResponse = SsoProviderCurrentResponses[keyof SsoProviderCurrentResponses]
+
+export type SsoProviderUpdateCurrentData = {
+  body: SsoProviderUpdateSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/sso-provider/current'
+}
+
+export type SsoProviderUpdateCurrentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoProviderUpdateCurrentError = SsoProviderUpdateCurrentErrors[keyof SsoProviderUpdateCurrentErrors]
+
+export type SsoProviderUpdateCurrentResponses = {
+  /**
+   * Successful Response
+   */
+  200: SsoSettingsSchema
+}
+
+export type SsoProviderUpdateCurrentResponse =
+  SsoProviderUpdateCurrentResponses[keyof SsoProviderUpdateCurrentResponses]
+
+export type SsoProviderTestConnectionData = {
+  body: SsoConnectionTestSchema
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query?: never
+  url: '/api/v1/sso-provider/test'
+}
+
+export type SsoProviderTestConnectionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoProviderTestConnectionError = SsoProviderTestConnectionErrors[keyof SsoProviderTestConnectionErrors]
+
+export type SsoProviderTestConnectionResponses = {
+  /**
+   * Successful Response
+   */
+  200: SsoConnectionTestResultSchema
+}
+
+export type SsoProviderTestConnectionResponse =
+  SsoProviderTestConnectionResponses[keyof SsoProviderTestConnectionResponses]
+
+export type SsoIdentitiesData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/sso/identities'
+}
+
+export type SsoIdentitiesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoIdentitiesError = SsoIdentitiesErrors[keyof SsoIdentitiesErrors]
+
+export type SsoIdentitiesResponses = {
+  /**
+   * Response Sso Identities
+   *
+   * Successful Response
+   */
+  200: Array<SsoIdentityReadSchema>
+}
+
+export type SsoIdentitiesResponse = SsoIdentitiesResponses[keyof SsoIdentitiesResponses]
+
+export type SsoLinkData = {
+  body: SsoLinkSchema
+  path?: never
+  query?: never
+  url: '/api/v1/sso/link'
+}
+
+export type SsoLinkErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoLinkError = SsoLinkErrors[keyof SsoLinkErrors]
+
+export type SsoLinkResponses = {
+  /**
+   * Successful Response
+   */
+  200: SsoAuthorizationSchema
+}
+
+export type SsoLinkResponse = SsoLinkResponses[keyof SsoLinkResponses]
+
+export type SsoStartData = {
+  body: SsoStartSchema
+  path?: never
+  query?: never
+  url: '/api/v1/sso/start'
+}
+
+export type SsoStartErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoStartError = SsoStartErrors[keyof SsoStartErrors]
+
+export type SsoStartResponses = {
+  /**
+   * Successful Response
+   */
+  200: SsoAuthorizationSchema
+}
+
+export type SsoStartResponse = SsoStartResponses[keyof SsoStartResponses]
+
+export type SsoOrganizationData = {
+  body?: never
+  path: {
+    /**
+     * Key
+     */
+    key: string
+  }
+  query?: never
+  url: '/api/v1/sso/organizations/{key}'
+}
+
+export type SsoOrganizationErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoOrganizationError = SsoOrganizationErrors[keyof SsoOrganizationErrors]
+
+export type SsoOrganizationResponses = {
+  /**
+   * Successful Response
+   */
+  200: SsoOrganizationSchema
+}
+
+export type SsoOrganizationResponse = SsoOrganizationResponses[keyof SsoOrganizationResponses]
+
+export type SsoUnlinkData = {
+  body?: never
+  path: {
+    /**
+     * Identity
+     */
+    identity: string
+  }
+  query?: never
+  url: '/api/v1/sso/identities/{identity}'
+}
+
+export type SsoUnlinkErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SsoUnlinkError = SsoUnlinkErrors[keyof SsoUnlinkErrors]
+
+export type SsoUnlinkResponses = {
+  /**
+   * Successful Response
+   */
+  204: void
+}
+
+export type SsoUnlinkResponse = SsoUnlinkResponses[keyof SsoUnlinkResponses]
 
 export type WellKnownHearfolioData = {
   body?: never

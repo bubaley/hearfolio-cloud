@@ -23,6 +23,8 @@ class OAuthAuthorizationCode(BaseModel):
     used_at = fields.DatetimeField(null=True)
     token = fields.ForeignKeyField('models.UserToken', related_name='oauth_codes', null=True, on_delete=fields.SET_NULL)
     token_id: UUID | None
+    # The web session (refresh-session family) that approved the app; an SSO session hands its fate to the token.
+    session_family_id = fields.UUIDField(null=True)
 
     tenant_scope = Scope(user='user_id')
 

@@ -20,6 +20,7 @@ from app.core.utils.date_utils import as_utc, utcnow
 from app.domains.auth.services.auth_service import AuthMethod
 from app.domains.oauth.models import OAuthAuthorizationCode
 from app.domains.oauth.schemas import OAuthAuthorizeInfoSchema, OAuthAuthorizeRequest, OAuthTokenRequest
+from app.domains.sso.services.session_service import SsoSessionService
 from app.domains.user.models import User, UserToken
 from app.domains.user.services.user_service import UserService
 
@@ -120,8 +121,10 @@ class OAuthService:
         )
 
     @staticmethod
-    async def authorize(user: User, data: OAuthAuthorizeRequest, info: OAuthAuthorizeInfoSchema) -> tuple[str, str]:
-        """Return the code and the URL to redirect the browser to."""
+    async def authorize(
+        user: User, data: OAuthAuthorizeRequest, info: OAuthAuthorizeInfoSchema, session_id: UUID | None = None
+    ) -> tuple[str, str]:
+        """Return the code and the URL to redirect the browser to. `session_id`: the approving web session."""
         code = secrets.token_urlsafe(32)
         await OAuthAuthorizationCode.create(
             user=user,
@@ -131,6 +134,7 @@ class OAuthService:
             code_challenge=data.code_challenge,
             device_name=info.device_name,
             expires_at=utcnow() + CODE_TTL,
+            session_family_id=session_id,
         )
         params = {'code': code, **({'state': data.state} if data.state is not None else {})}
         return code, f'{info.redirect_uri}?{urlencode(params)}'
@@ -210,6 +214,8 @@ class OAuthService:
             )
             code.token_id = token.id
             await code.save(update_fields=['token_id', 'updated_at'])
+            # Approved from a session that came through an organization's provider: the token ends with it.
+            await SsoSessionService.link_app_token(code.session_family_id, token)
         return user, value, None
 
     @staticmethod

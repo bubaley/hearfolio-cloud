@@ -34,6 +34,10 @@ class Authentication:
     expires_at: datetime | None = None
     # The API token that authenticated the request (AuthMethod.API_TOKEN only).
     api_token_id: UUID | None = None
+    # The refresh-session family behind an access JWT (AuthMethod.JWT only).
+    session_id: UUID | None = None
+    # The organization SSO provider this session was established through (filled by `core/auth.py`).
+    sso_provider_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -149,8 +153,8 @@ class AuthService:
     # LOGOUT
 
     @staticmethod
-    async def logout(refresh_token: str | None = None, access_token: str | None = None) -> None:
-        """Revoke the session family of the presented token. Invalid or expired tokens are ignored."""
+    async def logout(refresh_token: str | None = None, access_token: str | None = None) -> UUID | None:
+        """Revoke the session family of the presented token and return it. Invalid or expired tokens are ignored."""
         family_id: UUID | None = None
         if refresh_token and (claims := TokenService.decode(refresh_token, TokenType.REFRESH)):
             jti = claims.jti or CryptoService.hash_value(refresh_token)
@@ -160,6 +164,7 @@ class AuthService:
             family_id = claims.session_id
         if family_id is not None:
             await AuthService.revoke_family(family_id)
+        return family_id
 
     @staticmethod
     async def revoke_family(family_id: UUID) -> int:
@@ -187,7 +192,9 @@ class AuthService:
         user = await AuthService._user_for_claims(claims) if claims else None
         if not claims or not user:
             return None
-        return Authentication(user=user, method=AuthMethod.JWT, expires_at=claims.expires_at)
+        return Authentication(
+            user=user, method=AuthMethod.JWT, expires_at=claims.expires_at, session_id=claims.session_id
+        )
 
     @staticmethod
     async def authenticate_api_token(value: str) -> Authentication | None:

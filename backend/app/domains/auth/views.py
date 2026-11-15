@@ -8,7 +8,9 @@ from app.core.utils.request_utils import client_ip
 from app.core.viewsets import BaseGenericViewSet
 from app.domains.auth.schemas import LoginRequest, MeSchema, SessionExpirySchema, SessionSchema
 from app.domains.auth.services.auth_service import AuthService
+from app.domains.auth.services.token_service import TokenService, TokenType
 from app.domains.auth.transport import clear_auth_cookies, read_access_token, read_refresh_token, set_auth_cookies
+from app.domains.sso.services.session_service import SsoSessionService
 from app.domains.user.models import User
 from app.domains.user.schemas import UserReadSchema
 
@@ -44,6 +46,11 @@ class AuthViewSet(BaseGenericViewSet):
         refresh_token = read_refresh_token(request)
         if not refresh_token:
             raise AppException.from_attrs(ErrorCode.UNAUTHORIZED, 'Refresh token not found')
+        claims = TokenService.decode(refresh_token, TokenType.REFRESH)
+        if claims is not None and not (await SsoSessionService.guard_family(claims.session_id)).alive:
+            raise AppException.from_attrs(
+                ErrorCode.UNAUTHORIZED, 'Сеанс входа через SSO завершён. Войдите снова', details={'reason': 'sso_ended'}
+            )
         pair = await AuthService.refresh(refresh_token)
         set_auth_cookies(response, pair)
         return SessionExpirySchema.from_pair(pair)
@@ -51,7 +58,10 @@ class AuthViewSet(BaseGenericViewSet):
     @action(methods=['POST'], status_code=204)
     async def logout(self, request: Request, response: Response) -> None:
         """End the current session (works with expired credentials): revoke it and clear the auth cookies."""
-        await AuthService.logout(refresh_token=read_refresh_token(request), access_token=read_access_token(request))
+        family_id = await AuthService.logout(
+            refresh_token=read_refresh_token(request), access_token=read_access_token(request)
+        )
+        await SsoSessionService.end_family(family_id)
         clear_auth_cookies(response)
 
     @action(methods=['POST'], status_code=204)

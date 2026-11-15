@@ -100,6 +100,8 @@
         </AppSettingRow>
       </AppSection>
 
+      <SsoLinkedAccountsSection v-if="userId" />
+
       <UserTokensSection
         v-if="userId"
         :user-id="userId"
@@ -112,6 +114,7 @@
 import { useQueryCache } from '@pinia/colada'
 import UserChangePasswordButton from '~/features/user/components/UserChangePasswordButton.vue'
 import UserTokensSection from '~/features/user/components/UserTokensSection.vue'
+import SsoLinkedAccountsSection from '~/features/sso/components/SsoLinkedAccountsSection.vue'
 import { usersPartialUpdate } from '~/shared/api/generated'
 import { useApiClient } from '~/shared/api/useResource'
 import { SESSION_KEY } from '~/shared/composables/useSession'

@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
 const setupStorageKey = 'setup:state'
+/** Set by the SSO sign-in page (`/sso/<key>`): the organization to open once the new session is restored. */
+const preferredOrganizationKey = 'setup:prefer-organization'
 
 /** The slice of an organization the shell needs (`OrganizationReadSchema` fits). */
 export type SetupOrganization = { id: string; name: string; key: string }
@@ -19,6 +21,16 @@ export type SetupRestoreContext = {
   organizations: SetupOrganization[]
   /** Loads a stored organization the user is not a member of (superusers see every organization). */
   retrieve?: (id: string) => Promise<SetupOrganization | null>
+}
+
+const takePreferredKey = (): string | null => {
+  try {
+    const key = sessionStorage.getItem(preferredOrganizationKey)
+    sessionStorage.removeItem(preferredOrganizationKey)
+    return key
+  } catch {
+    return null
+  }
 }
 
 const readStored = (): StoredSetup => {
@@ -52,7 +64,11 @@ export const useSetupStore = defineStore('setup', () => {
     const request = ++generation
     const stored = readStored()
     const storedId = stored.userId === currentUserId ? stored.organization : null
-    let organization = organizations.find((item) => item.id === storedId) ?? null
+    const preferredKey = takePreferredKey()
+    let organization =
+      organizations.find((item) => preferredKey && item.key === preferredKey) ??
+      organizations.find((item) => item.id === storedId) ??
+      null
     if (!organization && storedId && retrieve) organization = await retrieve(storedId).catch(() => null)
     if (!organization && !storedId && organizations.length === 1) organization = organizations[0] ?? null
     if (request !== generation) return

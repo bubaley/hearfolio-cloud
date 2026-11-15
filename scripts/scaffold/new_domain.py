@@ -144,6 +144,10 @@ def navigation_entry(ctx: dict[str, str], icon: str = DEFAULT_ICON) -> str:
     return f"  {{ to: {{ name: '{ctx['route']}' }}, label: '{ctx['title']}', icon: {icon} }},\n"
 
 
+# The frontend formatter wraps longer imports one name per line.
+IMPORT_LINE_LENGTH = 120
+
+
 def add_navigation(source: str, ctx: dict[str, str], icon: str = DEFAULT_ICON) -> str:
     """Insert the drawer entry above the marker and add the icon to the `@lucide/vue` import."""
     if f"name: '{ctx['route']}'" in source:
@@ -151,11 +155,15 @@ def add_navigation(source: str, ctx: dict[str, str], icon: str = DEFAULT_ICON) -
     if NAVIGATION_MARKER not in source:
         raise ScaffoldError(f'{NAVIGATION} has no marker line {NAVIGATION_MARKER.strip()!r}')
     source = source.replace(NAVIGATION_MARKER, navigation_entry(ctx, icon) + NAVIGATION_MARKER)
-    match = re.search(r"^import \{ ([^}]*) \} from '@lucide/vue'$", source, flags=re.MULTILINE)
+    # One line or wrapped by the formatter (one icon per line, trailing comma).
+    match = re.search(r"^import \{([^}]*)\} from '@lucide/vue'$", source, flags=re.MULTILINE)
     if match is None:
         return f"import {{ {icon} }} from '@lucide/vue'\n" + source
     icons = sorted({part.strip() for part in match.group(1).split(',') if part.strip()} | {icon})
-    return source.replace(match.group(0), f"import {{ {', '.join(icons)} }} from '@lucide/vue'")
+    line = f"import {{ {', '.join(icons)} }} from '@lucide/vue'"
+    if len(line) > IMPORT_LINE_LENGTH:
+        line = 'import {\n' + ''.join(f'  {name},\n' for name in icons) + "} from '@lucide/vue'"
+    return source.replace(match.group(0), line)
 
 
 def scaffold(names: Names, root: Path = ROOT) -> list[Path]:

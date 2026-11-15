@@ -1,4 +1,5 @@
 import re
+from dataclasses import replace
 from typing import Annotated
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from app.core.csrf import enforce_trusted_origin
 from app.domains.auth.services.auth_service import Authentication, AuthMethod, AuthService
 from app.domains.auth.transport import Credential, CredentialKind, has_auth_cookie, read_credentials
 from app.domains.organization.models import Organization
+from app.domains.sso.services.session_service import SsoSessionService
 from app.domains.user.models import User
 from app.shared.services.owned_data_provider import OwnedDataProvider, OwnedDataResult
 
@@ -22,6 +24,10 @@ class AuthState(BaseModel):
     auth_method: AuthMethod | None = None
     # The API token behind the request, so it can revoke itself (`POST /oauth/revoke`).
     api_token_id: UUID | None = None
+    # The refresh-session family of a cookie/Bearer session (links an app token approved from it).
+    session_id: UUID | None = None
+    # Set when the session was established through an organization's SSO provider («SSO only» checks).
+    sso_provider_id: UUID | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -46,6 +52,9 @@ PUBLIC_PATHS = frozenset(
         '/api/v1/oauth/token',
         '/.well-known/hearfolio',
         '/api/v1/public/share/{token}',
+        '/api/v1/sso/organizations/{key}',
+        '/api/v1/sso/start',
+        '/api/v1/sso/callback/{organization_id}',
     }
 )
 _PUBLIC_PATH_PATTERNS = tuple(
@@ -60,8 +69,17 @@ def is_public_route(request: Request) -> bool:
 
 async def _authenticate(credential: Credential) -> Authentication | None:
     if credential.kind == CredentialKind.API_TOKEN:
-        return await AuthService.authenticate_api_token(credential.value)
-    return await AuthService.authenticate_access_token(credential.value)
+        authentication = await AuthService.authenticate_api_token(credential.value)
+    else:
+        authentication = await AuthService.authenticate_access_token(credential.value)
+    if authentication is None:
+        return None
+    # A session established through an organization's provider is re-checked there periodically; once the provider
+    # says no (or stays unreachable past the grace period), the credential stops working.
+    sso = await SsoSessionService.guard(authentication)
+    if not sso.alive:
+        return None
+    return replace(authentication, sso_provider_id=sso.provider_id) if sso.provider_id else authentication
 
 
 async def resolve_connection(connection: HTTPConnection) -> tuple[Authentication, CredentialKind] | None:
@@ -105,11 +123,17 @@ async def get_auth_state(
             data = await OwnedDataProvider.process_request_headers(request, user)
         except ValidationError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.errors()[0]['msg'])
+    if user and data.organization:
+        await SsoSessionService.enforce(
+            user, data.organization, authentication.sso_provider_id if authentication else None
+        )
     auth_state = AuthState(
         user=user,
         organization=data.organization,
         auth_method=authentication.method if authentication else None,
         api_token_id=authentication.api_token_id if authentication else None,
+        session_id=authentication.session_id if authentication else None,
+        sso_provider_id=authentication.sso_provider_id if authentication else None,
     )
     state = BaseStateManager.get_state()
     state.set('auth_state', auth_state)

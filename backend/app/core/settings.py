@@ -80,6 +80,23 @@ class Settings(BaseSettings):
     upload_multipart_threshold_bytes: int = 16 * 1024 * 1024
     upload_part_size_bytes: int = 8 * 1024 * 1024
 
+    # Organization SSO (OpenID Connect relying party, docs/sso.md)
+    # Calls to the provider (discovery, JWKS, token, userinfo): timeout and largest accepted response
+    sso_http_timeout_seconds: float = 5.0
+    sso_max_response_bytes: int = 512 * 1024
+    # Let issuers and their endpoints resolve to private/loopback/link-local addresses (an IdP in the internal
+    # network). `http://localhost` issuers are accepted while DEBUG is on, regardless of this flag.
+    sso_allow_private_issuers: bool = False
+    # Provider unreachable during a revalidation: the session keeps working this long after the last successful
+    # check, then the user has to sign in again
+    sso_revalidate_grace_seconds: int = 24 * 60 * 60
+    # Lifetime of a started sign-in (state, nonce, PKCE verifier)
+    sso_login_request_ttl_seconds: int = 10 * 60
+    # JWKS kept in memory; an unknown `kid` refetches at once
+    sso_jwks_cache_seconds: int = 60 * 60
+    # Per-process cache of "is this credential an SSO session, and its state"; bounds the extra lookups per request
+    sso_session_cache_seconds: float = 30.0
+
     # Invites: lifetime of a new invite link
     invite_expire_days: int = 7
 

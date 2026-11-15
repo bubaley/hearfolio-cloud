@@ -33,6 +33,7 @@ export default defineNuxtConfig({
     '/ui': clientOnly,
     '/invite/**': clientOnly,
     '/oauth/**': clientOnly,
+    '/sso/**': clientOnly,
   },
   app: {
     head: {

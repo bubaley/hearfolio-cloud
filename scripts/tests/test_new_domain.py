@@ -81,10 +81,10 @@ def test_generates_the_canonical_files(project_root, name):
     assert f'detail-route-name="settings-{ctx["plural_kebab"]}-id"' in list_view
     navigation = (project_root / new_domain.NAVIGATION).read_text()
     assert f"{{ to: {{ name: 'settings-{ctx['plural_kebab']}' }}, label: 'Счета', icon: Folder }}," in navigation
-    assert (
-        "import { Building, Building2, FileText, Folder, Mail, Sparkles, Tags, User, Users, UsersRound } from '@lucide/vue'"
-        in navigation
-    )
+    # The icon joins the one existing `@lucide/vue` import (wrapped one name per line by the formatter).
+    assert navigation.count("from '@lucide/vue'") == 1
+    lucide_import = navigation[: navigation.index("from '@lucide/vue'")]
+    assert '  Folder,\n' in lucide_import and '  KeyRound,\n' in lucide_import
     assert navigation.index('settings-users') < navigation.index(f'settings-{ctx["plural_kebab"]}')
 
 

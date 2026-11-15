@@ -310,6 +310,17 @@ During SSR, Nitro calls FastAPI server-to-server (internal URL `http://127.0.0.1
 
 Superuser-only user fields (`is_superuser`, `is_active`) are guarded in `UserService.validate_update`.
 
+### Organization SSO
+
+Sessions can also be established through an organization's OpenID Connect provider (`domains/sso`, [sso.md](sso.md)).
+`core/auth.py` passes every resolved credential through `SsoSessionService.guard`: an SSO session (by refresh-session
+family, or an app token linked to one) is re-checked at the provider at most once per the organization's interval, and
+a credential whose SSO session ended resolves to nobody (401). `get_auth_state` then applies «SSO only» for the
+`Organization-Key` organization (`403 details.reason=sso_required`, `details.organization_key`). `AuthState` carries
+`session_id` (the family, used to link an app token approved from it) and `sso_provider_id`. `POST /auth/refresh`
+runs the same check for its family; `POST /auth/logout` ends the family's SSO session. Calls to providers go through
+`OidcClient` only (SSRF guard, timeout, size limit); tests replace its `transport` with `httpx2.MockTransport`.
+
 ---
 
 ## OpenAPI contract
