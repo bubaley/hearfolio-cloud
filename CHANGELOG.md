@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.9.0] - 2026-11-16
+
+### Features
+- speaker names from the conversation, renamable everywhere (c95f4d5)
 ## [0.8.2] - 2026-11-16
 
 ### Bug fixes
