@@ -69,7 +69,10 @@ export const useRecordingResults = (id: MaybeRefOrGetter<string>) => {
   const create = useMutation({
     mutation: async (body: RecordingResultsCreateSchema) =>
       (await recordingAiCreateResults({ client, throwOnError: true, path: { item_id: toValue(id) }, body })).data,
-    onSettled: () => refresh(),
+    // In the background: a refetch cancelled by the realtime update must not turn a created summary into an error.
+    onSettled: () => {
+      void refresh().catch(() => undefined)
+    },
   })
   const regenerate = async (result: RecordingResult) => {
     try {
@@ -78,7 +81,7 @@ export const useRecordingResults = (id: MaybeRefOrGetter<string>) => {
     } catch (error) {
       toast.error(recordingErrorMessage(error, 'Не удалось перезапустить саммари'))
     } finally {
-      void refresh()
+      void refresh().catch(() => undefined)
     }
   }
   const remove = async (result: RecordingResult) => {
@@ -94,7 +97,7 @@ export const useRecordingResults = (id: MaybeRefOrGetter<string>) => {
       queryCache.setQueryData(key(), previous)
       toast.error(recordingErrorMessage(error, 'Не удалось удалить саммари'))
     } finally {
-      void refresh()
+      void refresh().catch(() => undefined)
     }
   }
   return { ...query, results: computed<RecordingResult[]>(() => query.data.value ?? []), create, regenerate, remove }

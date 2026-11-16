@@ -97,7 +97,9 @@ export const useSsoSettings = (options: { enabled?: () => boolean } = {}) => {
     mutation: async () => {
       await ssoProviderDestroyCurrent({ client, throwOnError: true })
     },
-    onSettled: () => queryCache.invalidateQueries({ key: [...SSO_SETTINGS_KEY] }),
+    onSettled: () => {
+      void queryCache.invalidateQueries({ key: [...SSO_SETTINGS_KEY] }).catch(() => undefined)
+    },
   })
   const testConnection = (body: SsoConnectionTestSchema) =>
     ssoProviderTestConnection({ client, throwOnError: true, body }).then(({ data }) => data)
@@ -133,7 +135,9 @@ export const useSsoIdentities = () => {
     mutation: async (identity: string) => {
       await ssoUnlink({ client, throwOnError: true, path: { identity } })
     },
-    onSettled: () => queryCache.invalidateQueries({ key: [...SSO_IDENTITIES_KEY] }),
+    onSettled: () => {
+      void queryCache.invalidateQueries({ key: [...SSO_IDENTITIES_KEY] }).catch(() => undefined)
+    },
   })
   const link = async (organizationKey: string) => {
     const { data } = await ssoLink({

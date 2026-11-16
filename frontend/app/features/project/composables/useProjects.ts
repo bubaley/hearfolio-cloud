@@ -62,13 +62,17 @@ export const useProjectActions = () => {
   const addMember = useMutation({
     mutation: async ({ id, userId }: { id: string; userId: string }) =>
       (await projectsAddMember({ client, throwOnError: true, path: { item_id: id }, body: { user_id: userId } })).data,
-    onSettled: () => refresh(),
+    onSettled: () => {
+      void refresh().catch(() => undefined)
+    },
   })
 
   const removeMember = useMutation({
     mutation: async ({ id, userId }: { id: string; userId: string }) =>
       projectsRemoveMember({ client, throwOnError: true, path: { item_id: id, member: userId } }),
-    onSettled: () => refresh(),
+    onSettled: () => {
+      void refresh().catch(() => undefined)
+    },
   })
 
   return { update, remove, addMember, removeMember }
