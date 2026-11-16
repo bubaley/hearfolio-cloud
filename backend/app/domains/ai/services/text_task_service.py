@@ -26,8 +26,11 @@ SUMMARY_TRANSCRIPT_LIMIT = 400_000
 SUMMARY_MAX_TOKENS = 32_000
 TITLE_MAX_TOKENS = 4096
 CLASSIFY_MAX_TOKENS = 4096
-# OpenRouter's unified switch: answer without reasoning (every effort list in the catalog has `none`).
-NO_REASONING = {'effort': 'none'}
+# How hard a reasoning model may think (OpenRouter's unified `reasoning.effort`). Models such as DeepSeek Flash default
+# to `high`, which is slow and wasteful here: a summary needs a little thought to pick what matters, a title or tags
+# none. Models without reasoning ignore it; a model that rejects the value gets the request without it.
+SUMMARY_REASONING = 'low'
+SHORT_TASK_REASONING = 'none'
 
 
 class TextTaskService:
@@ -37,14 +40,24 @@ class TextTaskService:
         self.client = client
         self.model = model
 
-    async def _chat(self, messages: list[dict[str, Any]], **options: Any) -> ChatResult:
+    async def _ask(self, messages: list[dict[str, Any]], effort: str, **options: Any) -> ChatResult:
+        """The request with `reasoning.effort`; without it when the model rejects the value (HTTP 400)."""
+        try:
+            return await self.client.chat(model=self.model, messages=messages, reasoning={'effort': effort}, **options)
+        except AIProviderError as error:
+            if error.code != AIErrorCode.BAD_REQUEST:
+                raise
+            logger.info('Model {} rejected reasoning effort {}, asking without it', self.model, effort)
+            return await self.client.chat(model=self.model, messages=messages, **options)
+
+    async def _chat(self, messages: list[dict[str, Any]], *, effort: str, **options: Any) -> ChatResult:
         """
-        One text request that does not come back empty-handed because the model thought too long: when the answer
-        is empty or cut off (a reasoning model can spend the whole budget on reasoning), ask once more with
-        reasoning off. A model that refuses that option (HTTP 400) keeps its first answer.
+        One text request at the given reasoning effort that does not come back empty-handed: when the answer is
+        empty or cut off (a reasoning model can spend the whole budget thinking), ask once more with reasoning off.
+        A model that refuses that option (HTTP 400) keeps its first answer.
         """
-        result = await self.client.chat(model=self.model, messages=messages, **options)
-        if result.text.strip() and result.finish_reason != 'length':
+        result = await self._ask(messages, effort, **options)
+        if effort == 'none' or (result.text.strip() and result.finish_reason != 'length'):
             return result
         logger.info(
             'Model {} answered {} (finish_reason={}, usage={}); retrying without reasoning',
@@ -54,7 +67,7 @@ class TextTaskService:
             result.usage,
         )
         try:
-            return await self.client.chat(model=self.model, messages=messages, reasoning=NO_REASONING, **options)
+            return await self.client.chat(model=self.model, messages=messages, reasoning={'effort': 'none'}, **options)
         except AIProviderError as error:
             if error.code != AIErrorCode.BAD_REQUEST:
                 raise
@@ -68,6 +81,7 @@ class TextTaskService:
                 {'role': 'system', 'content': TITLE_SYSTEM},
                 {'role': 'user', 'content': title_prompt(transcript_excerpt(transcript, 12000))},
             ],
+            effort=SHORT_TASK_REASONING,
             max_tokens=TITLE_MAX_TOKENS,
             temperature=0.2,
             timeout=90.0,
@@ -89,14 +103,21 @@ class TextTaskService:
         ]
         try:
             result = await self._chat(
-                messages, max_tokens=CLASSIFY_MAX_TOKENS, temperature=0, json_mode=True, timeout=90.0
+                messages,
+                effort=SHORT_TASK_REASONING,
+                max_tokens=CLASSIFY_MAX_TOKENS,
+                temperature=0,
+                json_mode=True,
+                timeout=90.0,
             )
         except AIProviderError as error:
             if error.code != AIErrorCode.BAD_REQUEST:
                 raise
             # Not every model supports `response_format`; the parser copes with plain text.
             logger.info('JSON mode rejected by {}, retrying without it', self.model)
-            result = await self._chat(messages, max_tokens=CLASSIFY_MAX_TOKENS, temperature=0, timeout=90.0)
+            result = await self._chat(
+                messages, effort=SHORT_TASK_REASONING, max_tokens=CLASSIFY_MAX_TOKENS, temperature=0, timeout=90.0
+            )
         return parse_classification(result.text, existing_tags, projects, max_tags=max_tags)
 
     async def summarize(self, transcript: str, instruction: str, *, title: str | None = None) -> str:
@@ -111,6 +132,7 @@ class TextTaskService:
                     ),
                 },
             ],
+            effort=SUMMARY_REASONING,
             max_tokens=SUMMARY_MAX_TOKENS,
             temperature=0.3,
             timeout=300.0,

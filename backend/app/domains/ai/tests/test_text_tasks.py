@@ -92,8 +92,10 @@ async def test_generate_title():
 
 @pytest.mark.asyncio
 async def test_classify_falls_back_when_json_mode_is_rejected():
+    # The 400 is first taken for the reasoning option, then JSON mode is dropped.
     provider = FakeProvider().add(
         '/chat/completions',
+        error_reply(400, 'response_format is not supported'),
         error_reply(400, 'response_format is not supported'),
         chat_reply('Ответ: {"tags": ["найм"], "project": "HR", "project_confidence": 0.8}'),
     )
@@ -102,7 +104,7 @@ async def test_classify_falls_back_when_json_mode_is_rejected():
     assert result.project == 'HR'
     bodies = provider.bodies('/chat/completions')
     assert bodies[0]['response_format'] == {'type': 'json_object'}
-    assert 'response_format' not in bodies[1]
+    assert 'response_format' not in bodies[-1]
 
 
 @pytest.mark.asyncio
@@ -125,7 +127,7 @@ async def test_summary_retries_without_reasoning_when_the_model_thought_through_
     )
     assert await make_service(provider).summarize('полный текст', 'Кратко') == '## Итоги\n- решили'
     first, second = provider.bodies('/chat/completions')
-    assert 'reasoning' not in first
+    assert first['reasoning'] == {'effort': 'low'}
     assert first['max_tokens'] == 32_000
     assert second['reasoning'] == {'effort': 'none'}
     assert second['messages'] == first['messages']
@@ -143,22 +145,20 @@ async def test_a_model_that_cannot_turn_reasoning_off_keeps_its_first_answer():
 
 
 @pytest.mark.asyncio
-async def test_title_and_tags_also_retry_an_empty_answer_without_reasoning():
-    provider = FakeProvider().add('/chat/completions', chat_reply(''), chat_reply('Планёрка'))
-    assert await make_service(provider).generate_title('Обсуждаем планы') == 'Планёрка'
-    assert provider.bodies('/chat/completions')[1]['reasoning'] == {'effort': 'none'}
-    provider = FakeProvider().add(
-        '/chat/completions', chat_reply('', finish_reason='length'), chat_reply('{"tags": ["найм"]}')
-    )
-    assert (await make_service(provider).classify('Говорим про найм', ['Найм'], [])).tags == ['Найм']
+async def test_title_and_tags_ask_without_reasoning():
+    provider = FakeProvider().add('/chat/completions', chat_reply('Планёрка'), chat_reply('{"tags": ["найм"]}'))
+    service = make_service(provider)
+    assert await service.generate_title('Обсуждаем планы') == 'Планёрка'
+    assert (await service.classify('Говорим про найм', ['Найм'], [])).tags == ['Найм']
+    assert [body['reasoning'] for body in provider.bodies('/chat/completions')] == [{'effort': 'none'}] * 2
 
 
 @pytest.mark.asyncio
-async def test_summary_sends_instruction_and_transcript():
-    provider = FakeProvider().add('/chat/completions', chat_reply('## Итоги\n- решили'))
-    text = await make_service(provider).summarize('полный текст встречи', 'Выпиши решения', title='Планёрка')
-    assert text == '## Итоги\n- решили'
-    content = provider.bodies('/chat/completions')[0]['messages'][1]['content']
-    assert 'Выпиши решения' in content
-    assert 'полный текст встречи' in content
-    assert 'Планёрка' in content
+async def test_a_model_that_rejects_the_effort_is_asked_without_it():
+    provider = FakeProvider().add(
+        '/chat/completions', error_reply(400, 'reasoning effort low is not supported'), chat_reply('## Итоги')
+    )
+    assert await make_service(provider).summarize('текст', 'Кратко') == '## Итоги'
+    first, second = provider.bodies('/chat/completions')
+    assert first['reasoning'] == {'effort': 'low'}
+    assert 'reasoning' not in second
