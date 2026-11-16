@@ -1,4 +1,4 @@
-import { useQuery, useQueryCache } from '@pinia/colada'
+import { useQueryCache } from '@pinia/colada'
 import {
   recordingAiRetranscribe,
   recordingAiRetry,
@@ -7,7 +7,6 @@ import {
   recordingsDismissProjectSuggestion,
   recordingsPartialUpdate,
   recordingsRestore,
-  wellKnownHearfolio,
 } from '~/shared/api/generated'
 import { isApiError } from '~/shared/api/client'
 import { resourceKeys } from '~/shared/api/resource'
@@ -22,12 +21,7 @@ export const daysLabel = (days: number) => `${days} ${days % 10 === 1 && days % 
  * server's `RECORDING_PURGE_AFTER_DAYS`); the server default until it answers.
  */
 export const useTrashDays = () => {
-  const client = useApiClient()
-  const { data } = useQuery({
-    key: ['server-discovery'],
-    query: async ({ signal }) => (await wellKnownHearfolio({ client, throwOnError: true, signal })).data,
-    staleTime: Number.POSITIVE_INFINITY,
-  })
+  const { data } = useServerDiscovery()
   return computed(() => data.value?.recording_purge_after_days ?? 30)
 }
 

@@ -84,6 +84,14 @@
           />
         </AppSettingRow>
       </section>
+
+      <!-- Which server build is running: tells at a glance whether a redeploy took effect. -->
+      <p
+        v-if="serverVersion"
+        class="text-xs text-muted-foreground tabular-nums"
+      >
+        Hearfolio Cloud {{ serverVersion }}
+      </p>
     </div>
 
     <AppConfirmModal
@@ -141,6 +149,8 @@ const organization = computed(() => {
   return organizations.value.find((item) => item.id === selected?.id) ?? selected
 })
 const roleLabel = computed(() => getRoleLabel(role.value))
+const { data: discovery } = useServerDiscovery()
+const serverVersion = computed(() => (discovery.value?.server_version ? `v${discovery.value.server_version}` : ''))
 
 const name = ref('')
 watch(
