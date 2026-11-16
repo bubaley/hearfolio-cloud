@@ -192,6 +192,8 @@ class Recording(BaseModel):
     transcript_text = fields.TextField(default='')
     # [{start_ms, end_ms, text}]
     transcript_segments: Any = fields.JSONField(default=list)
+    # Display names by stored speaker label (`<request start ms>:<id>`): found by the AI or set by a user
+    speaker_names: Any = fields.JSONField(default=dict, db_default='{}')
     transcription_model = fields.CharField(max_length=255, null=True)
     language = fields.CharField(max_length=32, null=True)
     error_code = fields.CharField(max_length=64, null=True)

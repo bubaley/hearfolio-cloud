@@ -40,16 +40,20 @@ export const transcriptParagraphs = <T extends Segment>(segments: readonly T[]):
   return result
 }
 
+/** Speaker names by label, as stored on a recording (found by the AI or set by a user). */
+export type SpeakerNames = Record<string, string> | null | undefined
+
 /**
- * «Спикер N» for each stored speaker label, numbered in order of appearance; empty when speakers are unknown or not
- * comparable. Labels are scoped to one transcription request (`<request start ms>:<id>`), so a transcript stitched
- * from several requests, or with fewer than two speakers, gets no names (same rule as the server's summaries).
+ * The name to show for each stored speaker label: its stored name, else «Спикер N» (N in order of appearance); empty
+ * when speakers are unknown or not comparable. Labels are scoped to one transcription request
+ * (`<request start ms>:<id>`), so a transcript stitched from several requests, or with fewer than two speakers, gets
+ * no names (same rule as the server's summaries).
  */
-export const speakerNames = (segments: readonly Segment[]): Map<string, string> => {
+export const speakerNames = (segments: readonly Segment[], named?: SpeakerNames): Map<string, string> => {
   const labels = [...new Set(segments.filter((s) => s.text.trim() && s.speaker).map((s) => s.speaker as string))]
   const scopes = new Set(labels.map((label) => (label.includes(':') ? label.slice(0, label.lastIndexOf(':')) : '')))
   if (labels.length < 2 || scopes.size !== 1) return new Map()
-  return new Map(labels.map((label, index) => [label, `Спикер ${index + 1}`]))
+  return new Map(labels.map((label, index) => [label, named?.[label]?.trim() || `Спикер ${index + 1}`]))
 }
 
 /** The name to show above a paragraph: only where the speaker changes. */
@@ -59,9 +63,9 @@ export const speakerHeading = (segments: readonly Segment[], names: Map<string, 
   return index > 0 && segments[index - 1]?.speaker === label ? undefined : names.get(label)
 }
 
-/** Plain transcript lines, `Спикер N: …` where names are known. */
-export const transcriptPlainLines = (segments: readonly Segment[]) => {
-  const names = speakerNames(segments)
+/** Plain transcript lines, `Имя: …` where speakers are known. */
+export const transcriptPlainLines = (segments: readonly Segment[], named?: SpeakerNames) => {
+  const names = speakerNames(segments, named)
   return segments.map((segment) => {
     const name = segment.speaker ? names.get(segment.speaker) : undefined
     return name ? `${name}: ${segment.text}` : segment.text

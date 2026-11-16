@@ -37,6 +37,8 @@ class FakeAI:
         self.title = 'Планирование релиза'
         self.classification: dict[str, Any] = {'tags': ['релиз', 'Бэкенд'], 'project': None, 'project_confidence': 0}
         self.summary = '- главное'
+        # «Спикер N» → name or None, as the model answers the speaker-naming request
+        self.speakers: dict[str, str | None] = {}
         self.audio_requests: list[dict[str, Any]] = []
         self.text_requests: list[dict[str, Any]] = []
         self.hooks: list[Any] = []
@@ -78,6 +80,8 @@ class FakeAI:
             return chat_reply(self.title)
         if 'organize voice recordings' in system:
             return chat_reply(json.dumps(self.classification, ensure_ascii=False))
+        if 'who is who' in system:
+            return chat_reply(json.dumps({'speakers': self.speakers}, ensure_ascii=False))
         return chat_reply(self.summary)
 
 

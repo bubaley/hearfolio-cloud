@@ -294,33 +294,45 @@ def build_phrases(
 # ----- reading stored segments -----
 
 
-def speaker_transcript(segments: Any) -> str | None:
+def speaker_labels(segments: Any) -> list[str]:
     """
-    The transcript as `Спикер N: …` lines for text models, or `None` when speakers are unknown or not comparable:
-    only labels from one request (one scope) are the same people throughout, so a transcript stitched from several
-    requests, or with fewer than two speakers, stays plain text.
+    Speaker labels in order of appearance when they are comparable (all from one request, at least two), else [].
+    `Спикер N` is the N-th of them, on the server and in the web alike.
     """
-    rows = [
-        (
-            str(segment.get('speaker')) if segment.get('speaker') is not None else None,
-            str(segment.get('text', '')).strip(),
+    labels = list(
+        dict.fromkeys(
+            str(segment['speaker'])
+            for segment in segments or []
+            if isinstance(segment, dict) and segment.get('speaker') is not None and str(segment.get('text', '')).strip()
         )
-        for segment in segments or []
-        if isinstance(segment, dict)
-    ]
-    labels = list(dict.fromkeys(label for label, text in rows if label is not None and text))
+    )
     scopes = {label.rsplit(':', 1)[0] if ':' in label else '' for label in labels}
-    if len(labels) < 2 or len(scopes) != 1:
+    return labels if len(labels) >= 2 and len(scopes) == 1 else []
+
+
+def speaker_transcript(segments: Any, names: dict[str, str] | None = None) -> str | None:
+    """
+    The transcript as `Имя: …` lines for text models (`names` by label, else `Спикер N`), or `None` when speakers
+    are unknown or not comparable: only labels from one request (one scope) are the same people throughout, so a
+    transcript stitched from several requests, or with fewer than two speakers, stays plain text.
+    """
+    labels = speaker_labels(segments)
+    if not labels:
         return None
-    names = {label: f'Спикер {number}' for number, label in enumerate(labels, start=1)}
+    known = {label: name.strip() for label, name in (names or {}).items() if isinstance(name, str) and name.strip()}
+    titles = {label: known.get(label) or f'Спикер {number}' for number, label in enumerate(labels, start=1)}
     lines: list[str] = []
     current: str | None = None
-    for label, text in rows:
+    for segment in segments or []:
+        if not isinstance(segment, dict):
+            continue
+        text = str(segment.get('text', '')).strip()
         if not text:
             continue
+        label = str(segment['speaker']) if segment.get('speaker') is not None else None
         if label is not None and label == current and lines:
             lines[-1] += f' {text}'
             continue
         current = label
-        lines.append(f'{names[label]}: {text}' if label is not None else text)
+        lines.append(f'{titles[label]}: {text}' if label is not None else text)
     return '\n'.join(lines)

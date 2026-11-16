@@ -15301,6 +15301,10 @@
           "auto_project": {
             "type": "boolean",
             "title": "Auto Project"
+          },
+          "auto_speaker_names": {
+            "type": "boolean",
+            "title": "Auto Speaker Names"
           }
         },
         "type": "object",
@@ -15313,7 +15317,8 @@
           "auto_transcribe",
           "auto_title",
           "auto_tags",
-          "auto_project"
+          "auto_project",
+          "auto_speaker_names"
         ],
         "title": "AIOptionsSchema",
         "description": "What members may choose; no secrets."
@@ -16183,6 +16188,10 @@
             "type": "boolean",
             "title": "Auto Project"
           },
+          "auto_speaker_names": {
+            "type": "boolean",
+            "title": "Auto Speaker Names"
+          },
           "segment_seconds": {
             "type": "integer",
             "title": "Segment Seconds"
@@ -16210,6 +16219,7 @@
           "auto_title",
           "auto_tags",
           "auto_project",
+          "auto_speaker_names",
           "segment_seconds",
           "language",
           "updated_at"
@@ -16350,6 +16360,17 @@
               }
             ],
             "title": "Auto Project"
+          },
+          "auto_speaker_names": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Speaker Names"
           },
           "segment_seconds": {
             "anyOf": [
@@ -17042,6 +17063,20 @@
             ],
             "title": "Transcript Segments"
           },
+          "speaker_names": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Names"
+          },
           "results": {
             "items": {
               "additionalProperties": true,
@@ -17597,6 +17632,13 @@
             },
             "type": "array",
             "title": "Transcript Segments"
+          },
+          "speaker_names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Speaker Names"
           },
           "stalled": {
             "type": "boolean",
@@ -18309,6 +18351,29 @@
                 "type": "null"
               }
             ]
+          },
+          "speaker_names": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object",
+                "maxProperties": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Names"
           }
         },
         "additionalProperties": false,

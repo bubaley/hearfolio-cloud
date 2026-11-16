@@ -79,3 +79,14 @@ describe('speakerNames', () => {
     ])
   })
 })
+
+describe('stored speaker names', () => {
+  it('replace «Спикер N» where a name is set, everywhere', () => {
+    const segments = [seg(0, 1, 'Привет.', '0:1'), seg(1, 2, 'Да.', '0:0'), seg(2, 3, 'Ок.', '0:1')]
+    const named = { '0:0': 'Аня' }
+    expect([...speakerNames(segments, named).values()]).toEqual(['Спикер 1', 'Аня'])
+    expect(transcriptPlainLines(segments, named)).toEqual(['Спикер 1: Привет.', 'Аня: Да.', 'Спикер 1: Ок.'])
+    // A blank stored name falls back to the number.
+    expect(speakerNames(segments, { '0:0': '  ' }).get('0:0')).toBe('Спикер 2')
+  })
+})

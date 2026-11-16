@@ -94,6 +94,7 @@ class OrganizationSettingsService:
             auto_title=settings.auto_title,
             auto_tags=settings.auto_tags,
             auto_project=settings.auto_project,
+            auto_speaker_names=settings.auto_speaker_names,
             segment_seconds=settings.segment_seconds,
             language=settings.language,
             updated_at=settings.updated_at,
@@ -111,6 +112,7 @@ class OrganizationSettingsService:
             auto_title=settings.auto_title,
             auto_tags=settings.auto_tags,
             auto_project=settings.auto_project,
+            auto_speaker_names=settings.auto_speaker_names,
         )
 
     @staticmethod
@@ -234,7 +236,15 @@ class OrganizationSettingsService:
             'summary_default_model' in given,
             'текста',
         )
-        for name in ('auto_transcribe', 'auto_title', 'auto_tags', 'auto_project', 'segment_seconds', 'language'):
+        for name in (
+            'auto_transcribe',
+            'auto_title',
+            'auto_tags',
+            'auto_project',
+            'auto_speaker_names',
+            'segment_seconds',
+            'language',
+        ):
             value = getattr(data, name)
             if name in given and value is not None:
                 setattr(settings, name, value)

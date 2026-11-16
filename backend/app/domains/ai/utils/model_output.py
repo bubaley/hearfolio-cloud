@@ -2,6 +2,7 @@
 
 import json
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -128,3 +129,36 @@ def transcript_excerpt(text: str, limit: int = 16000) -> str:
         return text
     head = int(limit * 0.75)
     return f'{text[:head]}\n[…]\n{text[-(limit - head) :]}'
+
+
+SPEAKER_NAME_MAX_LENGTH = 40
+_NOT_A_NAME = {'null', 'none', 'unknown', 'неизвестно', 'нет', 'n/a', '-', '—'}
+
+
+def clean_speaker_name(value: Any) -> str | None:
+    """A short human name, or None: quotes and trailing punctuation removed, at most three words."""
+    if not isinstance(value, str):
+        return None
+    name = ' '.join(value.strip(' \t\n"\'«»“”.,;:!?').split())
+    if not name or name.casefold() in _NOT_A_NAME or name.casefold().startswith('спикер'):
+        return None
+    if len(name) > SPEAKER_NAME_MAX_LENGTH or len(name.split()) > 3 or not any(char.isalpha() for char in name):
+        return None
+    return name
+
+
+def parse_speaker_names(text: str, labels: list[str]) -> dict[str, str]:
+    """
+    `{"speakers": {"Спикер N": "Имя" | null}}` → names by stored label (`labels[N-1]`). A name given to two speakers
+    is dropped for both: one of them is surely wrong.
+    """
+    data = extract_json_object(text)
+    raw = data.get('speakers') if isinstance(data, dict) else None
+    if not isinstance(raw, dict):
+        return {}
+    names: dict[str, str] = {}
+    for number, label in enumerate(labels, start=1):
+        if (name := clean_speaker_name(raw.get(f'Спикер {number}'))) is not None:
+            names[label] = name
+    taken = Counter(name.casefold() for name in names.values())
+    return {label: name for label, name in names.items() if taken[name.casefold()] == 1}

@@ -198,7 +198,8 @@ class ResultService:
             settings = await OrganizationSettingsService.ensure(await Organization.get(id=recording.organization_id))
             async with OrganizationSettingsService.build_client(settings, max_attempts=2) as client:
                 content = await TextTaskService(client, result.model).summarize(
-                    speaker_transcript(recording.transcript_segments) or recording.transcript_text,
+                    speaker_transcript(recording.transcript_segments, recording.speaker_names)
+                    or recording.transcript_text,
                     result.prompt,
                     title=recording.title or None,
                 )

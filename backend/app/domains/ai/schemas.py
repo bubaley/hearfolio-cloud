@@ -35,6 +35,7 @@ class OrganizationSettingsReadSchema(BaseSchema):
     auto_title: bool
     auto_tags: bool
     auto_project: bool
+    auto_speaker_names: bool
     segment_seconds: int
     language: str
     updated_at: datetime
@@ -53,6 +54,7 @@ class OrganizationSettingsUpdateSchema(BaseSchema):
     auto_title: bool | None = None
     auto_tags: bool | None = None
     auto_project: bool | None = None
+    auto_speaker_names: bool | None = None
     segment_seconds: int | None = Field(None, ge=MIN_SEGMENT_SECONDS, le=MAX_SEGMENT_SECONDS)
     language: LanguageCode | None = None
 
@@ -103,6 +105,7 @@ class AIOptionsSchema(BaseSchema):
     auto_title: bool
     auto_tags: bool
     auto_project: bool
+    auto_speaker_names: bool
 
 
 # SUMMARY_TEMPLATE_SCHEMAS

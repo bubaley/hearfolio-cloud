@@ -112,5 +112,6 @@ class ShareLinkService:
             audio=audio,
             transcript_text=recording.transcript_text if link.include_transcript else None,
             transcript_segments=recording.transcript_segments if link.include_transcript else None,
+            speaker_names=(recording.speaker_names or {}) if link.include_transcript else None,
             results=await RecordingPipeline.shared_results(recording, result_ids),
         )

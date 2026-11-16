@@ -212,17 +212,24 @@ async def test_members_read_options_without_secrets(api_client, auth_headers, te
         'auto_title': True,
         'auto_tags': True,
         'auto_project': True,
+        'auto_speaker_names': True,
     }
     assert SECRET not in response.text
 
     await api_client.patch(
         '/api/v1/ai-settings/current',
         headers=await auth_headers(admin, organization),
-        json={'auto_transcribe': False, 'auto_project': False},
+        json={'auto_transcribe': False, 'auto_project': False, 'auto_speaker_names': False},
     )
     response = await api_client.get('/api/v1/ai-settings/options', headers=await auth_headers(member, organization))
     flags = {key: value for key, value in response.json().items() if key.startswith('auto_')}
-    assert flags == {'auto_transcribe': False, 'auto_title': True, 'auto_tags': True, 'auto_project': False}
+    assert flags == {
+        'auto_transcribe': False,
+        'auto_title': True,
+        'auto_tags': True,
+        'auto_project': False,
+        'auto_speaker_names': False,
+    }
 
 
 @pytest.mark.asyncio

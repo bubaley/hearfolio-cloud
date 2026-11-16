@@ -40,12 +40,14 @@
           {{ formatClock(segment.start_ms) }}
         </button>
         <div class="flex min-w-0 flex-1 flex-col">
-          <span
-            v-if="speakerHeading(segments, names, index)"
-            class="text-xs leading-7 font-medium"
-            :class="speakerTone(segment.speaker)"
-            >{{ speakerHeading(segments, names, index) }}</span
-          >
+          <SpeakerName
+            v-if="segment.speaker && speakerHeading(segments, names, index)"
+            :name="speakerHeading(segments, names, index)!"
+            :fallback="fallbacks.get(segment.speaker) ?? ''"
+            :tone-class="speakerTone(segment.speaker)"
+            :editable="editableSpeakers"
+            @rename="(name) => emit('renameSpeaker', segment.speaker!, name)"
+          />
           <p
             class="text-[0.9375rem] leading-7 break-words"
             :class="!segment.text.trim() && 'text-muted-foreground italic'"
@@ -110,7 +112,13 @@ import { pluralize } from '~/features/project/composables/projectLabels'
 import type { ComponentPublicInstance } from 'vue'
 import type { TranscriptSegment } from '../../resources/recording'
 import type { AudioPlayer } from '../../composables/useAudioPlayer'
-import { speakerHeading, speakerNames, transcriptPlainLines } from '../../utils/transcriptParagraphs'
+import {
+  speakerHeading,
+  speakerNames as namesOf,
+  transcriptPlainLines,
+  type SpeakerNames,
+} from '../../utils/transcriptParagraphs'
+import SpeakerName from './SpeakerName.vue'
 
 const props = defineProps<{
   segments: TranscriptSegment[]
@@ -122,10 +130,16 @@ const props = defineProps<{
   highlight?: string
   /** A moment to open at (`?t=` in ms): its segment is shown and cued. */
   focusMs?: number | null
+  /** Stored speaker names by label (found by the AI or set by a user). */
+  speakerNames?: SpeakerNames
+  /** A click on a speaker's name renames them everywhere. */
+  editableSpeakers?: boolean
 }>()
+const emit = defineEmits<{ renameSpeaker: [label: string, name: string | null] }>()
 
-// Who speaks: «Спикер N» above a paragraph where the speaker changes (only when labels are comparable).
-const names = computed(() => speakerNames(props.segments))
+// Who speaks: the name (or «Спикер N») above a paragraph where the speaker changes, when labels are comparable.
+const names = computed(() => namesOf(props.segments, props.speakerNames))
+const fallbacks = computed(() => namesOf(props.segments))
 const SPEAKER_TONES = [
   'text-tag-blue-foreground',
   'text-tag-green-foreground',
@@ -142,7 +156,10 @@ const speakerTone = (label?: string | null) => {
 // Above the text: how much there is, and the whole transcript to the clipboard.
 const plainText = computed(() =>
   props.segments.length
-    ? transcriptPlainLines(props.segments.filter((segment) => segment.text.trim())).join('\n')
+    ? transcriptPlainLines(
+        props.segments.filter((segment) => segment.text.trim()),
+        props.speakerNames,
+      ).join('\n')
     : props.text,
 )
 const meta = computed(() => {

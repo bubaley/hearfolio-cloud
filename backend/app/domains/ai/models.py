@@ -34,6 +34,8 @@ class OrganizationSettings(BaseModel):
     auto_title = fields.BooleanField(default=True)
     auto_tags = fields.BooleanField(default=True)
     auto_project = fields.BooleanField(default=True)
+    # After transcription: names of speakers the conversation itself reveals (addresses, introductions)
+    auto_speaker_names = fields.BooleanField(default=True, db_default=True)
     segment_seconds = fields.IntField(default=DEFAULT_SEGMENT_SECONDS)
     language = fields.CharField(max_length=16, default='auto')
 
@@ -123,6 +125,7 @@ class RecordingProcessing(BaseModel):
     recording_id: UUID
     titled = fields.BooleanField(default=False)
     classified = fields.BooleanField(default=False)
+    speakers_named = fields.BooleanField(default=False, db_default=False)
     summarized = fields.BooleanField(default=False)
     # A requested re-transcription: the model and its finished chunks ([{start_ms, end_ms, text}])
     retranscribe_model = fields.CharField(max_length=255, null=True)

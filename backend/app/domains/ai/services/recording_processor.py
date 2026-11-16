@@ -24,6 +24,7 @@ from app.domains.ai.services.transcription_engine import (
     TranscriptionError,
     long_chunk_seconds,
 )
+from app.domains.ai.utils.transcript_phrases import speaker_labels, speaker_transcript
 from app.domains.library.models import Recording, RecordingStatus, Tag, TitleSource, UploadState
 from app.domains.library.schemas import TranscriptSegmentSchema
 from app.domains.library.services.recording_service import RecordingService, transcript_end_ms
@@ -244,9 +245,13 @@ class RecordingProcessor:
         await RecordingService.set_transcript(recording, segments=segments, model=model)
         processing.retranscribe_model = None
         processing.retranscribe_segments = []
-        # The new transcript gets a fresh title (unless renamed by a user); tags and summaries stay.
+        # The new transcript gets a fresh title (unless renamed by a user) and speaker names; tags and summaries stay.
         processing.titled = False
-        await processing.save(update_fields=['retranscribe_model', 'retranscribe_segments', 'titled', 'updated_at'])
+        # New speaker labels: their names are looked for again.
+        processing.speakers_named = False
+        await processing.save(
+            update_fields=['retranscribe_model', 'retranscribe_segments', 'titled', 'speakers_named', 'updated_at']
+        )
 
     async def _run(
         self,
@@ -327,7 +332,10 @@ class RecordingProcessor:
     async def _post_process(
         self, recording: Recording, settings: OrganizationSettings, processing: RecordingProcessing
     ) -> None:
-        """Title, tags + project, automatic summaries. A failed step is logged and left for the next run."""
+        """
+        Title, tags + project, speaker names, automatic summaries (which then see the names). A failed step is logged
+        and left for the next run.
+        """
         transcript = recording.transcript_text.strip()
         model = settings.summary_default_model
         if not transcript or not model or not settings.openrouter_api_key_encrypted:
@@ -337,6 +345,8 @@ class RecordingProcessor:
             steps.append(('titled', self._title))
         if not processing.classified:
             steps.append(('classified', self._classify))
+        if not processing.speakers_named:
+            steps.append(('speakers_named', self._name_speakers))
         if not processing.summarized:
             steps.append(('summarized', self._auto_summaries))
         if not steps:
@@ -387,6 +397,19 @@ class RecordingProcessor:
             project = next((project for project in projects if project.name == result.project), None)
             if project is not None:
                 await RecordingService.suggest_project(recording, project)
+
+    async def _name_speakers(
+        self, recording: Recording, settings: OrganizationSettings, tasks: TextTaskService
+    ) -> None:
+        if not settings.auto_speaker_names:
+            return
+        labels = speaker_labels(recording.transcript_segments)
+        transcript = speaker_transcript(recording.transcript_segments)
+        if not labels or not transcript:
+            return
+        names = await tasks.name_speakers(transcript, labels)
+        if names:
+            await RecordingService.add_speaker_names(recording, names)
 
     async def _auto_summaries(
         self, recording: Recording, settings: OrganizationSettings, tasks: TextTaskService

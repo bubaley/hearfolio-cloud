@@ -76,6 +76,32 @@ def classify_prompt(transcript: str, existing_tags: list[str], projects: list[st
     )
 
 
+SPEAKERS_SYSTEM = (
+    'You identify who is who in a transcript of a conversation. Reply with a single JSON object and nothing else.'
+)
+
+
+def speakers_prompt(transcript: str, speakers: list[str]) -> str:
+    listed = ', '.join(f'"{speaker}"' for speaker in speakers)
+    return (
+        f"The transcript below has speakers labelled {listed}. Find each speaker's name, but only from evidence "
+        'in the conversation itself:\n'
+        '- a speaker introduces themselves ("меня зовут Аня", "это Кирилл");\n'
+        '- someone addresses a speaker by name and that speaker answers right after ("Кирилл, что скажешь?" '
+        'followed by the reply of that speaker);\n'
+        '- a speaker is called by name while clearly being the one who speaks next.\n'
+        'Rules:\n'
+        '- Never guess from topic, role, gender or voice. A name only mentioned about someone else (a client, a '
+        "colleague who is absent) is not a speaker's name.\n"
+        '- When the evidence is weak or conflicting, use null. A wrong name is worse than no name.\n'
+        '- Two speakers never get the same name.\n'
+        '- Write the name as people call each other in the conversation (e.g. "Кирилл", "Анна Петровна"), in the '
+        "conversation's language, at most three words, without titles or roles.\n"
+        'Reply as {"speakers": {"<label>": "<name or null>", ...}} with every label listed above.\n\n'
+        f'Transcript:\n{transcript}'
+    )
+
+
 SUMMARY_SYSTEM = (
     'You turn transcripts of voice recordings (meetings, calls, voice notes) into useful notes. Follow the '
     'instruction exactly. Write in the language of the transcript unless the instruction asks otherwise. Use '

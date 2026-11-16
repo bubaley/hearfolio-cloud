@@ -183,7 +183,7 @@ const patch = async (body: AiSettingsPatch) => {
   }
 }
 
-type ToggleField = 'auto_transcribe' | 'auto_title' | 'auto_tags' | 'auto_project'
+type ToggleField = 'auto_transcribe' | 'auto_title' | 'auto_tags' | 'auto_project' | 'auto_speaker_names'
 const toggles: { field: ToggleField; label: string; description: string }[] = [
   {
     field: 'auto_transcribe',
@@ -197,6 +197,11 @@ const toggles: { field: ToggleField; label: string; description: string }[] = [
   },
   { field: 'auto_tags', label: 'Расставлять теги', description: 'До 5 тегов, новые создаются при необходимости' },
   { field: 'auto_project', label: 'Предлагать проект', description: 'Запись не переносится без подтверждения' },
+  {
+    field: 'auto_speaker_names',
+    label: 'Определять имена спикеров',
+    description: 'Если собеседники называют друг друга по имени или представляются. Имя можно поправить в расшифровке',
+  },
 ]
 
 const segmentOptions = [60, 120, 180, 300, 600, 900].map((value) => ({

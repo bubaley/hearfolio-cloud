@@ -24,6 +24,7 @@ Load a fresh `Recording` in the task (`await Recording.get(id=...)`) and pass th
 | `set_failed(recording, *, code: str, message: str)` | `status=failed`, keeps finished segments; `message` is Russian and user-facing; journal `failed` |
 | `set_title_from_ai(recording, title: str) -> bool` | Sets the title unless `title_source=user` (re-checked in the database, so a rename during processing wins); journal `renamed` |
 | `apply_ai_tags(recording, names: list[str]) -> list[Tag]` | Up to 5 names; existing org tags reused case-insensitively, missing ones created (no tags beyond the cap); existing tags stay; returns the added ones; journal `tagged` |
+| `add_speaker_names(recording, names: dict[str, str]) -> Recording` | Stores AI-found speaker names (label → name) only for speakers nobody has named yet, so a user's rename wins; publishes `recording.updated` |
 | `suggest_project(recording, project: Project) -> bool` | Sets `suggested_project` + `pending` unless the recording has a project, the suggestion was answered, or the author cannot see the project. Other viewers who cannot see the project get it redacted by `RecordingPresenter` (null, state `none`) |
 | `record_event(recording, kind: RecordingEventKind, actor: User \| None = None, data: dict \| None = None)` | Journal entry, e.g. `RESULT_CREATED` with `{result_id, title}` |
 | `touch_for_result(recording)` | A summary changed: bump `updated_at` and notify, so sync and clients refetch |

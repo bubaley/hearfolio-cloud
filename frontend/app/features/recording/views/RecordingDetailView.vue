@@ -152,6 +152,9 @@
             :scroller="scroller ?? null"
             :highlight="highlight"
             :focus-ms="focusMs"
+            :speaker-names="recording.speaker_names"
+            editable-speakers
+            @rename-speaker="renameSpeaker"
           />
           <DetailEmptyState
             v-else
@@ -318,6 +321,14 @@ const goBack = () => {
 
 const save = (body: RecordingPatch, optimistic: Partial<RecordingDetail> = {}) =>
   mutations.patch(recordingId.value, body, optimistic).catch(() => undefined)
+
+// A speaker's name applies to every paragraph of that speaker; null goes back to «Спикер N».
+const renameSpeaker = (label: string, name: string | null) => {
+  const names = { ...recording.value?.speaker_names }
+  if (name) names[label] = name
+  else delete names[label]
+  void save({ speaker_names: { [label]: name } }, { speaker_names: names })
+}
 
 const bulk = useRecordingBulk()
 const moveTo = (project: ProjectBrief | null) => {

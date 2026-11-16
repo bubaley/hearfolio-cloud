@@ -6,7 +6,7 @@ import { speakerNames, transcriptParagraphs } from './transcriptParagraphs'
 export const transcriptLines = (recording: RecordingDetail, timestamp: (clock: string) => string) => {
   if (!recording.transcript_segments.length) return [recording.transcript_text]
   const paragraphs = transcriptParagraphs(recording.transcript_segments)
-  const names = speakerNames(paragraphs)
+  const names = speakerNames(paragraphs, recording.speaker_names)
   return paragraphs.map((segment) => {
     const name = segment.speaker ? names.get(segment.speaker) : undefined
     return `${timestamp(formatClock(segment.start_ms))} ${name ? `${name}: ` : ''}${segment.text.trim()}`

@@ -4,10 +4,12 @@ from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderErr
 from app.domains.ai.services.text_task_service import TextTaskService
 from app.domains.ai.tests.fakes import FakeProvider, chat_reply, error_reply, no_sleep
 from app.domains.ai.utils.model_output import (
+    clean_speaker_name,
     clean_title,
     clean_transcript,
     extract_json_object,
     parse_classification,
+    parse_speaker_names,
     transcript_excerpt,
 )
 
@@ -162,3 +164,43 @@ async def test_a_model_that_rejects_the_effort_is_asked_without_it():
     first, second = provider.bodies('/chat/completions')
     assert first['reasoning'] == {'effort': 'low'}
     assert 'reasoning' not in second
+
+
+def test_parse_speaker_names_keeps_only_clear_distinct_names():
+    labels = ['0:0', '0:1', '0:2', '0:3']
+    text = (
+        '```json\n{"speakers": {"Спикер 1": " «Кирилл». ", "Спикер 2": null, "Спикер 3": "Аня", '
+        '"Спикер 4": "аня"}}\n```'
+    )
+    # A name given to two speakers is dropped for both.
+    assert parse_speaker_names(text, labels) == {'0:0': 'Кирилл'}
+    assert parse_speaker_names('не json', labels) == {}
+    assert parse_speaker_names('{"speakers": ["Кирилл"]}', labels) == {}
+
+
+@pytest.mark.parametrize(
+    ('raw', 'expected'),
+    [
+        ('Анна Петровна', 'Анна Петровна'),
+        ('Спикер 2', None),
+        ('неизвестно', None),
+        ('null', None),
+        ('один два три четыре', None),
+        ('42', None),
+        (7, None),
+    ],
+)
+def test_clean_speaker_name(raw, expected):
+    assert clean_speaker_name(raw) == expected
+
+
+@pytest.mark.asyncio
+async def test_name_speakers_asks_with_speaker_labels_and_maps_back():
+    provider = FakeProvider().add(
+        '/chat/completions', chat_reply('{"speakers": {"Спикер 1": "Аня", "Спикер 2": null}}')
+    )
+    names = await make_service(provider).name_speakers('Спикер 1: Привет.\nСпикер 2: Да.', ['0:5', '0:7'])
+    assert names == {'0:5': 'Аня'}
+    body = provider.bodies('/chat/completions')[0]
+    assert body['reasoning'] == {'effort': 'low'}
+    assert '"Спикер 1", "Спикер 2"' in body['messages'][1]['content']

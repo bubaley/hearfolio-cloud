@@ -214,3 +214,31 @@ def test_tasks_are_registered_under_the_seam_names():
             broker.local_task_registry.pop('ai.process_recording', None)
             broker.local_task_registry.pop('ai.generate_result', None)
             sys.modules.pop(module_name, None)
+
+
+@pytest.mark.asyncio
+async def test_speakers_are_renamed_everywhere_by_label(api_client, auth_headers, ai_team, kicks, fake_ai):
+    segments = [
+        {'start_ms': 0, 'end_ms': 1000, 'text': 'Привет.', 'speaker': '0:0'},
+        {'start_ms': 1000, 'end_ms': 2000, 'text': 'Здравствуй.', 'speaker': '0:1'},
+    ]
+    recording = await ai_team.recording(**TRANSCRIBED, transcript_segments=segments, speaker_names={'0:0': 'Аня'})
+    url = f'/api/v1/recordings/{recording.id}'
+    headers = await auth_headers(ai_team.member, ai_team.org)
+    assert (await api_client.get(url, headers=headers)).json()['speaker_names'] == {'0:0': 'Аня'}
+
+    response = await api_client.patch(url, headers=headers, json={'speaker_names': {'0:1': '  Кирилл  Иванов '}})
+    assert response.status_code == 200, response.text
+    assert response.json()['speaker_names'] == {'0:0': 'Аня', '0:1': 'Кирилл Иванов'}
+    # Empty goes back to «Спикер N».
+    response = await api_client.patch(url, headers=headers, json={'speaker_names': {'0:0': ''}})
+    assert response.json()['speaker_names'] == {'0:1': 'Кирилл Иванов'}
+    # Only labels of this transcript.
+    response = await api_client.patch(url, headers=headers, json={'speaker_names': {'5:0': 'Кто-то'}})
+    assert response.status_code == 400
+
+    # Summaries made after the rename use the names.
+    result = await RecordingResult.create(recording=recording, title='Кратко', prompt='Кратко', model=TEXT_MODEL)
+    await ResultService.generate(result.id)
+    prompt = fake_ai.text_requests[-1]['messages'][-1]['content']
+    assert 'Спикер 1: Привет.\nКирилл Иванов: Здравствуй.' in prompt

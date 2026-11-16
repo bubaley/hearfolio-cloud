@@ -125,6 +125,7 @@
           <h2 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Расшифровка</h2>
           <ShareTranscript
             :segments="share.transcript_segments ?? []"
+            :speaker-names="share.speaker_names"
             :text="share.transcript_text ?? ''"
             :current-ms="currentMs"
             :seekable="Boolean(share.audio)"

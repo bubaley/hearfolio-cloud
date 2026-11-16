@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from app.domains.ai.models import RecordingProcessing, RecordingResult, ResultStatus
+from app.domains.ai.models import OrganizationSettings, RecordingProcessing, RecordingResult, ResultStatus
 from app.domains.ai.services.audio_segmenter import AudioSegmenter, Pause
 from app.domains.ai.services.result_service import ResultService
 from app.domains.ai.tests.conftest import AUDIO_MODEL, FakeSegmenter
@@ -271,9 +271,10 @@ async def test_retranscribe_keeps_the_old_transcript_until_success(ai_team, fake
         transcript_text='Старый текст',
         transcript_segments=old_segments,
         transcription_model=AUDIO_MODEL,
+        speaker_names={'0:0': 'Старое имя'},
     )
     processing, _ = await RecordingProcessing.get_or_create(
-        recording_id=recording.id, titled=True, classified=True, summarized=True
+        recording_id=recording.id, titled=True, classified=True, speakers_named=True, summarized=True
     )
     processing.retranscribe_model = 'other/audio'
     await processing.save()
@@ -302,8 +303,9 @@ async def test_retranscribe_keeps_the_old_transcript_until_success(ai_team, fake
     assert set(seen_during) == {'Старый текст'}
     processing = await RecordingProcessing.get(recording_id=recording.id)
     assert processing.retranscribe_model is None and processing.retranscribe_segments == []
-    # The new transcript got a fresh title; tags and summaries were not repeated.
+    # The new transcript got a fresh title; tags and summaries were not repeated. Old speaker names are gone.
     assert stored.title == 'Планирование релиза'
+    assert stored.speaker_names == {}
     assert await RecordingResult.filter(recording_id=recording.id).count() == 0
 
 
@@ -375,6 +377,44 @@ async def test_diarizing_model_gets_one_long_chunk_and_speaker_phrases(ai_team, 
     await ResultService.generate(result.id)
     prompt = fake_ai.text_requests[-1]['messages'][-1]['content']
     assert 'Спикер 1: Привет.\nСпикер 2: Здравствуй. Начнём.' in prompt
+
+
+@pytest.mark.asyncio
+async def test_speaker_names_from_the_conversation_reach_summaries(ai_team, fake_ai):
+    await _use_stt_model(ai_team, fake_ai, GROK)
+    recording = await ai_team.recording()
+    fake_ai.stt_replies = [
+        _stt(('Кирилл, привет.', 1.0, 1.5), ('Привет, Аня.', 3.0, 4.0), ('Начнём.', 4.3, 4.8), speakers=[0, 1, 1])
+    ]
+    # The model is sure about one speaker only.
+    fake_ai.speakers = {'Спикер 1': 'Аня', 'Спикер 2': None}
+
+    await ai_team.processor(FakeSegmenter(duration_ms=1_800_000)).process(recording.id)
+
+    stored = await Recording.get(id=recording.id)
+    assert stored.speaker_names == {'0:0': 'Аня'}
+    asked = next(body for body in fake_ai.text_requests if 'who is who' in body['messages'][0]['content'])
+    assert 'Спикер 1: Кирилл, привет.\nСпикер 2: Привет, Аня. Начнём.' in asked['messages'][1]['content']
+    assert (await RecordingProcessing.get(recording_id=recording.id)).speakers_named
+    # Names are found before automatic summaries, which therefore see them.
+    result = await RecordingResult.get(recording_id=recording.id)
+    await ResultService.generate(result.id)
+    prompt = fake_ai.text_requests[-1]['messages'][-1]['content']
+    assert 'Аня: Кирилл, привет.\nСпикер 2: Привет, Аня. Начнём.' in prompt
+
+
+@pytest.mark.asyncio
+async def test_speaker_names_switch_off_and_single_speaker(ai_team, fake_ai):
+    await _use_stt_model(ai_team, fake_ai, GROK)
+    settings = await OrganizationSettings.get(organization_id=ai_team.org.id)
+    settings.auto_speaker_names = False
+    await settings.save()
+    fake_ai.speakers = {'Спикер 1': 'Аня', 'Спикер 2': 'Кирилл'}
+    recording = await ai_team.recording()
+    fake_ai.stt_replies = [_stt(('Привет.', 1.0, 1.5), ('Да.', 3.0, 4.0), speakers=[0, 1])]
+    await ai_team.processor(FakeSegmenter(duration_ms=60_000)).process(recording.id)
+    assert (await Recording.get(id=recording.id)).speaker_names == {}
+    assert not any('who is who' in body['messages'][0]['content'] for body in fake_ai.text_requests)
 
 
 @pytest.mark.asyncio

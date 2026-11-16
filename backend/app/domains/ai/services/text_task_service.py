@@ -4,9 +4,11 @@ from loguru import logger
 
 from app.domains.ai.prompts import (
     CLASSIFY_SYSTEM,
+    SPEAKERS_SYSTEM,
     SUMMARY_SYSTEM,
     TITLE_SYSTEM,
     classify_prompt,
+    speakers_prompt,
     summary_prompt,
     title_prompt,
 )
@@ -15,6 +17,7 @@ from app.domains.ai.utils.model_output import (
     ClassificationResult,
     clean_title,
     parse_classification,
+    parse_speaker_names,
     transcript_excerpt,
 )
 
@@ -25,6 +28,9 @@ SUMMARY_TRANSCRIPT_LIMIT = 400_000
 # by default) spend output tokens thinking first. Only tokens actually produced are billed.
 SUMMARY_MAX_TOKENS = 32_000
 TITLE_MAX_TOKENS = 4096
+SPEAKERS_MAX_TOKENS = 4096
+# Names are said early (greetings, introductions) and when people address each other: head and tail are enough.
+SPEAKERS_TRANSCRIPT_LIMIT = 60_000
 CLASSIFY_MAX_TOKENS = 4096
 # How hard a reasoning model may think (OpenRouter's unified `reasoning.effort`). Models such as DeepSeek Flash default
 # to `high`, which is slow and wasteful here: a summary needs a little thought to pick what matters, a title or tags
@@ -119,6 +125,39 @@ class TextTaskService:
                 messages, effort=SHORT_TASK_REASONING, max_tokens=CLASSIFY_MAX_TOKENS, temperature=0, timeout=90.0
             )
         return parse_classification(result.text, existing_tags, projects, max_tags=max_tags)
+
+    async def name_speakers(self, transcript: str, speakers: list[str]) -> dict[str, str]:
+        """
+        Names of the speakers (`Спикер N` lines in `transcript`) that the conversation itself reveals, by the labels
+        in `speakers`. Unsure, duplicated or malformed answers are left out.
+        """
+        if len(speakers) < 2 or not transcript.strip():
+            return {}
+        messages = [
+            {'role': 'system', 'content': SPEAKERS_SYSTEM},
+            {
+                'role': 'user',
+                'content': speakers_prompt(
+                    transcript_excerpt(transcript, SPEAKERS_TRANSCRIPT_LIMIT),
+                    [f'Спикер {number}' for number in range(1, len(speakers) + 1)],
+                ),
+            },
+        ]
+        # Telling apart who answers whom needs a little thought.
+        options: dict[str, Any] = {
+            'effort': 'low',
+            'max_tokens': SPEAKERS_MAX_TOKENS,
+            'temperature': 0,
+            'timeout': 120.0,
+        }
+        try:
+            result = await self._chat(messages, json_mode=True, **options)
+        except AIProviderError as error:
+            if error.code != AIErrorCode.BAD_REQUEST:
+                raise
+            logger.info('JSON mode rejected by {}, retrying without it', self.model)
+            result = await self._chat(messages, **options)
+        return parse_speaker_names(result.text, speakers)
 
     async def summarize(self, transcript: str, instruction: str, *, title: str | None = None) -> str:
         """Markdown result of `instruction` over the transcript. Raises `AIProviderError` on an empty/cut-off answer."""

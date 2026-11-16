@@ -1,10 +1,10 @@
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi_ronin.decorators import schema
-from pydantic import ConfigDict, Field, computed_field, field_validator
+from pydantic import ConfigDict, Field, StringConstraints, computed_field, field_validator
 
 from app.core.models import BaseCreateSchema, BaseReadSchema, BaseSchema
 from app.core.settings import settings
@@ -230,6 +230,8 @@ class RecordingReadSchema(BaseReadSchema):
 class RecordingDetailSchema(RecordingReadSchema):
     transcript_text: str
     transcript_segments: list[TranscriptSegmentSchema]
+    # Display names by speaker label; a label without a name shows as «Спикер N» (N in order of appearance)
+    speaker_names: dict[str, str] = Field(default_factory=dict)
 
 
 class RecordingCreateSchema(BaseSchema):
@@ -266,6 +268,10 @@ class RecordingUpdateSchema(BaseSchema):
     project_id: UUID | None = None
     tag_ids: list[UUID] | None = Field(None, max_length=20)
     visibility: RecordingVisibility | None = None
+    # Rename speakers: label → name; null or "" goes back to «Спикер N». Other labels keep their names.
+    speaker_names: dict[str, Annotated[str, StringConstraints(max_length=60)] | None] | None = Field(
+        None, max_length=50
+    )
 
     model_config = ConfigDict(extra='forbid')
 
@@ -441,5 +447,6 @@ class PublicShareSchema(BaseSchema):
     audio: AudioUrlSchema | None
     transcript_text: str | None
     transcript_segments: list[TranscriptSegmentSchema] | None
+    speaker_names: dict[str, str] | None = None
     # Filled by the ai domain (RecordingPipeline.register_share_results_provider)
     results: list[dict[str, Any]]

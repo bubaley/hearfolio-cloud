@@ -42,6 +42,8 @@ class RecordingUpdateData(BaseModel):
     project: Project | None = None
     tags: list[Tag] | None = None
     visibility: RecordingVisibility | None = None
+    # Speaker label → new name, or None to go back to «Спикер N»
+    speaker_names: dict[str, str | None] | None = None
     fields_set: set[str]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -110,6 +112,18 @@ class RecordingService:
             raise AppException.from_attrs(ErrorCode.VALIDATION_ERROR, 'Tag not found')
         return tags
 
+    @staticmethod
+    def validate_speaker_names(recording: Recording, names: dict[str, str | None]) -> dict[str, str | None]:
+        """Only labels of the current transcript; names are trimmed to one line, empty means «Спикер N» again."""
+        labels = {
+            str(segment['speaker'])
+            for segment in recording.transcript_segments or []
+            if isinstance(segment, dict) and segment.get('speaker') is not None
+        }
+        if unknown := set(names) - labels:
+            raise AppException.from_attrs(ErrorCode.VALIDATION_ERROR, f'Unknown speaker: {min(unknown)}')
+        return {label: ' '.join((name or '').split()) or None for label, name in names.items()}
+
     @classmethod
     async def validate_update(
         cls, recording: Recording, data: RecordingUpdateSchema, actor: User
@@ -128,6 +142,8 @@ class RecordingService:
             result.project = await cls.validate_project(data.project_id, recording.organization_id, actor)
         if 'tag_ids' in fields_set:
             result.tags = await cls.validate_tags(data.tag_ids or [], recording.organization_id)
+        if 'speaker_names' in fields_set and data.speaker_names is not None:
+            result.speaker_names = cls.validate_speaker_names(recording, data.speaker_names)
         if 'visibility' in fields_set and data.visibility is not None:
             if data.visibility != recording.visibility and recording.created_by_id != actor.id:
                 raise AppException.from_attrs(ErrorCode.FORBIDDEN, 'Only the author can change who sees a recording')
@@ -149,6 +165,16 @@ class RecordingService:
         if data.visibility is not None and data.visibility != recording.visibility:
             recording.visibility = data.visibility
             changed.append('visibility')
+        if data.speaker_names:
+            names = dict(recording.speaker_names or {})
+            for label, name in data.speaker_names.items():
+                if name:
+                    names[label] = name
+                else:
+                    names.pop(label, None)
+            if names != (recording.speaker_names or {}):
+                recording.speaker_names = names
+                changed.append('speaker_names')
 
         async with in_transaction():
             if data.tags is not None and (tag_event := await cls._set_tags(recording, data.tags)):
@@ -358,6 +384,17 @@ class RecordingService:
         return recording
 
     @classmethod
+    async def add_speaker_names(cls, recording: Recording, names: dict[str, str]) -> Recording:
+        """Names found by the AI for speakers nobody has named yet (a user's name always wins)."""
+        current = dict(recording.speaker_names or {})
+        added = {label: name for label, name in names.items() if label not in current}
+        if added:
+            recording.speaker_names = {**current, **added}
+            await cls._save(recording, 'speaker_names')
+            await LibraryRealtime.recording_updated(recording)
+        return recording
+
+    @classmethod
     async def set_transcript(
         cls,
         recording: Recording,
@@ -367,8 +404,12 @@ class RecordingService:
         model: str | None = None,
         language: str | None = None,
     ) -> Recording:
-        """Replace the transcript at once (a finished re-transcription) and mark the recording `transcribed`."""
+        """
+        Replace the transcript at once (a finished re-transcription) and mark the recording `transcribed`. Speaker
+        names belonged to the old labels and are dropped.
+        """
         recording.transcript_segments = [segment.model_dump(exclude_none=True) for segment in segments]
+        recording.speaker_names = {}
         recording.transcript_text = text if text is not None else _segments_text(recording.transcript_segments)
         return await cls.mark_transcribed(recording, model=model, language=language)
 
@@ -381,7 +422,7 @@ class RecordingService:
         recording.segments_done = recording.segments_total
         recording.error_code = None
         recording.error_message = None
-        fields = ['transcript_segments', 'transcript_text', 'status', 'progress', 'segments_done']
+        fields = ['transcript_segments', 'transcript_text', 'speaker_names', 'status', 'progress', 'segments_done']
         fields += ['error_code', 'error_message']
         if model is not None:
             recording.transcription_model = model

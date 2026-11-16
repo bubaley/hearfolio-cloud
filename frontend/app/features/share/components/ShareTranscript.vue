@@ -49,12 +49,19 @@
 </template>
 
 <script setup lang="ts">
-import { speakerHeading, speakerNames, transcriptParagraphs } from '~/features/recording/utils/transcriptParagraphs'
+import {
+  speakerHeading,
+  speakerNames as namesOf,
+  transcriptParagraphs,
+  type SpeakerNames,
+} from '~/features/recording/utils/transcriptParagraphs'
 import type { TranscriptSegmentSchema } from '~/shared/api/generated'
 
 /** Transcript by segments with timestamps; with audio a click seeks and the playing segment is highlighted. */
 const props = defineProps<{
   segments: TranscriptSegmentSchema[]
+  /** Speaker names by label, when the author named them. */
+  speakerNames?: SpeakerNames
   text: string
   currentMs?: number
   seekable?: boolean
@@ -63,7 +70,7 @@ const emit = defineEmits<{ seek: [ms: number] }>()
 
 // Paragraphs of one speaker; silent chunks (empty segments) are dropped.
 const visibleSegments = computed(() => transcriptParagraphs(props.segments))
-const names = computed(() => speakerNames(visibleSegments.value))
+const names = computed(() => namesOf(visibleSegments.value, props.speakerNames))
 const activeIndex = computed(() => {
   if (!props.seekable || props.currentMs === undefined || props.currentMs <= 0) return -1
   return visibleSegments.value.findIndex(

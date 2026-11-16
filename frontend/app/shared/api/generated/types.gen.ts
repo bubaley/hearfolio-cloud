@@ -119,6 +119,10 @@ export type AiOptionsSchema = {
    * Auto Project
    */
   auto_project: boolean
+  /**
+   * Auto Speaker Names
+   */
+  auto_speaker_names: boolean
 }
 
 /**
@@ -661,6 +665,10 @@ export type OrganizationSettingsReadSchema = {
    */
   auto_project: boolean
   /**
+   * Auto Speaker Names
+   */
+  auto_speaker_names: boolean
+  /**
    * Segment Seconds
    */
   segment_seconds: number
@@ -720,6 +728,10 @@ export type OrganizationSettingsUpdateSchema = {
    * Auto Project
    */
   auto_project?: boolean | null
+  /**
+   * Auto Speaker Names
+   */
+  auto_speaker_names?: boolean | null
   /**
    * Segment Seconds
    */
@@ -1098,6 +1110,12 @@ export type PublicShareSchema = {
    */
   transcript_segments: Array<TranscriptSegmentSchema> | null
   /**
+   * Speaker Names
+   */
+  speaker_names?: {
+    [key: string]: string
+  } | null
+  /**
    * Results
    */
   results: Array<{
@@ -1361,6 +1379,12 @@ export type RecordingDetailSchema = {
    * Transcript Segments
    */
   transcript_segments: Array<TranscriptSegmentSchema>
+  /**
+   * Speaker Names
+   */
+  speaker_names?: {
+    [key: string]: string
+  }
   /**
    * Stalled
    *
@@ -1697,6 +1721,12 @@ export type RecordingUpdateSchema = {
    */
   tag_ids?: Array<string> | null
   visibility?: RecordingVisibility | null
+  /**
+   * Speaker Names
+   */
+  speaker_names?: {
+    [key: string]: string | null
+  } | null
 }
 
 /**
@@ -2904,6 +2934,12 @@ export type RecordingDetailSchemaWritable = {
    * Transcript Segments
    */
   transcript_segments: Array<TranscriptSegmentSchema>
+  /**
+   * Speaker Names
+   */
+  speaker_names?: {
+    [key: string]: string
+  }
 }
 
 /**
