@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.5.0] - 2026-11-16
+
+### Features
+- **web:** tags wrap onto two lines and empty sections read clearly (8e09b38)
 ## [0.4.0] - 2026-11-15
 
 ### Features
