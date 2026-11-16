@@ -12,11 +12,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import Any
 
-# A pause this long after a sentence end starts a new phrase; a pause this long starts one regardless.
-SENTENCE_PAUSE_MS = 800
-HARD_PAUSE_MS = 1500
-# Longer phrases are split at their last sentence end inside the limit, else at the largest gap inside it.
-MAX_PHRASE_MS = 30_000
+# Phrases are paragraphs: one speaker's continuous speech reads as one text. A pause this long after a sentence end
+# starts a new phrase; a pause this long starts one regardless (a thought cut mid-sentence by a long silence).
+SENTENCE_PAUSE_MS = 2000
+HARD_PAUSE_MS = 4000
+# Longer phrases are split at their last sentence end inside the limit, else at the largest gap inside it, so a
+# monologue still gets timestamps to jump to.
+MAX_PHRASE_MS = 90_000
 # Words (or segments) must carry at least this share of the words of the provider's `text` (multiset, case and
 # punctuation ignored); otherwise words were lost and the provider's text wins as one coarse phrase.
 MIN_COVERAGE = 0.9
@@ -242,7 +244,8 @@ def _scoped(phrases: list[Phrase], offset_ms: int) -> list[Phrase]:
 
 
 def phrases_from_words(words: Sequence[TimedWord]) -> list[Phrase]:
-    """Group words (relative times) into phrases: speaker change, pauses, MAX_PHRASE_MS cap."""
+    """Group timed units (words or provider segments; relative times) into paragraphs: speaker change, pauses,
+    MAX_PHRASE_MS cap."""
     ordered = _monotonic(list(words))
     if not ordered:
         return []
@@ -264,9 +267,9 @@ def build_phrases(
 ) -> list[Phrase]:
     """
     Phrases for one request whose audio starts at `offset_ms` of the recording and lasts `duration_ms`.
-    1. Words with times → phrases (speaker change; a pause ≥ SENTENCE_PAUSE_MS after `.?!…` or ≥ HARD_PAUSE_MS;
+    1. Words with times → paragraphs (speaker change; a pause ≥ SENTENCE_PAUSE_MS after `.?!…` or ≥ HARD_PAUSE_MS;
        split above MAX_PHRASE_MS).
-    2. Else segments with times, as they are.
+    2. Else segments with times, grouped by the same rules (a provider's segments are often single sentences).
     3. Else one phrase for the whole chunk with `text` (today's behaviour).
     A level whose text misses words of `text` (MIN_COVERAGE) is skipped. Speakers are scoped to the request.
     """
@@ -279,8 +282,8 @@ def build_phrases(
         if phrases and _covers([phrase.text for phrase in phrases], text):
             return _scoped(phrases, offset_ms)
     if segments:
-        relative = [Phrase(s.start_ms, s.end_ms, s.text, s.speaker) for s in segments]
-        phrases = _place(relative, offset_ms, duration_ms)
+        units = [TimedWord(s.text, s.start_ms, s.end_ms, s.speaker) for s in segments]
+        phrases = _place(phrases_from_words(units), offset_ms, duration_ms)
         if phrases and _covers([phrase.text for phrase in phrases], text):
             return _scoped(phrases, offset_ms)
     if not text:

@@ -146,7 +146,7 @@
         <AppTabPanel tab-value="transcript">
           <TranscriptView
             v-if="recording.transcript_segments.length || recording.transcript_text"
-            :segments="recording.transcript_segments"
+            :segments="paragraphs"
             :text="recording.transcript_text"
             :player="player"
             :scroller="scroller ?? null"
@@ -230,6 +230,7 @@ import {
 } from '@lucide/vue'
 import { recordingsAudio } from '~/shared/api/generated'
 import DetailEmptyState from '../components/detail/DetailEmptyState.vue'
+import { transcriptParagraphs } from '../utils/transcriptParagraphs'
 import { isApiError } from '~/shared/api/client'
 import { useApiClient, useResourceItem } from '~/shared/api/useResource'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
@@ -272,6 +273,8 @@ const recordingId = computed(() => String(route.params.id))
 const { data, error, refetch } = useResourceItem(recordingResource, recordingId)
 // Retrieve returns the detail schema (with the transcript); the descriptor is typed by the list rows.
 const recording = computed(() => data.value as RecordingDetail | undefined)
+// Older recordings stored single sentences; show one speaker's continuous speech as one paragraph.
+const paragraphs = computed(() => transcriptParagraphs(recording.value?.transcript_segments ?? []))
 
 const userId = computed(() => user.value?.id ?? null)
 const isAuthor = computed(() => Boolean(recording.value && recording.value.created_by_id === userId.value))

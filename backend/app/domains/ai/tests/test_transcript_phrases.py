@@ -38,16 +38,14 @@ def _word(text: str, start: float, end: float, speaker: str | None = None) -> Ti
     return TimedWord(text, round(start * 1000), round(end * 1000), speaker)
 
 
-def test_grok_words_become_sentence_phrases_with_offset():
-    """Live Grok STT answer: one segment for the chunk, per-word times; pauses after sentences split it."""
+def test_grok_words_of_one_voice_read_as_one_paragraph():
+    """Live Grok STT answer without speakers: ~1.5 s pauses between sentences do not break the text apart."""
     phrases = _build(_load('grok_words.json'), offset_ms=600_000, duration_ms=19_188)
-    assert [(p.start_ms, p.end_ms, p.speaker) for p in phrases] == [
-        (600_060, 605_722, None),
-        (607_323, 613_326, None),
-        (614_866, 618_888, None),
-    ]
-    assert phrases[0].text == 'Привет, давай обсудим интеграцию с 1С, нам нужно запустить пилот до конца месяца.'
-    assert phrases[2].text == 'Отлично, тогда в пятницу созвонимся и проверим первые результаты.'
+    assert [(p.start_ms, p.end_ms, p.speaker) for p in phrases] == [(600_060, 618_888, None)]
+    assert phrases[0].text.startswith(
+        'Привет, давай обсудим интеграцию с 1С, нам нужно запустить пилот до конца месяца.'
+    )
+    assert phrases[0].text.endswith('Отлично, тогда в пятницу созвонимся и проверим первые результаты.')
 
 
 def test_grok_speakers_are_scoped_to_the_request():
@@ -56,14 +54,31 @@ def test_grok_speakers_are_scoped_to_the_request():
     assert [p.start_ms for p in phrases] == [300_060, 307_323, 314_866]
 
 
-def test_segments_with_speakers_are_used_when_there_are_no_words():
+def test_segments_of_one_speaker_close_together_merge_into_a_paragraph():
+    """Deepgram answers sentence-sized segments; here every one is speaker 0 with short gaps (end clamped to the chunk)."""
     payload = _load('deepgram_segments.json')
     phrases = _build(payload, offset_ms=1_000)
-    assert len(phrases) == len(payload['segments'])
-    assert phrases[0] == Phrase(
-        1_000, 7_640, 'Привет. Давай обсудим интеграцию с 1С. Нам нужно запустить пилот до конца месяца.', '1000:0'
+    assert len(phrases) == 1
+    assert (phrases[0].start_ms, phrases[0].end_ms, phrases[0].speaker) == (1_000, 20_188, '1000:0')
+    assert phrases[0].text.startswith(
+        'Привет. Давай обсудим интеграцию с 1С. Нам нужно запустить пилот до конца месяца.'
     )
-    assert all(later.start_ms >= earlier.end_ms for earlier, later in itertools.pairwise(phrases))
+
+
+def test_segments_split_on_speaker_change_and_long_pauses():
+    segments = [
+        TimedSegment('Первый.', 0, 1_000, '0'),
+        TimedSegment('Ещё.', 1_500, 2_000, '0'),
+        TimedSegment('Второй.', 2_100, 3_000, '1'),
+        TimedSegment('После паузы.', 6_000, 7_000, '1'),
+    ]
+    text = 'Первый. Ещё. Второй. После паузы.'
+    phrases = build_phrases(offset_ms=0, duration_ms=10_000, text=text, segments=segments)
+    assert [(p.text, p.speaker) for p in phrases] == [
+        ('Первый. Ещё.', '0:0'),
+        ('Второй.', '0:1'),
+        ('После паузы.', '0:1'),
+    ]
 
 
 def test_bare_words_take_punctuation_from_the_text():
@@ -71,11 +86,13 @@ def test_bare_words_take_punctuation_from_the_text():
     payload = _load('qwen_bare_words.json')
     assert parse_words(payload['words'])[0].text == 'Привет'
     phrases = _build(payload)
-    assert [p.text for p in phrases] == [
+    sentences = (
         'Привет, давай обсудим интеграцию с Однес. Нам нужно запустить пилот до конца месяца.',
         'Согласен, я возьму выгрузку заказов, а остатки сделаем дельтами каждые пять минут.',
         'Отлично, тогда в пятницу созвонимся и проверим первые результаты.',
-    ]
+    )
+    # One voice with short pauses: the three sentences read as one paragraph.
+    assert [p.text for p in phrases] == [' '.join(sentences)]
 
 
 def test_text_only_answer_is_one_phrase_for_the_chunk():
@@ -150,44 +167,44 @@ def test_one_badly_timed_word_rejects_the_word_level(bad):
 
 def test_speaker_change_and_pauses_split_phrases():
     words = [
-        _word('Один', 0.0, 0.5, 'a'),
-        _word('два.', 0.6, 1.0, 'a'),
-        # 0.5 s after a sentence end: same phrase
-        _word('Три', 1.5, 2.0, 'a'),
-        _word('четыре.', 2.1, 2.5, 'a'),
-        # 0.8 s after a sentence end: new phrase
-        _word('Пять', 3.3, 3.6, 'a'),
-        # 1.4 s without a sentence end: same phrase
-        _word('шесть', 5.0, 5.3, 'a'),
-        # 1.5 s without a sentence end: new phrase
-        _word('семь', 6.8, 7.0, 'a'),
-        # another speaker right away: new phrase
-        _word('восемь', 7.0, 7.4, 'b'),
+        _word('Сколько', 0.0, 0.5, 'a'),
+        _word('секунд?', 0.6, 1.0, 'a'),
+        # 1.9 s after a sentence end: the same speaker goes on, same paragraph
+        _word('Пять?', 2.9, 3.3, 'a'),
+        _word('Десять?', 3.5, 4.0, 'a'),
+        # 2 s after a sentence end: new paragraph
+        _word('Ладно', 6.0, 6.4, 'a'),
+        # 3.9 s mid-sentence: same paragraph
+        _word('тогда', 10.3, 10.7, 'a'),
+        # 4 s mid-sentence: new paragraph
+        _word('пять', 14.7, 15.0, 'a'),
+        # another speaker right away: new paragraph
+        _word('Хорошо.', 15.0, 15.4, 'b'),
     ]
     text = ' '.join(word.text for word in words)
-    phrases = build_phrases(offset_ms=0, duration_ms=10_000, text=text, words=words)
+    phrases = build_phrases(offset_ms=0, duration_ms=20_000, text=text, words=words)
     assert [(p.text, p.speaker) for p in phrases] == [
-        ('Один два. Три четыре.', '0:a'),
-        ('Пять шесть', '0:a'),
-        ('семь', '0:a'),
-        ('восемь', '0:b'),
+        ('Сколько секунд? Пять? Десять?', '0:a'),
+        ('Ладно тогда', '0:a'),
+        ('пять', '0:a'),
+        ('Хорошо.', '0:b'),
     ]
 
 
 def test_long_phrase_splits_at_the_last_sentence_end_inside_the_cap():
-    # Words every 1 s with 0.2 s gaps, sentence ends at words 9 and 19: 50 s without a pause long enough to split.
-    words = [_word(f'w{i}.' if i in (9, 19) else f'w{i}', i, i + 0.8) for i in range(50)]
-    phrases = build_phrases(offset_ms=0, duration_ms=60_000, text=' '.join(w.text for w in words), words=words)
-    assert [p.text.split()[0] for p in phrases] == ['w0', 'w20']
-    assert phrases[0].text.endswith('w19.')
+    # Words every 1 s with 0.2 s gaps, sentence ends at words 39 and 84: 150 s without a pause long enough to split.
+    words = [_word(f'w{i}.' if i in (39, 84) else f'w{i}', i, i + 0.8) for i in range(150)]
+    phrases = build_phrases(offset_ms=0, duration_ms=160_000, text=' '.join(w.text for w in words), words=words)
+    assert [p.text.split()[0] for p in phrases] == ['w0', 'w85']
+    assert phrases[0].text.endswith('w84.')
     assert all(p.end_ms - p.start_ms <= MAX_PHRASE_MS for p in phrases)
 
 
 def test_long_phrase_without_sentence_end_splits_at_the_largest_gap():
-    words = [_word(f'w{i}', i, i + (0.5 if i == 12 else 0.9)) for i in range(40)]
-    phrases = build_phrases(offset_ms=0, duration_ms=60_000, text=' '.join(w.text for w in words), words=words)
-    assert phrases[0].text.split()[-1] == 'w12'
-    assert phrases[1].text.split()[0] == 'w13'
+    words = [_word(f'w{i}', i, i + (0.5 if i == 40 else 0.9)) for i in range(120)]
+    phrases = build_phrases(offset_ms=0, duration_ms=130_000, text=' '.join(w.text for w in words), words=words)
+    assert phrases[0].text.split()[-1] == 'w40'
+    assert phrases[1].text.split()[0] == 'w41'
     assert all(p.end_ms - p.start_ms <= MAX_PHRASE_MS for p in phrases)
 
 
