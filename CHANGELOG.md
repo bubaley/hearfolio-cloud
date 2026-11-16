@@ -3,6 +3,11 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.7.0] - 2026-11-16
+
+### Features
+- **ai:** one speaker's continuous speech reads as one paragraph (8cb08c1)
+- **web:** show «Спикер N» above transcript paragraphs (9bcd8c6)
 ## [0.6.0] - 2026-11-16
 
 ### Features
