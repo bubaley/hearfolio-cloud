@@ -35,12 +35,12 @@
         class="w-2/3"
       />
     </div>
-    <p
+    <DetailEmptyState
       v-else-if="!events.length"
-      class="py-6 text-sm text-muted-foreground"
-    >
-      История пока пуста
-    </p>
+      :icon="History"
+      title="Истории пока нет"
+      description="Здесь появятся загрузка, расшифровка, саммари и другие события этой записи"
+    />
     <ol
       v-else
       class="relative flex flex-col"
@@ -83,7 +83,8 @@
 </template>
 
 <script setup lang="ts">
-import { Cpu } from '@lucide/vue'
+import { Cpu, History } from '@lucide/vue'
+import DetailEmptyState from './DetailEmptyState.vue'
 import type { RecordingEvent, useRecordingEvents } from '../../composables/useRecordingDetail'
 import { getEventLabel } from '../../composables/useRecordingLabels'
 

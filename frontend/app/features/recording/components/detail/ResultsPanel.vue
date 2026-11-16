@@ -39,29 +39,16 @@
         <AppSkeleton :lines="4" />
       </div>
     </div>
-    <div
+    <DetailEmptyState
       v-else-if="!results.length"
-      class="flex flex-col items-start gap-4 py-2"
+      :icon="Sparkles"
+      title="Саммари пока нет"
+      :description="
+        transcribed
+          ? 'Выберите шаблоны — например «Кратко» или «Задачи и ответственные» — или напишите свой запрос, и модель соберёт главное из записи'
+          : 'Когда расшифровка будет готова, здесь можно будет собрать главное из записи'
+      "
     >
-      <span
-        class="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground"
-        aria-hidden="true"
-      >
-        <AppIcon
-          :icon="Sparkles"
-          size="md"
-        />
-      </span>
-      <div class="flex flex-col gap-1">
-        <h3 class="text-lg font-semibold">Саммари пока нет</h3>
-        <p class="max-w-md text-sm text-muted-foreground">
-          {{
-            transcribed
-              ? 'Выберите шаблоны — например «Кратко» или «Задачи и ответственные» — или напишите свой запрос, и модель соберёт главное из записи'
-              : 'Когда расшифровка будет готова, здесь можно будет собрать главное из записи'
-          }}
-        </p>
-      </div>
       <AppButton
         :icon="Sparkles"
         label="Создать саммари"
@@ -69,7 +56,7 @@
         :disabled="!transcribed"
         @click="createOpen = true"
       />
-    </div>
+    </DetailEmptyState>
 
     <article
       v-for="result in results"
@@ -167,6 +154,7 @@
 </template>
 
 <script setup lang="ts">
+import DetailEmptyState from './DetailEmptyState.vue'
 import { Check, Copy, Ellipsis, RotateCcw, Sparkles, Trash2 } from '@lucide/vue'
 import { useClipboard } from '@vueuse/core'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'

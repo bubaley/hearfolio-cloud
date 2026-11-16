@@ -153,7 +153,7 @@
             :highlight="highlight"
             :focus-ms="focusMs"
           />
-          <AppResultState
+          <DetailEmptyState
             v-else
             :icon="processing ? Sparkles : FileAudio"
             :title="processing ? 'Текст появится здесь' : 'Расшифровки нет'"
@@ -164,7 +164,6 @@
                   ? 'Расшифровка не удалась — нажмите «Повторить» выше'
                   : 'Запустите расшифровку из меню «…» → «Расшифровать заново»'
             "
-            class="py-8"
           />
         </AppTabPanel>
         <AppTabPanel tab-value="summary">
@@ -230,6 +229,7 @@ import {
   Users,
 } from '@lucide/vue'
 import { recordingsAudio } from '~/shared/api/generated'
+import DetailEmptyState from '../components/detail/DetailEmptyState.vue'
 import { isApiError } from '~/shared/api/client'
 import { useApiClient, useResourceItem } from '~/shared/api/useResource'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
