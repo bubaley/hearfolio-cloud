@@ -76,12 +76,11 @@
       </div>
 
       <div
-        v-else-if="!items.length"
+        v-else-if="!items.length && filters.active.value"
         class="flex flex-1 items-center justify-center px-3 py-10"
       >
         <div class="w-full max-w-sm">
           <AppResultState
-            v-if="filters.active.value"
             :icon="SearchX"
             title="Ничего не найдено"
             :description="
@@ -100,24 +99,40 @@
               />
             </template>
           </AppResultState>
-          <AppResultState
-            v-else
-            :icon="empty.icon"
-            :title="empty.title"
-            :description="empty.description"
-          >
-            <template
-              v-if="canUpload"
-              #actions
-            >
-              <AppButton
-                :icon="Upload"
-                label="Загрузить файл"
-                @click="pickFiles"
-              />
-              <slot name="empty-actions" />
-            </template>
-          </AppResultState>
+        </div>
+      </div>
+
+      <!-- Empty, no filters: a short line under the page header (which already says what the section is), then a
+           drop zone that also teaches drag & drop. Aligned with the rows, not floating in the middle of the page. -->
+      <div
+        v-else-if="!items.length"
+        class="flex flex-col gap-4 px-2 pt-4"
+        role="status"
+      >
+        <div class="flex flex-col gap-1">
+          <h2 class="text-base font-semibold">{{ empty.title }}</h2>
+          <p class="max-w-prose text-sm text-muted-foreground">{{ empty.description }}</p>
+        </div>
+        <button
+          v-if="canUpload"
+          type="button"
+          class="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border-strong px-6 py-10 text-center transition-colors outline-none hover:bg-row-hover focus-visible:ring-2 focus-visible:ring-ring"
+          @click="pickFiles"
+        >
+          <span class="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <AppIcon
+              :icon="Upload"
+              size="md"
+            />
+          </span>
+          <span class="text-sm font-medium">Перетащите аудиофайл сюда</span>
+          <span class="text-xs text-muted-foreground">или нажмите, чтобы выбрать файл · до 10 ГБ</span>
+        </button>
+        <div
+          v-if="canUpload && $slots['empty-actions']"
+          class="flex flex-wrap gap-1"
+        >
+          <slot name="empty-actions" />
         </div>
       </div>
 
@@ -200,7 +215,7 @@
 
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
-import { AudioLines, Lock, SearchX, Trash2, Upload } from '@lucide/vue'
+import { SearchX, Upload } from '@lucide/vue'
 import { useResourceList } from '~/shared/api/useResource'
 import { useOrganizationRole } from '~/features/organization/composables/useOrganizationRole'
 import { pluralize } from '~/features/project/composables/projectLabels'
@@ -257,30 +272,26 @@ const canManage = (recording: Recording) => isAdmin.value || recording.created_b
 const empty = computed(() =>
   trash.value
     ? {
-        icon: Trash2,
         title: 'Корзина пуста',
-        description: `Удалённые записи хранятся здесь ${pluralize(trashDays.value, ['день', 'дня', 'дней'])} — их можно восстановить, потом они удаляются навсегда`,
+        description: `Удалённые записи хранятся здесь ${pluralize(trashDays.value, ['день', 'дня', 'дней'])} — их можно восстановить, потом они удаляются навсегда.`,
       }
     : props.fixed.personal
       ? {
-          icon: Lock,
-          title: 'Личных записей пока нет',
+          title: 'Здесь пока пусто',
           description:
-            'Личные записи видите только вы. Выберите «Личная» при записи в приложении Hearfolio или при загрузке файла',
+            'Чтобы запись попала сюда, выберите «Личная» при записи в приложении Hearfolio или при загрузке файла.',
         }
       : props.fixed.project_id
         ? {
-            icon: AudioLines,
             title: 'В проекте пока нет записей',
             description: canUpload.value
-              ? 'Выберите этот проект при записи в приложении Hearfolio или загрузите файл сюда'
-              : 'Проект в архиве — верните его, чтобы добавлять записи',
+              ? 'Выберите этот проект при записи в приложении Hearfolio или загрузите файл.'
+              : 'Проект в архиве — верните его, чтобы добавлять записи.',
           }
         : {
-            icon: AudioLines,
-            title: 'Здесь появятся записи',
+            title: 'Записей пока нет',
             description:
-              'Запишите в приложении Hearfolio или загрузите файл — расшифровка и саммари появятся здесь через минуту',
+              'Запишите встречу в приложении Hearfolio или загрузите файл — расшифровка и саммари появятся через пару минут.',
           },
 )
 

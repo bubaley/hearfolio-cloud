@@ -74,7 +74,7 @@
       >
         {{ trashHint }}<template v-if="!canManage"> · восстановить может автор или администратор</template>
       </p>
-      <!-- Narrow lists (phones, a tablet with the sidebar open): one muted meta line, then one line of whole chips. -->
+      <!-- Narrow lists (phones, a tablet with the sidebar open): one muted meta line, then up to two lines of chips. -->
       <template v-else>
         <div class="flex min-w-0 items-center gap-x-1.5 text-xs text-muted-foreground @3xl:hidden">
           <RecordingStatusLabel :recording="recording" />
@@ -100,7 +100,6 @@
         </div>
         <TagChipList
           :tags="recording.tags"
-          :budget="17"
           class="@3xl:hidden"
         />
       </template>
@@ -137,11 +136,8 @@
            database list: every column starts at the same x in every row and nothing is cut in half. The breakpoints
            are container queries on the list (`@container` in RecordingList), so the sidebar width counts. -->
       <div class="hidden shrink-0 items-center gap-4 text-xs text-muted-foreground @3xl:flex">
-        <span class="flex w-52">
-          <TagChipList
-            :tags="recording.tags"
-            :budget="13"
-          />
+        <span class="flex w-64">
+          <TagChipList :tags="recording.tags" />
         </span>
         <span
           v-if="!hideProject"

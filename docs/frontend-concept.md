@@ -601,7 +601,7 @@ Patterns worth reusing, all in `features/recording/`:
   the toolbar and the list each call it, so there is no shared mutable prop. Rows are grouped by day
   (`useRecordingGroups`, `useDate`).
 - **Container queries for dense rows.** The list root is `@container`; rows and the toolbar switch between the narrow
-  layout (meta line, then a line of chips under the title) and fixed left-aligned columns (tags `w-52`, project
+  layout (meta line, then up to two lines of chips under the title) and fixed left-aligned columns (tags `w-64`, project
   `w-40` from `@5xl`, duration, author, time) with `@3xl:` / `@5xl:`, so the sidebar and the project page width count,
   not the viewport. Touch heights (`max-md:h-11`) stay viewport-based. «Загрузить» is a page header action: the list
   exposes `pickFiles()` and the view calls it.
