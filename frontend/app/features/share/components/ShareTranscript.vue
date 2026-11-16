@@ -24,7 +24,14 @@
           :class="seekable && 'group-hover:text-primary'"
           >{{ formatClock(segment.start_ms) }}</span
         >
-        <span class="min-w-0 flex-1 text-[0.95rem] leading-relaxed break-words">{{ segment.text }}</span>
+        <span class="flex min-w-0 flex-1 flex-col">
+          <span
+            v-if="speakerHeading(visibleSegments, names, index)"
+            class="text-xs font-medium text-muted-foreground"
+            >{{ speakerHeading(visibleSegments, names, index) }}</span
+          >
+          <span class="text-[0.95rem] leading-relaxed break-words">{{ segment.text }}</span>
+        </span>
       </component>
     </li>
   </ol>
@@ -42,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { transcriptParagraphs } from '~/features/recording/utils/transcriptParagraphs'
+import { speakerHeading, speakerNames, transcriptParagraphs } from '~/features/recording/utils/transcriptParagraphs'
 import type { TranscriptSegmentSchema } from '~/shared/api/generated'
 
 /** Transcript by segments with timestamps; with audio a click seeks and the playing segment is highlighted. */
@@ -56,6 +63,7 @@ const emit = defineEmits<{ seek: [ms: number] }>()
 
 // Paragraphs of one speaker; silent chunks (empty segments) are dropped.
 const visibleSegments = computed(() => transcriptParagraphs(props.segments))
+const names = computed(() => speakerNames(visibleSegments.value))
 const activeIndex = computed(() => {
   if (!props.seekable || props.currentMs === undefined || props.currentMs <= 0) return -1
   return visibleSegments.value.findIndex(

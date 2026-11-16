@@ -215,7 +215,7 @@ ffmpeg/ffprobe read uploads with `-protocol_whitelist file`, an allowlist of pla
 
 The Docker image must contain `ffmpeg`.
 
-Open items of timed transcription: speakers are stored but not shown in the web app, the share page or the app; speaker sets of separate requests (recordings longer than one 45-minute chunk, or a long chunk that fell back to normal chunks) are not stitched; long chunks are enabled only for measured models (`x-ai/`; Deepgram diarizes but refused a 20-minute input, limit unknown — `LONG_CHUNK_MODEL_PREFIXES` in `transcription_engine.py`); the per-model request level lives in worker memory (a restart pays at most two rejected, free requests per model again).
+Speakers in the web: the recording transcript, the public share page, «Копировать» and the .txt/.md export show «Спикер N» (numbered in order of appearance) above a paragraph where the speaker changes, only when the labels come from one request and there are at least two (the same rule as the summaries' `Спикер N:` lines). Stored segments are shown as paragraphs (one speaker's continuous speech joined by the paragraph rules), so recordings transcribed before them read the same. Open items of timed transcription: the desktop/Android app does not show speakers; naming speakers is not done; speaker sets of separate requests (recordings longer than one 45-minute chunk, or a long chunk that fell back to normal chunks) are not stitched; long chunks are enabled only for measured models (`x-ai/`; Deepgram diarizes but refused a 20-minute input, limit unknown — `LONG_CHUNK_MODEL_PREFIXES` in `transcription_engine.py`); the per-model request level lives in worker memory (a restart pays at most two rejected, free requests per model again).
 
 ## Web app (Nuxt) — scenarios
 
@@ -257,7 +257,7 @@ Look and feel: Notion-like — calm neutral surfaces, generous whitespace, one a
 
 ## Non-goals (v1)
 
-Email delivery, public sign-up, billing/quotas, guests limited to projects, comments, manual transcript editing, showing or naming speakers in the UI (the server stores speaker labels; matching speakers across separate requests is not done), a full audit log, on-device or self-hosted transcription models on the server (OpenRouter-compatible API only).
+Email delivery, public sign-up, billing/quotas, guests limited to projects, comments, manual transcript editing, naming speakers (the web shows «Спикер N»; matching speakers across separate requests is not done), a full audit log, on-device or self-hosted transcription models on the server (OpenRouter-compatible API only).
 
 ## Changes to template behavior
 

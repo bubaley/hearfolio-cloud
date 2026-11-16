@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { transcriptParagraphs } from '~/features/recording/utils/transcriptParagraphs'
+import {
+  speakerHeading,
+  speakerNames,
+  transcriptParagraphs,
+  transcriptPlainLines,
+} from '~/features/recording/utils/transcriptParagraphs'
 
 const seg = (start: number, end: number, text: string, speaker?: string | null) => ({
   start_ms: start * 1000,
@@ -42,5 +47,35 @@ describe('transcriptParagraphs', () => {
   it('drops empty segments and leaves paragraphs untouched', () => {
     const paragraphs = [seg(0, 10, 'Абзац.', '0:0'), seg(10, 20, 'Другой.', '0:1')]
     expect(transcriptParagraphs([seg(0, 1, '  '), ...paragraphs])).toEqual(paragraphs)
+  })
+})
+
+describe('speakerNames', () => {
+  it('numbers comparable speakers in order of appearance', () => {
+    const names = speakerNames([seg(0, 1, 'a', '0:1'), seg(1, 2, 'b', '0:0'), seg(2, 3, 'c', '0:1')])
+    expect([...names]).toEqual([
+      ['0:1', 'Спикер 1'],
+      ['0:0', 'Спикер 2'],
+    ])
+    expect(transcriptPlainLines([seg(0, 1, 'Привет.', '0:1'), seg(1, 2, 'Хорошо.', '0:0')])).toEqual([
+      'Спикер 1: Привет.',
+      'Спикер 2: Хорошо.',
+    ])
+  })
+
+  it('names nobody when there is one speaker or labels of several requests', () => {
+    expect(speakerNames([seg(0, 1, 'a', '0:0'), seg(1, 2, 'b', '0:0')]).size).toBe(0)
+    expect(speakerNames([seg(0, 1, 'a', '0:0'), seg(1, 2, 'b', '0:1'), seg(2, 3, 'c', '60000:0')]).size).toBe(0)
+    expect(speakerNames([seg(0, 1, 'a'), seg(1, 2, 'b')]).size).toBe(0)
+  })
+
+  it('shows the name only where the speaker changes', () => {
+    const segments = [seg(0, 1, 'a', '0:0'), seg(1, 2, 'b', '0:0'), seg(2, 3, 'c', '0:1')]
+    const names = speakerNames(segments)
+    expect(segments.map((_, index) => speakerHeading(segments, names, index))).toEqual([
+      'Спикер 1',
+      undefined,
+      'Спикер 2',
+    ])
   })
 })

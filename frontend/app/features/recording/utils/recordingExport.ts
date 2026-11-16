@@ -1,14 +1,17 @@
 import type { RecordingResultReadSchema } from '~/shared/api/generated'
 import type { RecordingDetail } from '../resources/recording'
-import { transcriptParagraphs } from './transcriptParagraphs'
+import { speakerNames, transcriptParagraphs } from './transcriptParagraphs'
 
 /** Transcript lines with timestamps, or the plain text when there are no segments. */
-export const transcriptLines = (recording: RecordingDetail, timestamp: (clock: string) => string) =>
-  recording.transcript_segments.length
-    ? transcriptParagraphs(recording.transcript_segments).map(
-        (segment) => `${timestamp(formatClock(segment.start_ms))} ${segment.text.trim()}`,
-      )
-    : [recording.transcript_text]
+export const transcriptLines = (recording: RecordingDetail, timestamp: (clock: string) => string) => {
+  if (!recording.transcript_segments.length) return [recording.transcript_text]
+  const paragraphs = transcriptParagraphs(recording.transcript_segments)
+  const names = speakerNames(paragraphs)
+  return paragraphs.map((segment) => {
+    const name = segment.speaker ? names.get(segment.speaker) : undefined
+    return `${timestamp(formatClock(segment.start_ms))} ${name ? `${name}: ` : ''}${segment.text.trim()}`
+  })
+}
 
 export const recordingToText = (recording: RecordingDetail, title: string) =>
   [title, '', ...transcriptLines(recording, (clock) => `[${clock}]`), ''].join('\n')

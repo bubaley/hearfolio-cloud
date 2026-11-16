@@ -39,25 +39,33 @@
         >
           {{ formatClock(segment.start_ms) }}
         </button>
-        <p
-          class="min-w-0 flex-1 text-[0.9375rem] leading-7 break-words"
-          :class="!segment.text.trim() && 'text-muted-foreground italic'"
-        >
-          <template v-if="terms.length && segment.text.trim()">
-            <template
-              v-for="(part, partIndex) in markTerms(segment.text.trim())"
-              :key="partIndex"
-            >
-              <mark
-                v-if="part.match"
-                class="rounded-sm bg-tag-yellow px-0.5 text-tag-yellow-foreground"
-                >{{ part.text }}</mark
+        <div class="flex min-w-0 flex-1 flex-col">
+          <span
+            v-if="speakerHeading(segments, names, index)"
+            class="text-xs leading-7 font-medium"
+            :class="speakerTone(segment.speaker)"
+            >{{ speakerHeading(segments, names, index) }}</span
+          >
+          <p
+            class="text-[0.9375rem] leading-7 break-words"
+            :class="!segment.text.trim() && 'text-muted-foreground italic'"
+          >
+            <template v-if="terms.length && segment.text.trim()">
+              <template
+                v-for="(part, partIndex) in markTerms(segment.text.trim())"
+                :key="partIndex"
               >
-              <template v-else>{{ part.text }}</template>
+                <mark
+                  v-if="part.match"
+                  class="rounded-sm bg-tag-yellow px-0.5 text-tag-yellow-foreground"
+                  >{{ part.text }}</mark
+                >
+                <template v-else>{{ part.text }}</template>
+              </template>
             </template>
-          </template>
-          <template v-else>{{ segment.text.trim() || 'Тишина' }}</template>
-        </p>
+            <template v-else>{{ segment.text.trim() || 'Тишина' }}</template>
+          </p>
+        </div>
       </li>
     </ol>
     <div
@@ -102,6 +110,7 @@ import { pluralize } from '~/features/project/composables/projectLabels'
 import type { ComponentPublicInstance } from 'vue'
 import type { TranscriptSegment } from '../../resources/recording'
 import type { AudioPlayer } from '../../composables/useAudioPlayer'
+import { speakerHeading, speakerNames, transcriptPlainLines } from '../../utils/transcriptParagraphs'
 
 const props = defineProps<{
   segments: TranscriptSegment[]
@@ -115,17 +124,30 @@ const props = defineProps<{
   focusMs?: number | null
 }>()
 
+// Who speaks: «Спикер N» above a paragraph where the speaker changes (only when labels are comparable).
+const names = computed(() => speakerNames(props.segments))
+const SPEAKER_TONES = [
+  'text-tag-blue-foreground',
+  'text-tag-green-foreground',
+  'text-tag-purple-foreground',
+  'text-tag-orange-foreground',
+  'text-tag-pink-foreground',
+  'text-tag-brown-foreground',
+]
+const speakerTone = (label?: string | null) => {
+  const position = label ? [...names.value.keys()].indexOf(label) : -1
+  return position < 0 ? 'text-muted-foreground' : SPEAKER_TONES[position % SPEAKER_TONES.length]
+}
+
 // Above the text: how much there is, and the whole transcript to the clipboard.
 const plainText = computed(() =>
   props.segments.length
-    ? props.segments
-        .map((segment) => segment.text.trim())
-        .filter(Boolean)
-        .join('\n')
+    ? transcriptPlainLines(props.segments.filter((segment) => segment.text.trim())).join('\n')
     : props.text,
 )
 const meta = computed(() => {
-  const words = plainText.value.split(/\s+/).filter(Boolean).length
+  const spoken = props.segments.length ? props.segments.map((segment) => segment.text).join(' ') : props.text
+  const words = spoken.split(/\s+/).filter(Boolean).length
   return pluralize(words, ['слово', 'слова', 'слов'])
 })
 const { copy, copied } = useClipboard({ legacy: true, copiedDuring: 2000 })
