@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.8.0] - 2026-11-16
+
+### Features
+- **web:** show the server version at the bottom of general settings (4d646a5)
+
+### Bug fixes
+- **ai:** summaries no longer come back empty from reasoning models (eb64988)
 ## [0.7.0] - 2026-11-16
 
 ### Features
