@@ -143,7 +143,10 @@ async def test_generate_takes_a_result_once_and_reports_failures(ai_team, fake_a
     fake_ai.summary = ''
     failed = await ResultService.generate(result.id)
     assert failed is not None
-    assert (failed.status, failed.error_message) == (ResultStatus.FAILED, 'Модель вернула пустой ответ')
+    assert (failed.status, failed.error_message) == (
+        ResultStatus.FAILED,
+        'Модель вернула пустой ответ — повторите или выберите другую модель в «AI и модели»',
+    )
     assert await ResultService.generate(result.id) is None
     content = fake_ai.text_requests[0]['messages'][1]['content']
     assert 'Обсудили релиз и сроки.' in content

@@ -55,7 +55,7 @@ ERROR_MESSAGES: dict[AIErrorCode, str] = {
     AIErrorCode.TIMEOUT: 'OpenRouter не ответил вовремя',
     AIErrorCode.INVALID_RESPONSE: 'OpenRouter вернул непонятный ответ',
     AIErrorCode.INCOMPLETE: 'Модель вернула только часть текста',
-    AIErrorCode.EMPTY: 'Модель вернула пустой ответ',
+    AIErrorCode.EMPTY: 'Модель вернула пустой ответ — повторите или выберите другую модель в «AI и модели»',
     AIErrorCode.CONTENT_FILTER: 'Провайдер модели отказался обрабатывать этот фрагмент',
     AIErrorCode.STORAGE: 'Не удалось получить аудио из хранилища',
     AIErrorCode.AUDIO: 'Не удалось прочитать аудиофайл',
@@ -222,9 +222,12 @@ class OpenRouterClient:
         max_tokens: int | None = None,
         temperature: float | None = None,
         json_mode: bool = False,
+        reasoning: dict[str, Any] | None = None,
         timeout: float = 120.0,
     ) -> ChatResult:
         body: dict[str, Any] = {'model': model, 'messages': messages, 'stream': False}
+        if reasoning is not None:
+            body['reasoning'] = reasoning
         if max_tokens:
             body['max_tokens'] = max_tokens
         if temperature is not None:

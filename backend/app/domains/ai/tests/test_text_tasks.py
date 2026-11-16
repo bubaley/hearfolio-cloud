@@ -107,10 +107,50 @@ async def test_classify_falls_back_when_json_mode_is_rejected():
 
 @pytest.mark.asyncio
 async def test_summary_rejects_cut_off_answer():
+    # Cut off with reasoning and again without it.
     provider = FakeProvider().add('/chat/completions', chat_reply('- пункт', finish_reason='length'))
     with pytest.raises(AIProviderError) as raised:
         await make_service(provider).summarize('текст', 'Кратко')
     assert raised.value.code == AIErrorCode.INCOMPLETE
+    assert len(provider.calls('/chat/completions')) == 2
+
+
+@pytest.mark.asyncio
+async def test_summary_retries_without_reasoning_when_the_model_thought_through_its_budget():
+    """DeepSeek Flash reasons at high effort by default: the budget can run out before any answer text."""
+    provider = FakeProvider().add(
+        '/chat/completions',
+        chat_reply('', finish_reason='length'),
+        chat_reply('## Итоги\n- решили'),
+    )
+    assert await make_service(provider).summarize('полный текст', 'Кратко') == '## Итоги\n- решили'
+    first, second = provider.bodies('/chat/completions')
+    assert 'reasoning' not in first
+    assert first['max_tokens'] == 32_000
+    assert second['reasoning'] == {'effort': 'none'}
+    assert second['messages'] == first['messages']
+
+
+@pytest.mark.asyncio
+async def test_a_model_that_cannot_turn_reasoning_off_keeps_its_first_answer():
+    provider = FakeProvider().add(
+        '/chat/completions', chat_reply(''), error_reply(400, 'reasoning cannot be disabled for this model')
+    )
+    with pytest.raises(AIProviderError) as raised:
+        await make_service(provider).summarize('текст', 'Кратко')
+    assert raised.value.code == AIErrorCode.EMPTY
+    assert 'другую модель' in raised.value.message
+
+
+@pytest.mark.asyncio
+async def test_title_and_tags_also_retry_an_empty_answer_without_reasoning():
+    provider = FakeProvider().add('/chat/completions', chat_reply(''), chat_reply('Планёрка'))
+    assert await make_service(provider).generate_title('Обсуждаем планы') == 'Планёрка'
+    assert provider.bodies('/chat/completions')[1]['reasoning'] == {'effort': 'none'}
+    provider = FakeProvider().add(
+        '/chat/completions', chat_reply('', finish_reason='length'), chat_reply('{"tags": ["найм"]}')
+    )
+    assert (await make_service(provider).classify('Говорим про найм', ['Найм'], [])).tags == ['Найм']
 
 
 @pytest.mark.asyncio
