@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.8.1] - 2026-11-16
+
+### Bug fixes
+- **web:** starting a summary no longer reports an error when it succeeded (2fec78c)
+
+### Performance
+- **ai:** ask reasoning models for low effort on summaries, none on title and tags (df801e3)
 ## [0.8.0] - 2026-11-16
 
 ### Features
