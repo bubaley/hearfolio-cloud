@@ -142,6 +142,8 @@ def diarization_options(model: str) -> dict[str, Any] | None:
 
 
 Sleep = Callable[[float], Awaitable[None]]
+# Called with (model, provider `usage` object) for every billed answer: chat completions and transcriptions.
+OnUsage = Callable[[str, dict[str, Any]], Awaitable[None]]
 
 
 class OpenRouterClient:
@@ -167,6 +169,7 @@ class OpenRouterClient:
         backoff_seconds: float = 1.0,
         max_backoff_seconds: float = 30.0,
         sleep: Sleep = asyncio.sleep,
+        on_usage: OnUsage | None = None,
     ):
         if not api_key:
             raise AIProviderError(AIErrorCode.NOT_CONFIGURED)
@@ -176,6 +179,7 @@ class OpenRouterClient:
         self.backoff_seconds = backoff_seconds
         self.max_backoff_seconds = max_backoff_seconds
         self._sleep = sleep
+        self.on_usage = on_usage
         self._http = httpx2.AsyncClient(
             transport=transport or self.default_transport,
             timeout=httpx2.Timeout(60.0, connect=15.0),
@@ -388,6 +392,8 @@ class OpenRouterClient:
             payload = json.loads(body)
         except ValueError as e:
             raise AIProviderError(AIErrorCode.INVALID_RESPONSE, detail='non-JSON body') from e
+        # Billed even when the answer then turns out empty, cut off or an upstream error.
+        await self._report_usage(json_body, payload)
         if isinstance(payload, dict) and payload.get('error'):
             # OpenRouter reports upstream provider failures as 200 with an `error` object.
             error = payload['error']
@@ -395,6 +401,16 @@ class OpenRouterClient:
             status = code if isinstance(code, int) else 502
             raise self._http_error(status, json.dumps(payload).encode(), None)
         return payload
+
+    async def _report_usage(self, json_body: dict[str, Any] | None, payload: Any) -> None:
+        """Hand the provider's own measurements to `on_usage`; accounting never breaks a request."""
+        usage = payload.get('usage') if isinstance(payload, dict) else None
+        if self.on_usage is None or not isinstance(usage, dict) or not json_body:
+            return
+        try:
+            await self.on_usage(str(payload.get('model') or json_body.get('model') or ''), usage)
+        except Exception:
+            logger.exception('Could not record AI usage')
 
     def _http_error(self, status: int, body: bytes, retry_after: str | None) -> AIProviderError:
         detail = self._redact(self._error_text(body))

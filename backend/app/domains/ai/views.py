@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -23,8 +24,10 @@ from app.domains.ai.schemas import (
     AIOptionsSchema,
     OrganizationSettingsReadSchema,
     OrganizationSettingsUpdateSchema,
+    OrganizationUsageSchema,
     RecordingResultReadSchema,
     RecordingResultsCreateSchema,
+    RecordingUsageSchema,
     RetranscribeSchema,
     SummaryTemplateCreateSchema,
     SummaryTemplateReadSchema,
@@ -39,6 +42,7 @@ from app.domains.ai.services.organization_settings_service import (
 from app.domains.ai.services.processing_request_service import ProcessingRequestService
 from app.domains.ai.services.result_service import ResultService
 from app.domains.ai.services.summary_template_service import SummaryTemplateService
+from app.domains.ai.services.usage_service import UsageReportService
 from app.domains.library.models import Recording
 from app.domains.library.schemas import RecordingDetailSchema
 from app.domains.library.services.pipeline import RecordingPipeline
@@ -48,6 +52,9 @@ from app.domains.organization.models import Organization
 from app.domains.user.models import User
 from app.shared.permissions.is_organization_admin import IsOrganizationAdmin
 from app.shared.services.filter_objects_manager import FilterObjectsManager
+
+# The longest period one spending report may cover
+MAX_USAGE_PERIOD_DAYS = 400
 
 ai_settings_router = APIRouter(prefix='/ai-settings', tags=['ai-settings'])
 summary_templates_router = APIRouter(prefix='/summary-templates', tags=['summary-templates'])
@@ -118,6 +125,18 @@ class AISettingsViewSet(BaseGenericViewSet[OrganizationSettings]):
             raise ai_error_to_app_exception(error) from error
 
     @action(methods=['GET'])
+    async def usage(
+        self,
+        since: Annotated[datetime, Query(description='Start of the period (inclusive)')],
+        until: Annotated[datetime, Query(description='End of the period (exclusive)')],
+    ) -> OrganizationUsageSchema:
+        """AI spending of the organization in a period, per user (org admins only)."""
+        if until <= since or until - since > timedelta(days=MAX_USAGE_PERIOD_DAYS):
+            raise AppException.from_attrs(ErrorCode.VALIDATION_ERROR, 'Invalid period')
+        report = await UsageReportService.organization(_current_organization().id, since, until)
+        return OrganizationUsageSchema.model_validate(report)
+
+    @action(methods=['GET'])
     async def options(self) -> AIOptionsSchema:
         """Allowed models and defaults for members; no secrets."""
         return OrganizationSettingsService.to_options(await self._settings())
@@ -163,6 +182,17 @@ class RecordingAIViewSet(BaseGenericViewSet[Recording]):
 
     async def get_queryset(self):
         return _visible_recordings(self.user)
+
+    async def get_permissions(self) -> list[BasePermission]:
+        if self.action == 'ai_usage':
+            return [IsAuthenticated(), IsOrganizationAdmin()]
+        return [IsAuthenticated()]
+
+    @action(methods=['GET'], detail=True, path='ai-usage')
+    async def ai_usage(self, item_id: UUID) -> RecordingUsageSchema:
+        """What AI work on the recording cost, by kind (org admins only)."""
+        recording = await self.get_object(item_id)
+        return RecordingUsageSchema.model_validate(await UsageReportService.recording(recording.id))
 
     @action(methods=['GET'], detail=True)
     async def results(self, item_id: UUID) -> list[RecordingResultReadSchema]:

@@ -39,6 +39,13 @@ class FakeAI:
         self.summary = '- главное'
         # «Спикер N» → name or None, as the model answers the speaker-naming request
         self.speakers: dict[str, str | None] = {}
+        # What every text answer reports as spent (OpenRouter `usage`)
+        self.text_usage: dict[str, Any] = {
+            'prompt_tokens': 1000,
+            'completion_tokens': 200,
+            'completion_tokens_details': {'reasoning_tokens': 50},
+            'cost': 0.002,
+        }
         self.audio_requests: list[dict[str, Any]] = []
         self.text_requests: list[dict[str, Any]] = []
         self.hooks: list[Any] = []
@@ -76,13 +83,14 @@ class FakeAI:
             return reply if isinstance(reply, httpx2.Response) else chat_reply(reply)
         self.text_requests.append(body)
         system = body['messages'][0]['content']
+        usage = self.text_usage
         if 'name voice recordings' in system:
-            return chat_reply(self.title)
+            return chat_reply(self.title, usage=usage)
         if 'organize voice recordings' in system:
-            return chat_reply(json.dumps(self.classification, ensure_ascii=False))
+            return chat_reply(json.dumps(self.classification, ensure_ascii=False), usage=usage)
         if 'who is who' in system:
-            return chat_reply(json.dumps({'speakers': self.speakers}, ensure_ascii=False))
-        return chat_reply(self.summary)
+            return chat_reply(json.dumps({'speakers': self.speakers}, ensure_ascii=False), usage=usage)
+        return chat_reply(self.summary, usage=usage)
 
 
 @pytest.fixture(autouse=True)

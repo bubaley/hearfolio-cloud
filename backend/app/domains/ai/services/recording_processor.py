@@ -7,7 +7,13 @@ from uuid import UUID
 from loguru import logger
 
 from app.core.services.s3_service import get_s3_service
-from app.domains.ai.models import OrganizationSettings, RecordingProcessing, RecordingResult, ResultStatus
+from app.domains.ai.models import (
+    AIUsageKind,
+    OrganizationSettings,
+    RecordingProcessing,
+    RecordingResult,
+    ResultStatus,
+)
 from app.domains.ai.services.audio_segmenter import AudioProcessingError, AudioSegmenter, Pause, SegmentRange
 from app.domains.ai.services.model_catalog_service import ModelCatalogService
 from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderError
@@ -24,6 +30,7 @@ from app.domains.ai.services.transcription_engine import (
     TranscriptionError,
     long_chunk_seconds,
 )
+from app.domains.ai.services.usage_service import UsageRecorder
 from app.domains.ai.utils.transcript_phrases import speaker_labels, speaker_transcript
 from app.domains.library.models import Recording, RecordingStatus, Tag, TitleSource, UploadState
 from app.domains.library.schemas import TranscriptSegmentSchema
@@ -41,6 +48,12 @@ CLASSIFY_TAG_CONTEXT = 300
 # Redis unavailable for the lock: retry after 30 s, 60 s, 120 s, ...
 LOCK_RETRY_ATTEMPTS = 5
 LOCK_RETRY_DELAY_SECONDS = 30
+# Which spending a post-processing step is (automatic summaries are accounted by their own generation task).
+STEP_USAGE_KINDS = {
+    'titled': AIUsageKind.TITLE,
+    'classified': AIUsageKind.TAGS,
+    'speakers_named': AIUsageKind.SPEAKERS,
+}
 
 
 class ProcessingFailure(Exception):
@@ -292,7 +305,13 @@ class RecordingProcessor:
                         segment.end_ms, settings.segment_seconds, await pauses.get(), start_ms=segment.start_ms
                     )
 
-                async with OrganizationSettingsService.build_client(settings, max_attempts=2) as client:
+                usage = UsageRecorder(
+                    recording.organization_id,
+                    AIUsageKind.TRANSCRIPTION,
+                    recording_id=recording.id,
+                    user_id=recording.created_by_id,
+                )
+                async with OrganizationSettingsService.build_client(settings, max_attempts=2, on_usage=usage) as client:
                     engine = TranscriptionEngine(
                         client,
                         self.segmenter,
@@ -351,9 +370,13 @@ class RecordingProcessor:
             steps.append(('summarized', self._auto_summaries))
         if not steps:
             return
-        async with OrganizationSettingsService.build_client(settings, max_attempts=2) as client:
+        usage = UsageRecorder(
+            recording.organization_id, AIUsageKind.TITLE, recording_id=recording.id, user_id=recording.created_by_id
+        )
+        async with OrganizationSettingsService.build_client(settings, max_attempts=2, on_usage=usage) as client:
             tasks = TextTaskService(client, model)
             for flag, step in steps:
+                usage.kind = STEP_USAGE_KINDS.get(flag, AIUsageKind.TITLE)
                 try:
                     await step(recording, settings, tasks)
                 except AIProviderError as error:

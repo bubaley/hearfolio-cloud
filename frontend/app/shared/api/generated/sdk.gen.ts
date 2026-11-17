@@ -18,6 +18,9 @@ import type {
   AiSettingsUpdateCurrentData,
   AiSettingsUpdateCurrentErrors,
   AiSettingsUpdateCurrentResponses,
+  AiSettingsUsageData,
+  AiSettingsUsageErrors,
+  AiSettingsUsageResponses,
   AuthLoginData,
   AuthLoginErrors,
   AuthLoginResponses,
@@ -135,6 +138,9 @@ import type {
   PublicShareRetrieveData,
   PublicShareRetrieveErrors,
   PublicShareRetrieveResponses,
+  RecordingAiAiUsageData,
+  RecordingAiAiUsageErrors,
+  RecordingAiAiUsageResponses,
   RecordingAiCreateResultsData,
   RecordingAiCreateResultsErrors,
   RecordingAiCreateResultsResponses,
@@ -1227,6 +1233,28 @@ export const aiSettingsOptions = <ThrowOnError extends boolean = false>(
   })
 
 /**
+ * Usage
+ *
+ * AI spending of the organization in a period, per user (org admins only).
+ */
+export const aiSettingsUsage = <ThrowOnError extends boolean = false>(
+  options: Options<AiSettingsUsageData, ThrowOnError>,
+): RequestResult<AiSettingsUsageResponses, AiSettingsUsageErrors, ThrowOnError> =>
+  (options.client ?? client).get<AiSettingsUsageResponses, AiSettingsUsageErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/ai-settings/usage',
+    ...options,
+  })
+
+/**
  * Test Connection
  *
  * Check the saved key (or unsaved `openrouter_base_url` / `openrouter_api_key`) against the provider.
@@ -1386,6 +1414,28 @@ export const summaryTemplatesUpdate = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * Ai Usage
+ *
+ * What AI work on the recording cost, by kind (org admins only).
+ */
+export const recordingAiAiUsage = <ThrowOnError extends boolean = false>(
+  options: Options<RecordingAiAiUsageData, ThrowOnError>,
+): RequestResult<RecordingAiAiUsageResponses, RecordingAiAiUsageErrors, ThrowOnError> =>
+  (options.client ?? client).get<RecordingAiAiUsageResponses, RecordingAiAiUsageErrors, ThrowOnError>({
+    security: [
+      {
+        in: 'cookie',
+        name: 'access_token',
+        type: 'apiKey',
+      },
+      { name: 'Authorization', type: 'apiKey' },
+      { scheme: 'bearer', type: 'http' },
+    ],
+    url: '/api/v1/recordings/{item_id}/ai-usage',
+    ...options,
   })
 
 /**

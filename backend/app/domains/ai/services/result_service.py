@@ -10,12 +10,13 @@ from tortoise.transactions import in_transaction
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
 from app.core.utils.date_utils import utcnow
-from app.domains.ai.models import OrganizationSettings, RecordingResult, ResultStatus, SummaryTemplate
+from app.domains.ai.models import AIUsageKind, OrganizationSettings, RecordingResult, ResultStatus, SummaryTemplate
 from app.domains.ai.schemas import RecordingResultsCreateSchema
 from app.domains.ai.services.openrouter_client import AIErrorCode, AIProviderError
 from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
 from app.domains.ai.services.task_kicker import GENERATE_RESULT_TASK, AITaskKicker
 from app.domains.ai.services.text_task_service import TextTaskService
+from app.domains.ai.services.usage_service import UsageRecorder
 from app.domains.ai.utils.transcript_phrases import speaker_transcript
 from app.domains.library.models import Recording, RecordingEventKind, RecordingStatus
 from app.domains.library.services.recording_service import RecordingService
@@ -196,7 +197,15 @@ class ResultService:
         await cls.after_change(recording, [result])
         try:
             settings = await OrganizationSettingsService.ensure(await Organization.get(id=recording.organization_id))
-            async with OrganizationSettingsService.build_client(settings, max_attempts=2) as client:
+            usage = UsageRecorder(
+                recording.organization_id,
+                AIUsageKind.SUMMARY,
+                recording_id=recording.id,
+                result_id=result.id,
+                # A manual summary is its requester's spending; an automatic one is the recording author's.
+                user_id=result.created_by_id or recording.created_by_id,
+            )
+            async with OrganizationSettingsService.build_client(settings, max_attempts=2, on_usage=usage) as client:
                 content = await TextTaskService(client, result.model).summarize(
                     speaker_transcript(recording.transcript_segments, recording.speaker_names)
                     or recording.transcript_text,

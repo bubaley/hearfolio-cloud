@@ -10,6 +10,7 @@ import {
   User,
   Users,
   UsersRound,
+  Wallet,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -39,6 +40,7 @@ export const settingsNavigation: SettingsNavigationItem[] = [
   { to: { name: 'settings-invites' }, label: 'Приглашения', icon: Mail, adminOnly: true },
   { to: { name: 'settings-sign-in' }, label: 'Вход и участники', icon: KeyRound, adminOnly: true },
   { to: { name: 'settings-ai' }, label: 'AI и модели', icon: Sparkles, adminOnly: true },
+  { to: { name: 'settings-ai-usage' }, label: 'Расходы на AI', icon: Wallet, adminOnly: true },
   { to: { name: 'settings-projects' }, label: 'Проекты', icon: Folder },
   { to: { name: 'settings-tags' }, label: 'Теги', icon: Tags },
   { to: { name: 'settings-summary-templates' }, label: 'Шаблоны саммари', icon: FileText },

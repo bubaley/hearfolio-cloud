@@ -126,6 +126,48 @@ export type AiOptionsSchema = {
 }
 
 /**
+ * AIUsageKind
+ */
+export type AiUsageKind = 'transcription' | 'title' | 'tags' | 'speakers' | 'summary'
+
+/**
+ * AIUsageTotalsSchema
+ *
+ * Sums of the provider's own measurements. `cost_usd` adds up the requests that reported a cost;
+ * `unknown_cost_requests` did not (their spending is not in `cost_usd`).
+ */
+export type AiUsageTotalsSchema = {
+  /**
+   * Requests
+   */
+  requests: number
+  /**
+   * Input Tokens
+   */
+  input_tokens: number
+  /**
+   * Output Tokens
+   */
+  output_tokens: number
+  /**
+   * Reasoning Tokens
+   */
+  reasoning_tokens: number
+  /**
+   * Audio Ms
+   */
+  audio_ms: number
+  /**
+   * Cost Usd
+   */
+  cost_usd: number
+  /**
+   * Unknown Cost Requests
+   */
+  unknown_cost_requests: number
+}
+
+/**
  * AudioUrlSchema
  */
 export type AudioUrlSchema = {
@@ -750,6 +792,29 @@ export type OrganizationUpdateSchema = {
    * Name
    */
   name: string
+}
+
+/**
+ * OrganizationUsageSchema
+ */
+export type OrganizationUsageSchema = {
+  /**
+   * Since
+   */
+  since: string
+  /**
+   * Until
+   */
+  until: string
+  /**
+   * Users
+   */
+  users: Array<UserUsageSchema>
+  total: UserUsageSchema
+  /**
+   * Accounting Since
+   */
+  accounting_since: string | null
 }
 
 /**
@@ -1727,6 +1792,66 @@ export type RecordingUpdateSchema = {
   speaker_names?: {
     [key: string]: string | null
   } | null
+}
+
+/**
+ * RecordingUsageLineSchema
+ *
+ * One kind of work on a recording; summaries are one line per summary.
+ */
+export type RecordingUsageLineSchema = {
+  /**
+   * Requests
+   */
+  requests: number
+  /**
+   * Input Tokens
+   */
+  input_tokens: number
+  /**
+   * Output Tokens
+   */
+  output_tokens: number
+  /**
+   * Reasoning Tokens
+   */
+  reasoning_tokens: number
+  /**
+   * Audio Ms
+   */
+  audio_ms: number
+  /**
+   * Cost Usd
+   */
+  cost_usd: number
+  /**
+   * Unknown Cost Requests
+   */
+  unknown_cost_requests: number
+  kind: AiUsageKind
+  /**
+   * Title
+   */
+  title: string | null
+  /**
+   * Result Id
+   */
+  result_id: string | null
+  /**
+   * Models
+   */
+  models: Array<string>
+}
+
+/**
+ * RecordingUsageSchema
+ */
+export type RecordingUsageSchema = {
+  /**
+   * Lines
+   */
+  lines: Array<RecordingUsageLineSchema>
+  total: AiUsageTotalsSchema
 }
 
 /**
@@ -2779,6 +2904,67 @@ export type UserUpdateSchema = {
    * Is Active
    */
   is_active?: boolean | null
+}
+
+/**
+ * UserUsageSchema
+ *
+ * Spending of one user in the period: automatic processing of their recordings and the summaries they asked
+ * for. `user_id` null: the user was deleted.
+ */
+export type UserUsageSchema = {
+  /**
+   * Requests
+   */
+  requests: number
+  /**
+   * Input Tokens
+   */
+  input_tokens: number
+  /**
+   * Output Tokens
+   */
+  output_tokens: number
+  /**
+   * Reasoning Tokens
+   */
+  reasoning_tokens: number
+  /**
+   * Audio Ms
+   */
+  audio_ms: number
+  /**
+   * Cost Usd
+   */
+  cost_usd: number
+  /**
+   * Unknown Cost Requests
+   */
+  unknown_cost_requests: number
+  /**
+   * User Id
+   */
+  user_id: string | null
+  /**
+   * Name
+   */
+  name: string
+  /**
+   * Recordings
+   */
+  recordings: number
+  /**
+   * Transcription Cost Usd
+   */
+  transcription_cost_usd: number
+  /**
+   * Summary Cost Usd
+   */
+  summary_cost_usd: number
+  /**
+   * Other Cost Usd
+   */
+  other_cost_usd: number
 }
 
 /**
@@ -5587,6 +5773,80 @@ export type AiSettingsOptionsResponses = {
 
 export type AiSettingsOptionsResponse = AiSettingsOptionsResponses[keyof AiSettingsOptionsResponses]
 
+export type AiSettingsUsageData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path?: never
+  query: {
+    /**
+     * Since
+     *
+     * Start of the period (inclusive)
+     */
+    since: string
+    /**
+     * Until
+     *
+     * End of the period (exclusive)
+     */
+    until: string
+  }
+  url: '/api/v1/ai-settings/usage'
+}
+
+export type AiSettingsUsageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type AiSettingsUsageError = AiSettingsUsageErrors[keyof AiSettingsUsageErrors]
+
+export type AiSettingsUsageResponses = {
+  /**
+   * Successful Response
+   */
+  200: OrganizationUsageSchema
+}
+
+export type AiSettingsUsageResponse = AiSettingsUsageResponses[keyof AiSettingsUsageResponses]
+
 export type AiSettingsTestConnectionData = {
   body: AiConnectionTestSchema
   headers?: {
@@ -6058,6 +6318,72 @@ export type SummaryTemplatesUpdateResponses = {
 }
 
 export type SummaryTemplatesUpdateResponse = SummaryTemplatesUpdateResponses[keyof SummaryTemplatesUpdateResponses]
+
+export type RecordingAiAiUsageData = {
+  body?: never
+  headers?: {
+    /**
+     * Organization-Key
+     *
+     * Key of the active organization; required by organization-scoped endpoints.
+     */
+    'Organization-Key'?: string | null
+  }
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string
+  }
+  query?: never
+  url: '/api/v1/recordings/{item_id}/ai-usage'
+}
+
+export type RecordingAiAiUsageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type RecordingAiAiUsageError = RecordingAiAiUsageErrors[keyof RecordingAiAiUsageErrors]
+
+export type RecordingAiAiUsageResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecordingUsageSchema
+}
+
+export type RecordingAiAiUsageResponse = RecordingAiAiUsageResponses[keyof RecordingAiAiUsageResponses]
 
 export type RecordingAiResultsData = {
   body?: never

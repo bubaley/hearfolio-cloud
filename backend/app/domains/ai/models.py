@@ -151,3 +151,47 @@ async def seed_organization_ai(
     from app.domains.ai.services.organization_settings_service import OrganizationSettingsService
 
     await OrganizationSettingsService.ensure(instance, using_db=using_db)
+
+
+class AIUsageKind(StrEnum):
+    TRANSCRIPTION = 'transcription'
+    TITLE = 'title'
+    TAGS = 'tags'
+    SPEAKERS = 'speakers'
+    SUMMARY = 'summary'
+
+
+class AIUsage(BaseModel):
+    """
+    One request to the AI provider and what it measured: tokens, audio seconds and the cost the provider charged
+    (OpenRouter's `usage.cost`, USD). Nothing is estimated: a value the provider did not report stays null. Rows
+    outlive the recording or summary they were made for, so period reports stay complete after deletions.
+    """
+
+    organization = fields.ForeignKeyField('models.Organization', related_name='ai_usage', on_delete=fields.CASCADE)
+    organization_id: UUID
+    recording = fields.ForeignKeyField(
+        'models.Recording', related_name='ai_usage', on_delete=fields.SET_NULL, null=True
+    )
+    recording_id: UUID | None
+    result = fields.ForeignKeyField(
+        'models.RecordingResult', related_name='ai_usage', on_delete=fields.SET_NULL, null=True
+    )
+    result_id: UUID | None
+    # Whose spending it is: the recording's author for automatic steps, the requester for a manual summary
+    user = fields.ForeignKeyField('models.User', related_name='ai_usage', on_delete=fields.SET_NULL, null=True)
+    user_id: UUID | None
+    kind = fields.CharEnumField(AIUsageKind, max_length=16)
+    model = fields.CharField(max_length=255)
+    input_tokens = fields.BigIntField(null=True)
+    output_tokens = fields.BigIntField(null=True)
+    reasoning_tokens = fields.BigIntField(null=True)
+    cached_tokens = fields.BigIntField(null=True)
+    audio_ms = fields.BigIntField(null=True)
+    cost_usd = fields.DecimalField(max_digits=20, decimal_places=10, null=True)
+
+    tenant_scope = Scope(user='organization__org_users__user_id', organization='organization_id')
+
+    class Meta:
+        table = 'ai_usage'
+        ordering = ('created_at',)

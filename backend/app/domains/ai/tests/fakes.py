@@ -9,11 +9,16 @@ import httpx2
 Reply = httpx2.Response | Callable[[httpx2.Request], httpx2.Response]
 
 
-def chat_reply(text: str, finish_reason: str | None = 'stop', status: int = 200) -> httpx2.Response:
-    return httpx2.Response(
-        status,
-        json={'model': 'test/model', 'choices': [{'message': {'content': text}, 'finish_reason': finish_reason}]},
-    )
+def chat_reply(
+    text: str, finish_reason: str | None = 'stop', status: int = 200, usage: dict[str, Any] | None = None
+) -> httpx2.Response:
+    body: dict[str, Any] = {
+        'model': 'test/model',
+        'choices': [{'message': {'content': text}, 'finish_reason': finish_reason}],
+    }
+    if usage is not None:
+        body['usage'] = usage
+    return httpx2.Response(status, json=body)
 
 
 def error_reply(status: int, message: str = 'error', headers: dict[str, str] | None = None) -> httpx2.Response:

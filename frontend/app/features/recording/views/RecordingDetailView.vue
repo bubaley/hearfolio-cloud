@@ -178,10 +178,16 @@
           />
         </AppTabPanel>
         <AppTabPanel tab-value="history">
-          <EventsList
-            :state="eventsState"
-            :model="recording.transcription_model"
-          />
+          <div class="flex flex-col gap-8">
+            <RecordingUsagePanel
+              v-if="isAdmin"
+              :recording-id="recording.id"
+            />
+            <EventsList
+              :state="eventsState"
+              :model="recording.transcription_model"
+            />
+          </div>
         </AppTabPanel>
       </AppTabs>
     </template>
@@ -233,6 +239,7 @@ import {
 } from '@lucide/vue'
 import { recordingsAudio } from '~/shared/api/generated'
 import DetailEmptyState from '../components/detail/DetailEmptyState.vue'
+import RecordingUsagePanel from '~/features/ai/components/RecordingUsagePanel.vue'
 import { transcriptParagraphs } from '../utils/transcriptParagraphs'
 import { isApiError } from '~/shared/api/client'
 import { useApiClient, useResourceItem } from '~/shared/api/useResource'

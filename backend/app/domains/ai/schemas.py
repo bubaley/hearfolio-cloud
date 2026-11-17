@@ -10,6 +10,7 @@ from app.core.models import BaseCreateSchema, BaseReadSchema, BaseSchema
 from app.domains.ai.models import (
     MAX_SEGMENT_SECONDS,
     MIN_SEGMENT_SECONDS,
+    AIUsageKind,
     RecordingResult,
     ResultStatus,
     SummaryTemplate,
@@ -176,3 +177,55 @@ class RetranscribeSchema(BaseSchema):
     model: ModelId | None = None
 
     model_config = ConfigDict(extra='forbid')
+
+
+# AI_USAGE_SCHEMAS
+
+
+class AIUsageTotalsSchema(BaseSchema):
+    """Sums of the provider's own measurements. `cost_usd` adds up the requests that reported a cost;
+    `unknown_cost_requests` did not (their spending is not in `cost_usd`)."""
+
+    requests: int
+    input_tokens: int
+    output_tokens: int
+    reasoning_tokens: int
+    audio_ms: int
+    cost_usd: float
+    unknown_cost_requests: int
+
+
+class RecordingUsageLineSchema(AIUsageTotalsSchema):
+    """One kind of work on a recording; summaries are one line per summary."""
+
+    kind: AIUsageKind
+    # The summary's title (null for other kinds, «Удалённое саммари» when it was deleted)
+    title: str | None
+    result_id: UUID | None
+    models: list[str]
+
+
+class RecordingUsageSchema(BaseSchema):
+    lines: list[RecordingUsageLineSchema]
+    total: AIUsageTotalsSchema
+
+
+class UserUsageSchema(AIUsageTotalsSchema):
+    """Spending of one user in the period: automatic processing of their recordings and the summaries they asked
+    for. `user_id` null: the user was deleted."""
+
+    user_id: UUID | None
+    name: str
+    recordings: int
+    transcription_cost_usd: float
+    summary_cost_usd: float
+    other_cost_usd: float
+
+
+class OrganizationUsageSchema(BaseSchema):
+    since: datetime
+    until: datetime
+    users: list[UserUsageSchema]
+    total: UserUsageSchema
+    # When accounting started in this organization (null: nothing accounted yet)
+    accounting_since: datetime | None

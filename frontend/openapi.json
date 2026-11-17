@@ -5326,6 +5326,163 @@
         ]
       }
     },
+    "/api/v1/ai-settings/usage": {
+      "get": {
+        "tags": [
+          "ai-settings"
+        ],
+        "summary": "Usage",
+        "description": "AI spending of the organization in a period, per user (org admins only).",
+        "operationId": "ai_settings_usage",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Start of the period (inclusive)",
+              "title": "Since"
+            },
+            "description": "Start of the period (inclusive)"
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "End of the period (exclusive)",
+              "title": "Until"
+            },
+            "description": "End of the period (exclusive)"
+          },
+          {
+            "name": "Organization-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Key of the active organization; required by organization-scoped endpoints.",
+              "title": "Organization-Key"
+            },
+            "description": "Key of the active organization; required by organization-scoped endpoints."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationUsageSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/ai-settings/test": {
       "post": {
         "tags": [
@@ -6280,6 +6437,149 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/recordings/{item_id}/ai-usage": {
+      "get": {
+        "tags": [
+          "recording-ai"
+        ],
+        "summary": "Ai Usage",
+        "description": "What AI work on the recording cost, by kind (org admins only).",
+        "operationId": "recording_ai_ai_usage",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          },
+          {
+            "name": "Organization-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Key of the active organization; required by organization-scoped endpoints.",
+              "title": "Organization-Key"
+            },
+            "description": "Key of the active organization; required by organization-scoped endpoints."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingUsageSchema"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -15323,6 +15623,61 @@
         "title": "AIOptionsSchema",
         "description": "What members may choose; no secrets."
       },
+      "AIUsageKind": {
+        "type": "string",
+        "enum": [
+          "transcription",
+          "title",
+          "tags",
+          "speakers",
+          "summary"
+        ],
+        "title": "AIUsageKind"
+      },
+      "AIUsageTotalsSchema": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "title": "Reasoning Tokens"
+          },
+          "audio_ms": {
+            "type": "integer",
+            "title": "Audio Ms"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "unknown_cost_requests": {
+            "type": "integer",
+            "title": "Unknown Cost Requests"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "audio_ms",
+          "cost_usd",
+          "unknown_cost_requests"
+        ],
+        "title": "AIUsageTotalsSchema",
+        "description": "Sums of the provider's own measurements. `cost_usd` adds up the requests that reported a cost;\n`unknown_cost_requests` did not (their spending is not in `cost_usd`)."
+      },
       "AudioUrlSchema": {
         "properties": {
           "url": {
@@ -16415,6 +16770,51 @@
           "name"
         ],
         "title": "OrganizationUpdateSchema"
+      },
+      "OrganizationUsageSchema": {
+        "properties": {
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Since"
+          },
+          "until": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Until"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/UserUsageSchema"
+            },
+            "type": "array",
+            "title": "Users"
+          },
+          "total": {
+            "$ref": "#/components/schemas/UserUsageSchema"
+          },
+          "accounting_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accounting Since"
+          }
+        },
+        "type": "object",
+        "required": [
+          "since",
+          "until",
+          "users",
+          "total",
+          "accounting_since"
+        ],
+        "title": "OrganizationUsageSchema"
       },
       "OrganizationUserCreateSchema": {
         "properties": {
@@ -18381,6 +18781,107 @@
         "title": "RecordingUpdateSchema",
         "description": "Anyone who sees the recording may rename, move between visible projects and edit tags. Visibility: author only."
       },
+      "RecordingUsageLineSchema": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "title": "Reasoning Tokens"
+          },
+          "audio_ms": {
+            "type": "integer",
+            "title": "Audio Ms"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "unknown_cost_requests": {
+            "type": "integer",
+            "title": "Unknown Cost Requests"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AIUsageKind"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "result_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Id"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "audio_ms",
+          "cost_usd",
+          "unknown_cost_requests",
+          "kind",
+          "title",
+          "result_id",
+          "models"
+        ],
+        "title": "RecordingUsageLineSchema",
+        "description": "One kind of work on a recording; summaries are one line per summary."
+      },
+      "RecordingUsageSchema": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/RecordingUsageLineSchema"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "total": {
+            "$ref": "#/components/schemas/AIUsageTotalsSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lines",
+          "total"
+        ],
+        "title": "RecordingUsageSchema"
+      },
       "RecordingVisibility": {
         "type": "string",
         "enum": [
@@ -20294,6 +20795,88 @@
         },
         "type": "object",
         "title": "UserUpdateSchema"
+      },
+      "UserUsageSchema": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "title": "Reasoning Tokens"
+          },
+          "audio_ms": {
+            "type": "integer",
+            "title": "Audio Ms"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "unknown_cost_requests": {
+            "type": "integer",
+            "title": "Unknown Cost Requests"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "recordings": {
+            "type": "integer",
+            "title": "Recordings"
+          },
+          "transcription_cost_usd": {
+            "type": "number",
+            "title": "Transcription Cost Usd"
+          },
+          "summary_cost_usd": {
+            "type": "number",
+            "title": "Summary Cost Usd"
+          },
+          "other_cost_usd": {
+            "type": "number",
+            "title": "Other Cost Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens",
+          "audio_ms",
+          "cost_usd",
+          "unknown_cost_requests",
+          "user_id",
+          "name",
+          "recordings",
+          "transcription_cost_usd",
+          "summary_cost_usd",
+          "other_cost_usd"
+        ],
+        "title": "UserUsageSchema",
+        "description": "Spending of one user in the period: automatic processing of their recordings and the summaries they asked\nfor. `user_id` null: the user was deleted."
       }
     },
     "securitySchemes": {
