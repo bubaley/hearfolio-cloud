@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.9.1] - 2026-11-17
+
+### Bug fixes
+- **docker:** track .dockerignore so image builds exclude local files (5c5b2c8)
 ## [0.9.0] - 2026-11-16
 
 ### Features
