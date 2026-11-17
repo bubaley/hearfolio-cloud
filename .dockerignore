@@ -1,0 +1,24 @@
+# Allowlist: the build context contains only what the Dockerfile copies.
+*
+!backend
+!frontend
+!docker
+!Caddyfile
+
+# Never send local environments, build output, caches or secrets.
+**/.venv
+**/node_modules
+**/.nuxt
+**/.output
+**/.data
+**/.cache
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.eslintcache
+**/coverage
+**/.DS_Store
+**/.env
+**/.env.*
