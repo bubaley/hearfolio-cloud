@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.10.0] - 2026-11-17
+
+### Features
+- AI spending per recording and per user for org admins (8dd126c)
 ## [0.9.1] - 2026-11-17
 
 ### Bug fixes
